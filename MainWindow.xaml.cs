@@ -45,6 +45,7 @@ public partial class MainWindow : FluentWindow
         // 初始化：默认激活新建报价
         SyncNavSelection("new-quotation");
         UpdateThemeIcon();
+        UpdatePaneToggleIcon();
 
         // 给设置弹窗注入 SettingsViewModel（它不在 ContentControl 的 DataTemplate 体系中）
         SettingsViewControl.DataContext = VM.SettingsViewModel;
@@ -121,12 +122,21 @@ public partial class MainWindow : FluentWindow
             : SymbolRegular.WeatherMoon20;
     }
 
+    private void UpdatePaneToggleIcon()
+    {
+        PaneToggleIcon.Symbol = RootNavView.IsPaneOpen
+            ? SymbolRegular.PanelLeftContract20   // 面板展开 → 显示收起图标
+            : SymbolRegular.PanelRightExpand20;   // 面板收起 → 显示展开图标
+    }
+
     private void TogglePane_Click(object sender, RoutedEventArgs e)
     {
         RootNavView.IsPaneOpen = !RootNavView.IsPaneOpen;
 
         // 持久化导航栏状态
         _settingsService.NavigationCollapsed = !RootNavView.IsPaneOpen;
+
+        UpdatePaneToggleIcon();
     }
 
     private void ToggleTheme_Click(object sender, RoutedEventArgs e)
