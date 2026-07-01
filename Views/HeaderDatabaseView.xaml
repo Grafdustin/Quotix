@@ -1,0 +1,526 @@
+<UserControl x:Class="Quotix.Views.HeaderDatabaseView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             Background="Transparent"
+             Loaded="OnLoaded"
+             Unloaded="OnUnloaded">
+
+    <UserControl.Resources>
+        <!-- 行容器：无焦点虚线、无选中高亮 -->
+        <Style x:Key="TableRowContainer" TargetType="ListBoxItem">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <ContentPresenter/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 负责人行模板 -->
+        <DataTemplate x:Key="OwnerRowTemplate">
+            <Border Height="42" CornerRadius="8" Margin="0,1"
+                    Background="Transparent">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex)}" Value="1">
+                                <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="169*"/>
+                        <ColumnDefinition Width="169*"/>
+                        <ColumnDefinition Width="169*"/>
+                        <ColumnDefinition Width="281*"/>
+                        <ColumnDefinition Width="100*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ui:TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="13"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  VerticalAlignment="Center"
+                                  TextTrimming="CharacterEllipsis"
+                                  Margin="14,0,4,0"/>
+                    <ui:TextBlock Grid.Column="1" Text="{Binding Phone}" FontSize="13"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  VerticalAlignment="Center"
+                                  TextTrimming="CharacterEllipsis"
+                                  Margin="4,0"/>
+                    <ui:TextBlock Grid.Column="2" Text="{Binding Tel}" FontSize="13"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  VerticalAlignment="Center"
+                                  TextTrimming="CharacterEllipsis"
+                                  Margin="4,0"/>
+                    <ui:TextBlock Grid.Column="3" Text="{Binding Email}" FontSize="13"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  VerticalAlignment="Center"
+                                  TextTrimming="CharacterEllipsis"
+                                  Margin="4,0"/>
+                    <ui:Button Grid.Column="4" Content="删除" Appearance="Danger"
+                               Height="28" FontSize="12"
+                               HorizontalAlignment="Center"
+                               Click="DeleteOwnerButton_Click"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- 客户行模板 -->
+        <DataTemplate x:Key="CustomerRowTemplate">
+            <Border Height="42" CornerRadius="8" Margin="0,1"
+                    Background="Transparent">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex)}" Value="1">
+                                <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="210*"/>
+                        <ColumnDefinition Width="158*"/>
+                        <ColumnDefinition Width="158*"/>
+                        <ColumnDefinition Width="263*"/>
+                        <ColumnDefinition Width="100*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ui:TextBlock Grid.Column="0" Text="{Binding CompanyName}" FontSize="13"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  VerticalAlignment="Center"
+                                  TextTrimming="CharacterEllipsis"
+                                  Margin="14,0,4,0"/>
+                    <ui:TextBlock Grid.Column="1" Text="{Binding Contact}" FontSize="13"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  VerticalAlignment="Center"
+                                  TextTrimming="CharacterEllipsis"
+                                  Margin="4,0"/>
+                    <ui:TextBlock Grid.Column="2" Text="{Binding Phone}" FontSize="13"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  VerticalAlignment="Center"
+                                  TextTrimming="CharacterEllipsis"
+                                  Margin="4,0"/>
+                    <ui:TextBlock Grid.Column="3" Text="{Binding Email}" FontSize="13"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  VerticalAlignment="Center"
+                                  TextTrimming="CharacterEllipsis"
+                                  Margin="4,0"/>
+                    <ui:Button Grid.Column="4" Content="删除" Appearance="Danger"
+                               Height="28" FontSize="12"
+                               HorizontalAlignment="Center"
+                               Click="DeleteCustomerButton_Click"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="24,20,24,24">
+        <Border Style="{StaticResource AppCardModern}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- ═══ Row 0：记录数 + 搜索框 ═══ -->
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ui:TextBlock Grid.Column="0"
+                                  FontSize="16" FontWeight="SemiBold"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  VerticalAlignment="Center" Margin="0,0,18,0">
+                        <Run x:Name="RecordCountRun" Text="0"
+                             Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                        <Run Text="条记录"
+                             Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    </ui:TextBlock>
+
+                    <Border Grid.Column="1" CornerRadius="8" MinWidth="220" Height="34"
+                            HorizontalAlignment="Right"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:SymbolIcon Grid.Column="0" Symbol="Search20" FontSize="14"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center" Margin="10,0,6,0"/>
+                            <TextBox Grid.Column="1" x:Name="SearchBox" Text=""
+                                     FontSize="13" VerticalContentAlignment="Center"
+                                     BorderThickness="0" Background="Transparent"
+                                     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                     TextChanged="SearchBox_TextChanged">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TextBox">
+                                                    <ScrollViewer x:Name="PART_ContentHost"
+                                                                  VerticalAlignment="Center"
+                                                                  Margin="10,0,8,0"/>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ═══ Row 1：类型切换 + 新建按钮 ═══ -->
+                <Grid Grid.Row="1" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            CornerRadius="10" Padding="4">
+                        <StackPanel Orientation="Horizontal">
+                            <Border CornerRadius="8" Padding="14,8" Margin="0,0,4,0" Cursor="Hand"
+                                    MouseLeftButtonDown="SwitchToOwner">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsOwnerTab}" Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Person20" FontSize="14"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ui:TextBlock Text="负责人库" FontSize="13" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border CornerRadius="8" Padding="14,8" Cursor="Hand"
+                                    MouseLeftButtonDown="SwitchToCustomer">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsOwnerTab}" Value="False">
+                                                <Setter Property="Background"
+                                                        Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Building20" FontSize="14"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ui:TextBlock Text="客户库" FontSize="13" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <ui:Button Grid.Column="1" x:Name="NewButton"
+                               Content="新建" Appearance="Primary"
+                               Height="32" MinWidth="80" Padding="16,0"
+                               HorizontalAlignment="Right"
+                               Click="NewButton_Click"/>
+                </Grid>
+
+                <!-- ═══ Row 2：自定义表头 ═══ -->
+
+                <!-- 负责人表头 -->
+                <Border Grid.Row="2"
+                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                        CornerRadius="8,8,0,0"
+                        Padding="0,10" Height="38"
+                        Margin="0,0,12,0"
+                        Visibility="{Binding IsOwnerTab, Converter={StaticResource BoolToVis}}"
+                        x:Name="OwnerHeader">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="169*"/>
+                            <ColumnDefinition Width="169*"/>
+                            <ColumnDefinition Width="169*"/>
+                            <ColumnDefinition Width="281*"/>
+                            <ColumnDefinition Width="100*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBlock Grid.Column="0" Text="姓名" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center"
+                                      Margin="14,0,0,0"/>
+                        <ui:TextBlock Grid.Column="1" Text="手机" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center"/>
+                        <ui:TextBlock Grid.Column="2" Text="电话" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center"/>
+                        <ui:TextBlock Grid.Column="3" Text="邮箱" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center"/>
+                        <ui:TextBlock Grid.Column="4" Text="操作" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- 客户表头 -->
+                <Border Grid.Row="2"
+                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                        CornerRadius="8,8,0,0"
+                        Padding="0,10" Height="38"
+                        Margin="0,0,12,0"
+                        Visibility="{Binding IsOwnerTab, Converter={StaticResource InverseBool}}"
+                        x:Name="CustomerHeader">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="210*"/>
+                            <ColumnDefinition Width="158*"/>
+                            <ColumnDefinition Width="158*"/>
+                            <ColumnDefinition Width="263*"/>
+                            <ColumnDefinition Width="100*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBlock Grid.Column="0" Text="公司名称" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center"
+                                      Margin="14,0,0,0"/>
+                        <ui:TextBlock Grid.Column="1" Text="联系人" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center"/>
+                        <ui:TextBlock Grid.Column="2" Text="电话" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center"/>
+                        <ui:TextBlock Grid.Column="3" Text="邮箱" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center"/>
+                        <ui:TextBlock Grid.Column="4" Text="操作" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- ═══ Row 3：列表 ═══ -->
+
+                <!-- 负责人列表 -->
+                <ListBox Grid.Row="3"
+                         x:Name="OwnerList"
+                         ItemsSource="{Binding Owners}"
+                         ItemContainerStyle="{StaticResource TableRowContainer}"
+                         ItemTemplate="{StaticResource OwnerRowTemplate}"
+                         AlternationCount="2"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         VirtualizingStackPanel.IsVirtualizing="True"
+                         VirtualizingStackPanel.ScrollUnit="Pixel"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         Visibility="{Binding IsOwnerTab, Converter={StaticResource BoolToVis}}"/>
+
+                <!-- 客户列表 -->
+                <ListBox Grid.Row="3"
+                         x:Name="CustomerList"
+                         ItemsSource="{Binding Customers}"
+                         ItemContainerStyle="{StaticResource TableRowContainer}"
+                         ItemTemplate="{StaticResource CustomerRowTemplate}"
+                         AlternationCount="2"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         VirtualizingStackPanel.IsVirtualizing="True"
+                         VirtualizingStackPanel.ScrollUnit="Pixel"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         Visibility="{Binding IsOwnerTab, Converter={StaticResource InverseBool}}"/>
+            </Grid>
+        </Border>
+
+        <!-- ═══ 新建弹窗（覆盖式居中卡片） ═══ -->
+        <Grid x:Name="AddDialogOverlay" Visibility="Collapsed" Panel.ZIndex="100">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                    MinWidth="400" MaxWidth="480"
+                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                    CornerRadius="12"
+                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="40" ShadowDepth="6"
+                                      Opacity="0.30" Color="Black"/>
+                </Border.Effect>
+                <Grid Margin="24,20,24,20">
+
+                    <!-- ===== 新建负责人表单 ===== -->
+                    <Grid Visibility="{Binding IsOwnerTab, Converter={StaticResource BoolToVis}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+                            <ui:SymbolIcon Symbol="PersonAdd20" FontSize="20" Margin="0,0,10,0"
+                                           Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                            <ui:TextBlock Text="新建负责人" FontSize="16" FontWeight="SemiBold"
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                          VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1">
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBlock Grid.Column="0" Text="姓名" FontSize="13"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center"/>
+                                <ui:TextBox Grid.Column="1" Text="{Binding NewOwnerName, UpdateSourceTrigger=PropertyChanged}"
+                                            FontSize="13" Height="34"
+                                            Padding="10,0,8,0" VerticalContentAlignment="Center"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBlock Grid.Column="0" Text="手机" FontSize="13"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center"/>
+                                <ui:TextBox Grid.Column="1" Text="{Binding NewOwnerPhone, UpdateSourceTrigger=PropertyChanged}"
+                                            FontSize="13" Height="34"
+                                            Padding="10,0,8,0" VerticalContentAlignment="Center"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBlock Grid.Column="0" Text="电话" FontSize="13"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center"/>
+                                <ui:TextBox Grid.Column="1" Text="{Binding NewOwnerTel, UpdateSourceTrigger=PropertyChanged}"
+                                            FontSize="13" Height="34"
+                                            Padding="10,0,8,0" VerticalContentAlignment="Center"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBlock Grid.Column="0" Text="邮箱" FontSize="13"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center"/>
+                                <ui:TextBox Grid.Column="1" Text="{Binding NewOwnerEmail, UpdateSourceTrigger=PropertyChanged}"
+                                            FontSize="13" Height="34"
+                                            Padding="10,0,8,0" VerticalContentAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                            <ui:Button Content="取消" Appearance="Secondary" MinWidth="90" Margin="0,0,10,0"
+                                       Click="PopupCancel_Click"/>
+                            <ui:Button Content="添加" Appearance="Primary" MinWidth="90"
+                                       Click="PopupAddOwner_Click"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ===== 新建客户表单 ===== -->
+                    <Grid Visibility="{Binding IsOwnerTab, Converter={StaticResource InverseBool}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+                            <ui:SymbolIcon Symbol="Building20" FontSize="20" Margin="0,0,10,0"
+                                           Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                            <ui:TextBlock Text="新建客户" FontSize="16" FontWeight="SemiBold"
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                          VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1">
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBlock Grid.Column="0" Text="公司" FontSize="13"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center"/>
+                                <ui:TextBox Grid.Column="1" Text="{Binding NewCustomerName, UpdateSourceTrigger=PropertyChanged}"
+                                            FontSize="13" Height="34"
+                                            Padding="10,0,8,0" VerticalContentAlignment="Center"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBlock Grid.Column="0" Text="联系人" FontSize="13"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center"/>
+                                <ui:TextBox Grid.Column="1" Text="{Binding NewCustomerContact, UpdateSourceTrigger=PropertyChanged}"
+                                            FontSize="13" Height="34"
+                                            Padding="10,0,8,0" VerticalContentAlignment="Center"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBlock Grid.Column="0" Text="电话" FontSize="13"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center"/>
+                                <ui:TextBox Grid.Column="1" Text="{Binding NewCustomerPhone, UpdateSourceTrigger=PropertyChanged}"
+                                            FontSize="13" Height="34"
+                                            Padding="10,0,8,0" VerticalContentAlignment="Center"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBlock Grid.Column="0" Text="邮箱" FontSize="13"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center"/>
+                                <ui:TextBox Grid.Column="1" Text="{Binding NewCustomerEmail, UpdateSourceTrigger=PropertyChanged}"
+                                            FontSize="13" Height="34"
+                                            Padding="10,0,8,0" VerticalContentAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                            <ui:Button Content="取消" Appearance="Secondary" MinWidth="90" Margin="0,0,10,0"
+                                       Click="PopupCancel_Click"/>
+                            <ui:Button Content="添加" Appearance="Primary" MinWidth="90"
+                                       Click="PopupAddCustomer_Click"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

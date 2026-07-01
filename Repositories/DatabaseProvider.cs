@@ -1,0 +1,105 @@
+using System.IO;
+using Microsoft.Data.Sqlite;
+
+namespace Quotix.Repositories;
+
+/// <summary>
+/// SQLite 连接管理 — 仅负责连接创建与基础 SQL 执行
+/// Schema 迁移 → MigrationService，备份恢复 → ProductExportService
+/// </summary>
+public class DatabaseProvider : IDisposable
+{
+    private bool _disposed;
+
+    public static string DbPath =>
+        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "quotation.db");
+
+    public DatabaseProvider()
+    {
+        var dir = Path.GetDirectoryName(DbPath);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+    }
+
+    /// <summary>创建并返回新的 SqliteConnection（调用者负责释放）</summary>
+    public SqliteConnection GetConnection()
+    {
+        var conn = new SqliteConnection($"Data Source={DbPath}");
+        conn.Open();
+        return conn;
+    }
+
+    /// <summary>执行非查询 SQL</summary>
+    public int ExecuteNonQuery(string sql, Dictionary<string, object?>? parameters = null)
+    {
+        using var conn = GetConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        AddParameters(cmd, parameters);
+        return cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>执行查询并对每一行调用 rowAction</summary>
+    public void ExecuteReader(
+        string sql,
+        Dictionary<string, object?>? parameters,
+        Action<SqliteDataReader> rowAction)
+    {
+        using var conn = GetConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        AddParameters(cmd, parameters);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            rowAction(reader);
+    }
+
+    /// <summary>执行查询并返回单个标量值</summary>
+    public T? ExecuteScalar<T>(string sql, Dictionary<string, object?>? parameters = null)
+    {
+        using var conn = GetConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        AddParameters(cmd, parameters);
+        var result = cmd.ExecuteScalar();
+        if (result == null || result == DBNull.Value)
+            return default;
+        return (T)Convert.ChangeType(result, typeof(T));
+    }
+
+    private static void AddParameters(SqliteCommand cmd, Dictionary<string, object?>? parameters)
+    {
+        if (parameters == null) return;
+        foreach (var kvp in parameters)
+            cmd.Parameters.AddWithValue(kvp.Key, kvp.Value ?? DBNull.Value);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        try
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// 回收 SQLite 空闲空间 — 重建数据库文件，将已删除数据占用的磁盘空间归还文件系统。
+    /// 仅应在批量删除（Clear/CleanOrphans）后调用，单行删除场景无需。
+    /// </summary>
+    public void Vacuum()
+    {
+        // 1. 先将 WAL 中待写内容刷入主数据库，避免 VACUUM 在 WAL 中产生巨量日志
+        ExecuteNonQuery("PRAGMA wal_checkpoint(TRUNCATE);");
+        // 2. 重建数据库文件，回收碎片空间
+        ExecuteNonQuery("VACUUM");
+        // 3. VACUUM 本身是重写操作，再次 checkpoint 清理它产生的 WAL
+        ExecuteNonQuery("PRAGMA wal_checkpoint(TRUNCATE);");
+    }
+}

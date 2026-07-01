@@ -1,0 +1,80 @@
+<Window x:Class="Quotix.Views.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Width="380" Height="240"
+        ResizeMode="NoResize"
+        Opacity="0">
+
+    <!-- 圆角底板 -->
+    <Border CornerRadius="14" Background="#0F172A" ClipToBounds="True">
+    <Grid x:Name="ContentGrid">
+        <!-- 圆角裁剪 -->
+        <Grid.Clip>
+            <RectangleGeometry x:Name="ContentClip" RadiusX="14" RadiusY="14"/>
+        </Grid.Clip>
+        <!-- 内容区 -->
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+
+            <!-- Logo + 光效叠加层 -->
+            <Grid Width="48" Height="48" HorizontalAlignment="Center">
+                <Image x:Name="LogoImage" Width="48" Height="48" Opacity="0">
+                    <Image.RenderTransform>
+                        <ScaleTransform x:Name="LogoScale" CenterX="24" CenterY="24"/>
+                    </Image.RenderTransform>
+                </Image>
+                <!-- 光效叠加：白色半透明层，动画驱动 -->
+                <Rectangle x:Name="LogoGlow" Width="48" Height="48"
+                           Fill="White" Opacity="0" IsHitTestVisible="False">
+                    <Rectangle.OpacityMask>
+                        <VisualBrush Visual="{Binding ElementName=LogoImage}"/>
+                    </Rectangle.OpacityMask>
+                </Rectangle>
+            </Grid>
+
+            <!-- 品牌名称 逐字母 -->
+            <StackPanel x:Name="BrandPanel"
+                        Orientation="Horizontal" HorizontalAlignment="Center"
+                        Margin="0,12,0,0">
+                <TextBlock x:Name="CharQ" Text="Q" Opacity="0"
+                           FontSize="20" FontWeight="SemiBold"
+                           Foreground="#F1F5F9" Margin="0"/>
+                <TextBlock x:Name="CharU" Text="U" Opacity="0"
+                           FontSize="20" FontWeight="SemiBold"
+                           Foreground="#F1F5F9" Margin="0"/>
+                <TextBlock x:Name="CharO" Text="O" Opacity="0"
+                           FontSize="20" FontWeight="SemiBold"
+                           Foreground="#F1F5F9" Margin="0"/>
+                <TextBlock x:Name="CharT" Text="T" Opacity="0"
+                           FontSize="20" FontWeight="SemiBold"
+                           Foreground="#F1F5F9" Margin="0"/>
+                <TextBlock x:Name="CharI" Text="I" Opacity="0"
+                           FontSize="20" FontWeight="SemiBold"
+                           Foreground="#F1F5F9" Margin="0"/>
+                <TextBlock x:Name="CharX" Text="X" Opacity="0"
+                           FontSize="20" FontWeight="SemiBold"
+                           Foreground="#F1F5F9" Margin="0"/>
+            </StackPanel>
+
+            <!-- 加载日志（动态填充） -->
+            <StackPanel x:Name="LogPanel"
+                        HorizontalAlignment="Left"
+                        Margin="0,20,0,0"/>
+
+        </StackPanel>
+
+        <!-- 底部进度条 -->
+        <Rectangle x:Name="ProgressTrack" Height="2"
+                   Fill="#1E293B"
+                   VerticalAlignment="Bottom" HorizontalAlignment="Stretch"/>
+        <Rectangle x:Name="ProgressFill" Height="2"
+                   Fill="#3B82F6"
+                   VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="0"/>
+    </Grid>
+    </Border>
+</Window>

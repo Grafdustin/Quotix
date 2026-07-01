@@ -1,0 +1,51 @@
+# ── 数据库文件 ──
+*.db
+*.sqlite
+*.sqlite3
+*.mdf
+*.ldf
+
+# ── Visual Studio ──
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# ── 编译输出 ──
+bin/
+obj/
+[Bb]uild/
+*.exe
+*.dll
+*.pdb
+
+# ── NuGet ──
+**/[Pp]ackages/*
+!**/[Pp]ackages/repositories.config
+*.nupkg
+
+# ── Rider / JetBrains ──
+.idea/
+*.sln.iml
+
+# ── VS Code ──
+.vscode/
+
+# ── macOS ──
+.DS_Store
+
+# ── Windows ──
+Thumbs.db
+Desktop.ini
+
+# ── 发布输出 ──
+publish/
+
+# ── 本地配置 / 临时文件 ──
+*.tmp
+*.temp
+
+# ── WorkBuddy 项目记忆（非代码产物） ──
+.workbuddy/

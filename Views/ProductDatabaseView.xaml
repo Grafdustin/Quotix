@@ -1,0 +1,260 @@
+<UserControl x:Class="Quotix.Views.ProductDatabaseView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             Background="Transparent"
+             Loaded="OnLoaded">
+    <Grid Margin="24,20,24,24">
+        <Border Style="{StaticResource AppCardModern}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- ═══ Row 0：记录数 + 搜索框 ═══ -->
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 记录数 -->
+                    <ui:TextBlock Grid.Column="0"
+                                  FontSize="16" FontWeight="SemiBold"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  VerticalAlignment="Center" Margin="0,0,18,0">
+                        <Run Text="{Binding TotalCount, Mode=OneWay, StringFormat={}{0:N0}}"
+                             Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                        <Run Text="条记录"
+                             Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    </ui:TextBlock>
+
+                    <!-- 搜索框 -->
+                    <Border Grid.Column="2" CornerRadius="8" MinWidth="220" Height="34"
+                            HorizontalAlignment="Right"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:SymbolIcon Grid.Column="0" Symbol="Search20" FontSize="14"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center" Margin="10,0,6,0"/>
+                            <ui:TextBox Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"                                        PlaceholderText="搜索产品..." FontSize="13"
+                                        VerticalContentAlignment="Center"
+                                        BorderThickness="0" Background="Transparent"
+                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                <ui:TextBox.Style>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TextBox">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            CornerRadius="8">
+                                                        <ScrollViewer x:Name="PART_ContentHost"
+                                                                      VerticalAlignment="Center"
+                                                                      Margin="0,0,8,0"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ui:TextBox.Style>
+                            </ui:TextBox>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ═══ Row 1：数据库切换 + 表名标签 ═══ -->
+                <Grid Grid.Row="1" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 左侧：NDT/RVI 切换 -->
+                    <Border Grid.Column="0" Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            CornerRadius="10" Padding="4">
+                        <StackPanel Orientation="Horizontal">
+                            <Border CornerRadius="8" Padding="14,8" Margin="0,0,4,0" Cursor="Hand"
+                                    MouseLeftButtonDown="SwitchToNDT">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsNDT}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Database20" FontSize="14"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ui:TextBlock Text="NDT" FontSize="13" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border CornerRadius="8" Padding="14,8" Cursor="Hand"
+                                    MouseLeftButtonDown="SwitchToRVI">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsNDT}" Value="False">
+                                                <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Database20" FontSize="14"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ui:TextBlock Text="RVI" FontSize="13" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 右侧区域：子表切换 + 表名标签 + 状态 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <!-- NDT 子表 -->
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding IsNDT, Converter={StaticResource BoolToVis}}"
+                                    VerticalAlignment="Center" Margin="0,0,12,0">
+                            <ui:Button Content="价表" Height="30" FontSize="12" MinWidth="56"
+                                       Command="{Binding SwitchNdtTableCommand}" CommandParameter="main">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Setter Property="Appearance" Value="Secondary"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMainTable}" Value="True">
+                                                <Setter Property="Appearance" Value="Primary"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
+                            <ui:Button Content="货期" Height="30" FontSize="12" MinWidth="56"
+                                       Margin="4,0,0,0"
+                                       Command="{Binding SwitchNdtTableCommand}" CommandParameter="delivery">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Setter Property="Appearance" Value="Secondary"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMainTable}" Value="False">
+                                                <Setter Property="Appearance" Value="Primary"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
+                        </StackPanel>
+
+                        <!-- RVI 子表 -->
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding IsNDT, Converter={StaticResource InverseBool}}"
+                                    VerticalAlignment="Center" Margin="0,0,12,0">
+                            <ui:TextBlock Text="数据表" VerticalAlignment="Center" FontSize="12"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
+                            <ui:Button Content="Change" Height="30" FontSize="12" MinWidth="56"
+                                       Command="{Binding SwitchRviTableCommand}" CommandParameter="change">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Setter Property="Appearance" Value="Secondary"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMainTable}" Value="True">
+                                                <Setter Property="Appearance" Value="Primary"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
+                            <ui:Button Content="OT" Height="30" FontSize="12" MinWidth="56"
+                                       Margin="4,0,0,0"
+                                       Command="{Binding SwitchRviTableCommand}" CommandParameter="ot">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Setter Property="Appearance" Value="Secondary"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMainTable}" Value="False">
+                                                <Setter Property="Appearance" Value="Primary"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ═══ Row 2：DataGrid ═══ -->
+                <DataGrid Grid.Row="2" x:Name="ProductsGrid" Style="{StaticResource ModernDataGrid}"
+                          AlternationCount="2"
+                          EnableRowVirtualization="True"
+                          EnableColumnVirtualization="True"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          ScrollViewer.IsDeferredScrollingEnabled="False"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+
+                <!-- ═══ Row 3：底部分页栏 ═══ -->
+                <DockPanel Grid.Row="3" Margin="0,12,0,0">
+                    <!-- 右侧：分页导航 -->
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <ui:Button Content="首页" Appearance="Secondary" Height="30" FontSize="12"
+                                   Command="{Binding GoToFirstPageCommand}"/>
+                        <ui:Button Content="上一页" Appearance="Secondary" Height="30" FontSize="12"
+                                   Margin="4,0,0,0"
+                                   Command="{Binding PrevPageCommand}"/>
+
+                        <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                CornerRadius="6" Padding="12,6" Margin="8,0">
+                            <ui:TextBlock FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                          VerticalAlignment="Center">
+                                <Run Text="{Binding CurrentPage, Mode=OneWay}"/>
+                                <Run Text=" / "/>
+                                <Run Text="{Binding TotalPages, Mode=OneWay}"/>
+                            </ui:TextBlock>
+                        </Border>
+
+                        <ui:Button Content="下一页" Appearance="Secondary" Height="30" FontSize="12"
+                                   Margin="4,0,0,0"
+                                   Command="{Binding NextPageCommand}"/>
+                        <ui:Button Content="末页" Appearance="Secondary" Height="30" FontSize="12"
+                                   Margin="4,0,0,0"
+                                   Command="{Binding GoToLastPageCommand}"/>
+                    </StackPanel>
+
+                    <!-- 左侧：每页条数 -->
+                    <StackPanel Orientation="Horizontal">
+                        <ui:TextBlock Text="每页显示" VerticalAlignment="Center" FontSize="12"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="PageSizeCombo" Width="75" Height="30" FontSize="12"
+                                  SelectedIndex="0"
+                                  SelectionChanged="PageSize_SelectionChanged"
+                                  VerticalAlignment="Center"
+                                  Loaded="PageSizeCombo_Loaded">
+                            <ComboBoxItem Content="50" Tag="50" FontSize="12" Padding="6,2"/>
+                            <ComboBoxItem Content="100" Tag="100" FontSize="12" Padding="6,2"/>
+                            <ComboBoxItem Content="200" Tag="200" FontSize="12" Padding="6,2"/>
+                            <ComboBoxItem Content="500" Tag="500" FontSize="12" Padding="6,2"/>
+                        </ComboBox>
+                    </StackPanel>
+                </DockPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

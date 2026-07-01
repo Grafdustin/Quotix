@@ -1,0 +1,356 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using Quotix.Services;
+using Wpf.Ui.Controls;
+using Quotix.ViewModels;
+
+namespace Quotix;
+
+public partial class MainWindow : FluentWindow
+{
+    private MainViewModel VM => (MainViewModel)DataContext;
+    private readonly AppSettingsService _settingsService;
+
+    public MainWindow(MainViewModel viewModel, AppSettingsService settingsService)
+    {
+        DataContext = viewModel;
+        _settingsService = settingsService;
+        InitializeComponent();
+        LoadIcon();
+        LoadTitleBarIcon();
+        Loaded += OnLoaded;
+        Closed += OnClosed;
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        // 恢复导航栏折叠状态
+        RootNavView.IsPaneOpen = !_settingsService.NavigationCollapsed;
+
+        // 订阅主题变化
+        VM.PropertyChanged += (s, args) =>
+        {
+            if (args.PropertyName == nameof(MainViewModel.IsDarkMode))
+                UpdateThemeIcon();
+        };
+
+        // 初始化：默认激活新建报价
+        SyncNavSelection("new-quotation");
+        UpdateThemeIcon();
+
+        // 给设置弹窗注入 SettingsViewModel（它不在 ContentControl 的 DataTemplate 体系中）
+        SettingsViewControl.DataContext = VM.SettingsViewModel;
+    }
+
+    /// <summary>
+    /// NavigationViewItem 点击事件（Click 代替 SelectionChanged，避开 TargetPageType 约束）
+    /// </summary>
+    private void OnNavItemClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is NavigationViewItem nvi)
+        {
+            var tag = nvi.Tag?.ToString();
+            if (tag == null) return;
+
+            // 切换内容
+            switch (tag)
+            {
+                case "new-quotation":
+                    VM.OpenNewQuotationTab();
+                    break;
+                case "history":
+                    VM.OpenHistoryTab();
+                    break;
+                case "product-db":
+                    VM.OpenProductDatabaseTab();
+                    break;
+                case "header-db":
+                    VM.OpenHeaderDatabaseTab();
+                    break;
+                case "settings":
+                    // 设置面板居中覆盖显示，不切换 Tab
+                    SettingsOverlay.Visibility = Visibility.Visible;
+                    return; // 不更新导航栏激活状态，保持当前页面的激活状态
+            }
+
+            // 更新激活状态
+            SyncNavSelection(tag);
+        }
+    }
+
+    /// <summary>
+    /// 关闭设置覆盖层（仅 X 按钮触发）
+    /// </summary>
+    private void SettingsOverlay_Close(object sender, RoutedEventArgs e)
+    {
+        SettingsOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// 同步导航栏的激活状态
+    /// </summary>
+    private void SyncNavSelection(string tag)
+    {
+        SetNavItemActive(RootNavView.MenuItems, tag);
+        SetNavItemActive(RootNavView.FooterMenuItems, tag);
+    }
+
+    private static void SetNavItemActive(System.Collections.IList items, string tag)
+    {
+        foreach (var item in items)
+        {
+            if (item is Wpf.Ui.Controls.NavigationViewItem nvi)
+            {
+                nvi.IsActive = nvi.Tag?.ToString() == tag;
+            }
+        }
+    }
+
+    private void UpdateThemeIcon()
+    {
+        ThemeIcon.Symbol = VM.IsDarkMode
+            ? SymbolRegular.WeatherSunny20
+            : SymbolRegular.WeatherMoon20;
+    }
+
+    private void TogglePane_Click(object sender, RoutedEventArgs e)
+    {
+        RootNavView.IsPaneOpen = !RootNavView.IsPaneOpen;
+
+        // 持久化导航栏状态
+        _settingsService.NavigationCollapsed = !RootNavView.IsPaneOpen;
+    }
+
+    private void ToggleTheme_Click(object sender, RoutedEventArgs e)
+    {
+        VM.ToggleDarkModeCommand.Execute(null);
+    }
+
+    private void LoadIcon()
+    {
+        try
+        {
+            var iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app.ico");
+            if (System.IO.File.Exists(iconPath))
+            {
+                using var stream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                var decoder = new IconBitmapDecoder(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                Icon = decoder.Frames[0];
+            }
+        }
+        catch { }
+    }
+
+    private void LoadTitleBarIcon()
+    {
+        try
+        {
+            var iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app.ico");
+            if (System.IO.File.Exists(iconPath))
+            {
+                using var stream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                var decoder = new IconBitmapDecoder(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+
+                var bestFrame = decoder.Frames[0];
+                foreach (var frame in decoder.Frames)
+                {
+                    if (frame.PixelWidth > bestFrame.PixelWidth)
+                        bestFrame = frame;
+                }
+
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bestFrame));
+                var ms = new System.IO.MemoryStream();
+                encoder.Save(ms);
+                ms.Position = 0;
+
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.StreamSource = ms;
+                bmp.EndInit();
+                bmp.Freeze();
+
+                TitleBarIconImage.Source = bmp;
+            }
+        }
+        catch { }
+    }
+
+    // ── 内嵌弹窗 ──
+
+    private DispatcherFrame? _dialogFrame;
+
+    private void DialogOverlay_CancelClick(object sender, RoutedEventArgs e)
+    {
+        _dialogResult = false;
+        DialogOverlay.Visibility = Visibility.Collapsed;
+        _dialogFrame!.Continue = false;
+    }
+
+    private void DialogOverlay_PrimaryClick(object sender, RoutedEventArgs e)
+    {
+        _dialogResult = true;
+        DialogOverlay.Visibility = Visibility.Collapsed;
+        _dialogFrame!.Continue = false;
+    }
+
+    private bool _dialogResult;
+
+    /// <summary>
+    /// 程序内嵌弹窗 — 半透明遮罩 + 居中卡片，完全避开 OS 窗口尺寸问题。
+    /// </summary>
+    public bool ShowInlineDialog(
+        string title,
+        string message,
+        SymbolRegular icon,
+        string primaryText,
+        string? cancelText = null)
+    {
+        Dispatcher.VerifyAccess();
+
+        // 填充内容
+        DialogTitle.Text = title;
+        DialogMessage.Text = message;
+        DialogIcon.Symbol = icon;
+
+        DialogPrimaryBtn.Content = primaryText;
+
+        if (cancelText != null)
+        {
+            DialogCancelBtn.Content = cancelText;
+            DialogCancelBtn.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            DialogCancelBtn.Visibility = Visibility.Collapsed;
+        }
+
+        // 确保在最前面
+        Panel.SetZIndex(DialogOverlay, 1001);
+
+        // 显示
+        DialogOverlay.Visibility = Visibility.Visible;
+
+        // 让 WPF 完成一轮 layout，确保卡片内容已 arrange
+        DialogOverlay.UpdateLayout();
+
+        // 阻塞等待用户操作
+        _dialogResult = false;
+        _dialogFrame = new DispatcherFrame();
+        Dispatcher.PushFrame(_dialogFrame);
+
+        return _dialogResult;
+    }
+
+    // ── 内嵌密码弹窗 ──
+
+    private DispatcherFrame? _pwdFrame;
+    private string? _pwdResult;
+    private bool _pwdRevealed;
+
+    private void PasswordOverlay_CancelClick(object sender, RoutedEventArgs e)
+    {
+        _pwdResult = null;
+        PasswordOverlay.Visibility = Visibility.Collapsed;
+        _pwdFrame!.Continue = false;
+    }
+
+    private void PasswordOverlay_ConfirmClick(object sender, RoutedEventArgs e)
+    {
+        _pwdResult = _pwdRevealed ? PwdRevealBox.Text : PwdBox.Password;
+        PasswordOverlay.Visibility = Visibility.Collapsed;
+        _pwdFrame!.Continue = false;
+    }
+
+    private void PwdBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+            PasswordOverlay_ConfirmClick(sender, e);
+    }
+
+    private void PwdToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _pwdRevealed = !_pwdRevealed;
+
+        if (_pwdRevealed)
+        {
+            // 切换到明文：先显示 TextBox，再隐藏 PasswordBox（避免中间空白帧）
+            PwdRevealBox.Text = PwdBox.Password;
+            PwdRevealBox.Visibility = Visibility.Visible;
+            PwdBox.Visibility = Visibility.Collapsed;
+            PwdToggleIcon.Symbol = SymbolRegular.EyeOff16;
+            PwdRevealBox.Focus();
+            PwdRevealBox.SelectAll();
+        }
+        else
+        {
+            // 切换回密码：先显示 PasswordBox，再隐藏 TextBox
+            PwdBox.Password = PwdRevealBox.Text;
+            PwdBox.Visibility = Visibility.Visible;
+            PwdRevealBox.Visibility = Visibility.Collapsed;
+            PwdToggleIcon.Symbol = SymbolRegular.Eye16;
+            PwdBox.Focus();
+        }
+    }
+
+    /// <summary>
+    /// 程序内嵌密码输入弹窗 — 半透明遮罩 + 居中卡片 + PasswordBox。
+    /// 返回用户输入的密码，取消时返回 null。
+    /// </summary>
+    public string? ShowInlinePasswordPrompt(
+        string title,
+        string message,
+        string? errorMessage = null)
+    {
+        Dispatcher.VerifyAccess();
+
+        // 填充内容
+        PwdDialogTitle.Text = title;
+        PwdDialogMessage.Text = message;
+
+        // 错误提示
+        if (!string.IsNullOrEmpty(errorMessage))
+        {
+            PwdErrorText.Text = errorMessage;
+            PwdErrorText.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            PwdErrorText.Visibility = Visibility.Collapsed;
+        }
+
+        // 清空密码框，重置显示模式
+        PwdBox.Password = string.Empty;
+        PwdRevealBox.Text = string.Empty;
+        _pwdRevealed = false;
+        PwdBox.Visibility = Visibility.Visible;
+        PwdRevealBox.Visibility = Visibility.Collapsed;
+        PwdToggleIcon.Symbol = SymbolRegular.Eye16;
+
+        // 确保在最前面
+        Panel.SetZIndex(PasswordOverlay, 1002);
+
+        // 显示
+        PasswordOverlay.Visibility = Visibility.Visible;
+        PasswordOverlay.UpdateLayout();
+
+        // 自动聚焦到密码框
+        PwdBox.Focus();
+
+        // 阻塞等待用户操作
+        _pwdResult = null;
+        _pwdFrame = new DispatcherFrame();
+        Dispatcher.PushFrame(_pwdFrame);
+
+        return _pwdResult;
+    }
+}
