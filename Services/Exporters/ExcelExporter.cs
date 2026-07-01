@@ -139,8 +139,10 @@ public class ExcelExporter : IExporter
             ws.Range(rowNum, 9, rowNum, 10).Merge();  // I-J
             ws.Range(rowNum, 11, rowNum, 12).Merge(); // K-L
 
-            // 自动行高（根据产品名称和说明内容）
+            // 自动行高（根据产品名称和说明内容），最低 35.5 pt
             row.AdjustToContents(1, MaxColumn);
+            if (row.Height < 35.5)
+                row.Height = 35.5;
         }
 
         // ── 合计行 ──
