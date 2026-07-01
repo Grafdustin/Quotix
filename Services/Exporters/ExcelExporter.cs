@@ -139,10 +139,8 @@ public class ExcelExporter : IExporter
             ws.Range(rowNum, 9, rowNum, 10).Merge();  // I-J
             ws.Range(rowNum, 11, rowNum, 12).Merge(); // K-L
 
-            // 自动行高（根据产品名称和说明内容），最低 35.5 pt
-            row.AdjustToContents(1, MaxColumn);
-            if (row.Height < 35.5)
-                row.Height = 35.5;
+            // 自动行高（对齐 Node.js 参考实现：中文字符宽度 + 换行 + 列宽容量估算）
+            row.Height = CalculateRowHeight(item.ItemName ?? "", item.Description ?? "");
         }
 
         // ── 合计行 ──
@@ -188,6 +186,75 @@ public class ExcelExporter : IExporter
         r += 2;
 
         ws.Cell(r, 1).Value = $"4. 交货方式：{q.DeliveryMethod ?? "客户项目现场，含海运、内陆运输费用及相关保险费用"}";
+    }
+
+    // ═══════════════════════════════════════════════
+    //  行高计算（对齐 Node.js 参考实现）
+    // ═══════════════════════════════════════════════
+
+    private const double LineHeight = 14.0;
+    private const double MinHeight = 35.5;
+    private const int ItemNameLineCapacity = 13;   // B 列 ~124px，宋体 9 号约 13 个字符
+    private const int DescLineCapacity = 30;        // E-G 列 ~312px，约 30 个字符
+
+    private static double CalculateRowHeight(string itemName, string description)
+    {
+        int itemNameLines = CountWrappedLines(itemName, ItemNameLineCapacity);
+        int descriptionLines = CountWrappedLines(description, DescLineCapacity);
+        int totalLines = Math.Max(itemNameLines, descriptionLines);
+
+        double calculatedHeight = totalLines * LineHeight;
+        return Math.Max(calculatedHeight, MinHeight);
+    }
+
+    /// <summary>
+    /// 计算文本在指定列宽容量下的折行数。
+    /// 中文字符/中文标点算 2 个单位，其余算 1 个单位。
+    /// </summary>
+    private static int CountWrappedLines(string text, int lineCapacity)
+    {
+        if (string.IsNullOrEmpty(text))
+            return 1;
+
+        // 按换行符拆分
+        var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        bool hasNewline = lines.Length > 1;
+
+        int maxUnits = 0;
+        foreach (var line in lines)
+        {
+            int units = CalculateWidthUnits(line);
+            if (units > maxUnits)
+                maxUnits = units;
+        }
+
+        int estimatedLines = (int)Math.Ceiling(maxUnits / (double)lineCapacity);
+        return hasNewline ? lines.Length : Math.Max(estimatedLines, 1);
+    }
+
+    /// <summary>
+    /// 计算文本的宽度单位：中文/中文标点 = 2，其他 = 1。
+    /// </summary>
+    private static int CalculateWidthUnits(string text)
+    {
+        int units = 0;
+        foreach (char c in text)
+        {
+            if (IsCjkOrPunctuation(c))
+                units += 2;
+            else
+                units += 1;
+        }
+        return units;
+    }
+
+    /// <summary>判断字符是否属于 CJK 字符或中文标点。</summary>
+    private static bool IsCjkOrPunctuation(char c)
+    {
+        return c >= 0x4E00 && c <= 0x9FFF   // CJK 统一汉字
+            || c >= 0x3000 && c <= 0x303F    // CJK 标点
+            || c >= 0xFF00 && c <= 0xFFEF    // 全角符号
+            || c >= 0x3400 && c <= 0x4DBF;   // CJK 扩展 A
     }
 
     // ═══════════════════════════════════════════════
