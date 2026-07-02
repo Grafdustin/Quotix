@@ -1,11 +1,11 @@
 {
-  "build": 1012,
-  "version": "1.0.12",
+  "build": 1011,
+  "version": "1.0.11",
   "changelog": [
     "feat: 轻量级 Updater (166 KB)"
   ],
   "releaseDate": "2026-07-03",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.10/Quotix_Setup_1.0.10.exe",
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.11/Quotix_Setup_1.0.11.exe",
   "mandatory": false,
   "fileSize": 58110594
 }
