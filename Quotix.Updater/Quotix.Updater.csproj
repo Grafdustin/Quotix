@@ -7,7 +7,7 @@
     <Nullable>disable</Nullable>
     <AssemblyName>Quotix.Updater</AssemblyName>
     <RootNamespace>Quotix.Updater</RootNamespace>
-    <UseWindowsForms>true</UseWindowsForms>
+    <!-- 框架依赖（主程序已确保 .NET 运行时存在） -->
   </PropertyGroup>
 
 </Project>
