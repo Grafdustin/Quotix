@@ -47,3 +47,47 @@ Name: "{autodesktop}\Quotix"; Filename: "{app}\Launcher\Quotix.exe"; IconFilenam
 
 [Run]
 Filename: "{app}\Launcher\Quotix.exe"; Description: "{cm:LaunchProgram,Quotix}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+; 卸载时删除 Data 目录
+Type: filesandordirs; Name: "{app}\Data"
+
+[Code]
+// 卸载时可选删除用户数据
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  DeleteData: Boolean;
+  DataDir: string;
+  AppDataDir: string;
+begin
+  // 在卸载完成后显示选项
+  if CurUninstallStep = usPostUninstall then
+  begin
+    // 检查是否有数据目录
+    DataDir := ExpandConstant('{app}\Data');
+    AppDataDir := ExpandConstant('{localappdata}\Programs\Quotix\Data');
+    
+    // 显示确认对话框
+    if MsgBox('是否删除所有用户数据（包括数据库和设置）？' + #13#10 + 
+              '选择"是"将删除所有数据，选择"否"将保留数据。',
+              mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+    begin
+      // 删除安装目录的 Data 文件夹
+      if DirExists(DataDir) then
+      begin
+        DelTree(DataDir, True, True, True);
+      end;
+      
+      // 删除可能的 AppData 残留
+      if DirExists(AppDataDir) then
+      begin
+        DelTree(AppDataDir, True, True, True);
+      end;
+      
+      // 删除设置文件（可能在其他位置）
+      DeleteFile(ExpandConstant('{localappdata}\Quotix\settings.json'));
+      DeleteFile(ExpandConstant('{localappdata}\Quotix\error.log'));
+      DelTree(ExpandConstant('{localappdata}\Quotix'), True, True, True);
+    end;
+  end;
+end;
