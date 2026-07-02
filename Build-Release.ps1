@@ -101,12 +101,12 @@ if ($Version) {
     
     Write-Host "Updating version: $currentVersion -> $Version" -ForegroundColor Green
     
-    $csprojContent = Get-Content $csprojPath -Encoding UTF8
-    $csprojContent = $csprojContent -replace '(?<=<Version>)[^<]+', $Version
-    $csprojContent = $csprojContent -replace '(?<=<AssemblyVersion>)[^<]+', "$Version.0"
-    $csprojContent = $csprojContent -replace '(?<=<FileVersion>)[^<]+', "$Version.0"
-    $csprojContent = $csprojContent -replace '(?<=<InformationalVersion>)[^<]+', $Version
-    Set-Content -Path $csprojPath -Value $csprojContent -Encoding UTF8
+    # ✔ 使用 XML DOM 更新版本号（更干净、更可靠）
+    $csproj.Project.PropertyGroup.Version = $Version
+    $csproj.Project.PropertyGroup.AssemblyVersion = "$Version.0"
+    $csproj.Project.PropertyGroup.FileVersion = "$Version.0"
+    $csproj.Project.PropertyGroup.InformationalVersion = $Version
+    $csproj.Save($csprojPath)
     
     if (-not $SkipGit) {
         git -C $ProjectDir add "$csprojPath"
