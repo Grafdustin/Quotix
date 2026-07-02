@@ -146,74 +146,49 @@ namespace Quotix.Services
 
         /// <summary>
         /// 安装更新包
-        /// 创建批处理脚本，负责：安装 → 删除安装包 → 重启应用
+        /// 启动 Updater.exe，负责：安装 → 删除安装包 → 重启应用
         /// </summary>
         /// <param name="installerPath">安装程序路径</param>
         public void InstallUpdate(string installerPath)
         {
             try
             {
-                // 获取应用路径（用于重启）
-                var currentExePath = GetCurrentExecutablePath();
+                // 获取 Updater 路径（在程序安装目录下）
+                var appDir = AppContext.BaseDirectory;
+                var updaterPath = Path.Combine(appDir, "Quotix.Updater.exe");
 
-                // 创建批处理脚本
-                var batchScriptPath = Path.Combine(
-                    Path.GetDirectoryName(installerPath)!,
-                    "install_and_restart.bat"
-                );
-
-                // 构建批处理内容
-                var batchLines = new List<string>
+                // 如果 Updater 不存在，尝试使用完整路径
+                if (!File.Exists(updaterPath))
                 {
-                    "@echo off",
-                    "chcp 65001 > nul",
-                    "echo Updating Quotix...",
-                    "",
-                    "REM 等待当前应用关闭（最多等待 5 秒）",
-                    "timeout /t 5 /nobreak > nul",
-                    "",
-                    "REM 运行安装程序（静默安装）",
-                    "echo Installing update...",
-                    $"\"{installerPath}\" /SILENT",
-                    "",
-                    "REM 等待安装完成（最多等待 60 秒）",
-                    "timeout /t 10 /nobreak > nul",
-                    "",
-                    "REM 删除安装包",
-                    "echo Deleting installer...",
-                    $"del \"{installerPath}\" /Q",
-                    "",
-                    "REM 删除此批处理脚本",
-                    "del \"%~f0\" /Q",
-                    "",
-                    "REM 启动新版本的应用",
-                    "echo Starting Quotix...",
-                    $"start \"\" \"{currentExePath}\"",
-                    "",
-                    "exit"
-                };
+                    // 尝试在 Launcher 目录下查找
+                    updaterPath = Path.Combine(appDir, "Launcher", "Quotix.Updater.exe");
+                }
 
-                var batchContent = string.Join(Environment.NewLine, batchLines);
+                if (!File.Exists(updaterPath))
+                {
+                    throw new FileNotFoundException("找不到 Updater 程序", updaterPath);
+                }
 
-                // 保存批处理脚本（使用 GBK 编码，确保批处理能正确运行）
-                File.WriteAllText(batchScriptPath, batchContent, System.Text.Encoding.GetEncoding("GBK"));
+                // 获取主程序路径（用于重启）
+                var mainAppPath = GetCurrentExecutablePath();
 
-                // 启动批处理脚本（不等待，让它在后台运行）
+                // 启动 Updater
                 var processStartInfo = new ProcessStartInfo
                 {
-                    FileName = batchScriptPath,
+                    FileName = updaterPath,
+                    Arguments = $"\"{installerPath}\" \"{mainAppPath}\"",
                     UseShellExecute = true,
                     CreateNoWindow = false  // 显示命令行窗口，方便调试
                 };
 
                 Process.Start(processStartInfo);
 
-                // 关闭当前应用（给批处理脚本时间运行）
+                // 关闭当前应用（给 Updater 时间运行）
                 System.Windows.Application.Current.Shutdown();
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"无法启动安装程序: {ex.Message}", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"无法启动更新程序: {ex.Message}", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 

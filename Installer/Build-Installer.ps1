@@ -64,6 +64,29 @@ New-Item -ItemType Directory -Path (Join-Path $stagingDir "..\Data") -Force | Ou
 
 Write-Host "Staging directory ready" -ForegroundColor Green
 
+# 3.5 Copy Updater.exe to Staging
+Write-Host "Copying Updater.exe..." -ForegroundColor Yellow
+$updaterSource = Join-Path $PSScriptRoot "..\..\Quotix.Updater\bin\Release\net10.0-windows\win-x64\publish\Quotix.Updater.exe"
+if (Test-Path $updaterSource) {
+    Copy-Item $updaterSource $launcherDir -Force
+    Write-Host "Updater.exe copied" -ForegroundColor Green
+} else {
+    Write-Host "Warning: Updater.exe not found, building..." -ForegroundColor Yellow
+    # Try to build the Updater
+    $updaterProj = Join-Path $PSScriptRoot "..\..\Quotix.Updater\Quotix.Updater.csproj"
+    if (Test-Path $updaterProj) {
+        dotnet publish $updaterProj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
+        if (Test-Path $updaterSource) {
+            Copy-Item $updaterSource $launcherDir -Force
+            Write-Host "Updater.exe built and copied" -ForegroundColor Green
+        } else {
+            Write-Host "Error: Failed to build Updater" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "Error: Updater project not found" -ForegroundColor Red
+    }
+}
+
 # 4. Compile Inno Setup script
 Write-Host "Compiling installer..." -ForegroundColor Yellow
 $issScript = Join-Path $PSScriptRoot "QuotixInstaller.iss"
