@@ -9,9 +9,8 @@ namespace Quotix.Services;
 /// </summary>
 public class AppSettingsService
 {
-    private static readonly string SettingsDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Quotix");
-    private static readonly string SettingsPath = Path.Combine(SettingsDir, "settings.json");
+    private static readonly string SettingsDir = AppPaths.DataDir;
+    private static readonly string SettingsPath = AppPaths.SettingsPath;
 
     private AppSettings _current;
 

@@ -73,7 +73,7 @@ public partial class App : Application
         {
             LogException(args.Exception);
             var innerMsg = GetInnerMostMessage(args.Exception);
-            var msg = $"程序发生未处理异常:\n\n{innerMsg}\n\n详细信息已写入:\n%LocalAppData%\\Quotix\\error.log";
+            var msg = $"程序发生未处理异常:\n\n{innerMsg}\n\n详细信息已写入:\n{AppPaths.ErrorLogPath}";
 
             try
             {
@@ -170,12 +170,9 @@ public partial class App : Application
     {
         try
         {
-            var path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Quotix", "settings.json");
-            if (File.Exists(path))
+            if (File.Exists(AppPaths.SettingsPath))
             {
-                var json = File.ReadAllText(path);
+                var json = File.ReadAllText(AppPaths.SettingsPath);
                 var settings = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(json);
                 return settings?.DarkMode ?? false;
             }
@@ -188,9 +185,7 @@ public partial class App : Application
     {
         try
         {
-            var logPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Quotix", "error.log");
+            var logPath = AppPaths.ErrorLogPath;
             var dir = Path.GetDirectoryName(logPath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                 Directory.CreateDirectory(dir);

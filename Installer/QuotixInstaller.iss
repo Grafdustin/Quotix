@@ -7,14 +7,14 @@ AppName=Quotix
 AppVersion={#MyAppVersion}
 AppPublisher=Quotix
 AppPublisherURL=https://quotix.app
-DefaultDirName={autopf}\Quotix
+DefaultDirName={localappdata}\Programs\Quotix
 DefaultGroupName=Quotix
 OutputDir=.\Out
 OutputBaseFilename=Quotix_Setup_{#MyAppVersion}
 SetupIconFile=.\Staging\Launcher\Resources\app.ico
 Compression=lzma
 SolidCompression=yes
-PrivilegesRequired=admin
+PrivilegesRequired=lowest
 DisableDirPage=no
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -35,6 +35,10 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 ; ── Launcher：主程序 + 所有 DLL 和运行时文件 ──
 Source: ".\Staging\Launcher\*"; DestDir: "{app}\Launcher"; Flags: ignoreversion recursesubdirs
+
+[Dirs]
+; ── Data：运行时数据目录（数据库、设置、日志）──
+Name: "{app}\Data"
 
 [Icons]
 Name: "{group}\Quotix"; Filename: "{app}\Launcher\Quotix.exe"; IconFilename: "{app}\Launcher\Resources\app.ico"
