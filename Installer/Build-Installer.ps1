@@ -64,27 +64,27 @@ New-Item -ItemType Directory -Path (Join-Path $stagingDir "..\Data") -Force | Ou
 
 Write-Host "Staging directory ready" -ForegroundColor Green
 
-# 3.5 Copy Updater.exe to Staging
-Write-Host "Copying Updater.exe..." -ForegroundColor Yellow
-$updaterSource = Join-Path $PSScriptRoot "..\..\Quotix.Updater\bin\Release\net10.0-windows\win-x64\Quotix.Updater.exe"
-if (Test-Path $updaterSource) {
-    Copy-Item $updaterSource $launcherDir -Force
-    Write-Host "Updater.exe copied" -ForegroundColor Green
-} else {
-    Write-Host "Warning: Updater.exe not found, building..." -ForegroundColor Yellow
-    # Try to build the Updater
-    $updaterProj = Join-Path $PSScriptRoot "..\..\Quotix.Updater\Quotix.Updater.csproj"
-    if (Test-Path $updaterProj) {
-        dotnet publish $updaterProj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
-        if (Test-Path $updaterSource) {
-            Copy-Item $updaterSource $launcherDir -Force
-            Write-Host "Updater.exe built and copied" -ForegroundColor Green
-        } else {
-            Write-Host "Error: Failed to build Updater" -ForegroundColor Red
-        }
+# 3.5 Build and Copy Updater.exe to Staging
+Write-Host "Building and copying Updater.exe..." -ForegroundColor Yellow
+$updaterProj = Join-Path $PSScriptRoot "..\Quotix.Updater\Quotix.Updater.csproj"
+$updaterSource = Join-Path $PSScriptRoot "..\Quotix.Updater\bin\Release\net10.0\win-x64\publish\Quotix.Updater.exe"
+
+# Build Updater
+if (Test-Path $updaterProj) {
+    Write-Host "Building Updater..." -ForegroundColor Cyan
+    dotnet publish $updaterProj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
+    
+    if (Test-Path $updaterSource) {
+        Copy-Item $updaterSource $launcherDir -Force
+        Write-Host "Updater.exe built and copied" -ForegroundColor Green
     } else {
-        Write-Host "Error: Updater project not found" -ForegroundColor Red
+        Write-Host "Error: Failed to build Updater" -ForegroundColor Red
+        Write-Host "Expected path: $updaterSource" -ForegroundColor Yellow
+        exit 1
     }
+} else {
+    Write-Host "Error: Updater project not found at: $updaterProj" -ForegroundColor Red
+    exit 1
 }
 
 # 4. Compile Inno Setup script
