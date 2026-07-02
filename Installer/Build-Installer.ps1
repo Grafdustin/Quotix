@@ -67,26 +67,22 @@ Write-Host "Staging directory ready" -ForegroundColor Green
 # 3.5 Build and Copy Updater files to Staging
 Write-Host "Building and copying updater files..." -ForegroundColor Yellow
 $updaterProj = Join-Path $PSScriptRoot "..\..\Quotix.Updater\Quotix.Updater.csproj"
-$updaterOutputDir = Join-Path $PSScriptRoot "..\..\Quotix.Updater\bin\Release\net10.0-windows"
+$updaterPublishDir = Join-Path $PSScriptRoot "..\..\Quotix.Updater\bin\Release\net10.0-windows\win-x64\publish"
 
-# Build Updater (framework-dependent, not self-contained)
+# Build Updater (self-contained)
 if (Test-Path $updaterProj) {
-    Write-Host "Building Updater (framework-dependent)..." -ForegroundColor Cyan
-    dotnet build $updaterProj -c Release
+    Write-Host "Publishing Updater (self-contained)..." -ForegroundColor Cyan
+    dotnet publish $updaterProj -c Release --self-contained true -r win-x64
     
-    if (Test-Path "$updaterOutputDir\Quotix.Updater.exe") {
-        # Copy all necessary files (not single-file publish)
-        Copy-Item "$updaterOutputDir\Quotix.Updater.exe" $launcherDir -Force
-        Copy-Item "$updaterOutputDir\Quotix.Updater.dll" $launcherDir -Force
-        Copy-Item "$updaterOutputDir\Quotix.Updater.deps.json" $launcherDir -Force
-        Copy-Item "$updaterOutputDir\Quotix.Updater.runtimeconfig.json" $launcherDir -Force
+    if (Test-Path "$updaterPublishDir\Quotix.Updater.exe") {
+        # Copy ALL files from publish directory (self-contained app)
+        Copy-Item "$updaterPublishDir\*" $launcherDir -Recurse -Force
         
-        # Check file sizes
-        $exeSize = (Get-Item "$launcherDir\Quotix.Updater.exe").Length / 1KB
-        $dllSize = (Get-Item "$launcherDir\Quotix.Updater.dll").Length / 1KB
-        Write-Host "Updater files copied (EXE: $([math]::Round($exeSize, 2)) KB, DLL: $([math]::Round($dllSize, 2)) KB)" -ForegroundColor Green
+        # Check file size (self-contained exe should be ~20 MB)
+        $exeSize = (Get-Item "$launcherDir\Quotix.Updater.exe").Length / 1MB
+        Write-Host "Updater files copied (self-contained, EXE: $([math]::Round($exeSize, 2)) MB)" -ForegroundColor Green
     } else {
-        Write-Host "Error: Failed to build Updater" -ForegroundColor Red
+        Write-Host "Error: Failed to publish Updater" -ForegroundColor Red
         exit 1
     }
 } else {
