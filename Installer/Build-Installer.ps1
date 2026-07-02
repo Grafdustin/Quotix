@@ -66,7 +66,7 @@ Write-Host "Staging directory ready" -ForegroundColor Green
 
 # 3.5 Copy Updater.exe to Staging
 Write-Host "Copying Updater.exe..." -ForegroundColor Yellow
-$updaterSource = Join-Path $PSScriptRoot "..\..\Quotix.Updater\bin\Release\net10.0-windows\win-x64\publish\Quotix.Updater.exe"
+$updaterSource = Join-Path $PSScriptRoot "..\..\Quotix.Updater\bin\Release\net10.0-windows\win-x64\Quotix.Updater.exe"
 if (Test-Path $updaterSource) {
     Copy-Item $updaterSource $launcherDir -Force
     Write-Host "Updater.exe copied" -ForegroundColor Green
