@@ -169,108 +169,96 @@ Write-Host ""
 Write-Host "Step 5/5: Creating GitHub Release..." -ForegroundColor Yellow
 
 $repoName = "Grafdustin/Quotix"
-$skipRelease = $false
+$tag = "v$Version"
 
-# Temporarily disable "Stop" to allow gh to return non-zero exit codes
-$oldErrorAction = $ErrorActionPreference
-$ErrorActionPreference = "Continue"
-
-# GitHub CLI 路径: D:\GitHub CLI\gh.exe
-# 检查 gh 是否可用（在 PATH 中或指定路径）
+# GitHub CLI 路径检测
 $ghPath = "gh"
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-    # 尝试常见安装路径
     $possiblePaths = @(
         "D:\GitHub CLI\gh.exe",
         "$env:LOCALAPPDATA\GitHub CLI\gh.exe",
         "$env:ProgramFiles\GitHub CLI\gh.exe"
     )
     
-    $ghFound = $false
     foreach ($path in $possiblePaths) {
         if (Test-Path $path) {
             $ghPath = $path
-            $ghFound = $true
             Write-Host "Found GitHub CLI at: $path" -ForegroundColor Green
             break
         }
     }
-    
-    if (-not $ghFound) {
-        Write-Host "Warning: GitHub CLI not found" -ForegroundColor Yellow
-        $skipRelease = $true
-    }
 }
 
-if (-not $skipRelease) {
-    & $ghPath auth status 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Warning: Not logged into GitHub CLI" -ForegroundColor Yellow
-        $skipRelease = $true
-    }
+# 检查 gh
+if (-not (Get-Command $ghPath -ErrorAction SilentlyContinue)) {
+    Write-Host "Error: GitHub CLI not found" -ForegroundColor Red
+    exit 1
 }
 
-if (-not $skipRelease) {
-    if (-not $installerPath -or -not (Test-Path $installerPath)) {
-        Write-Host "Warning: Installer not found, skipping release" -ForegroundColor Yellow
-        $skipRelease = $true
-    }
+# 登录检查
+& $ghPath auth status 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Error: GitHub CLI not authenticated" -ForegroundColor Red
+    exit 1
 }
 
-if (-not $skipRelease) {
-    $tag = "v$Version"
+# 安装包检查
+if (-not $installerPath -or -not (Test-Path $installerPath)) {
+    Write-Host "Error: Installer not found" -ForegroundColor Red
+    exit 1
+}
 
-    Write-Host "Creating release $tag..." -ForegroundColor Cyan
+Write-Host "Ensuring release exists: $tag" -ForegroundColor Cyan
 
-    $releaseNotes = "## Release Notes`r`n`r`n$CommitMessage"
+# ✔ 关键优化：先确保 release 存在（不存在就创建）
+& $ghPath release view $tag --repo $repoName 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Release not found, creating..." -ForegroundColor Yellow
 
-    & $ghPath release create $tag $installerPath `
+    & $ghPath release create $tag `
         --title "Quotix $tag" `
-        --notes $releaseNotes `
-        --repo $repoName 2>&1
+        --notes "$CommitMessage" `
+        --repo $repoName
 
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "Release created successfully!" -ForegroundColor Green
-    }
-    else {
-        Write-Host "Release may already exist, switching to upload mode..." -ForegroundColor Yellow
-
-        # Do not delete release, just overwrite file (safer)
-        & $ghPath release upload $tag $installerPath --clobber --repo $repoName
-
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "Release asset updated successfully!" -ForegroundColor Green
-        }
-        else {
-            Write-Host "Error: Failed to create/update release" -ForegroundColor Red
-            $ErrorActionPreference = $oldErrorAction
-            exit 1
-        }
-    }
-
-    # ========== version.json ==========
-    $versionInfo = @{
-        version      = $Version
-        releaseDate  = Get-Date -Format "yyyy-MM-dd"
-        releaseNotes = $CommitMessage
-        downloadUrl  = "https://github.com/$repoName/releases/download/v$Version/Quotix_Setup_$Version.exe"
-        fileSize     = "$([math]::Round((Get-Item $installerPath).Length / 1MB, 2))MB"
-        mandatory    = $false
-        whatsNew     = @($CommitMessage)
-    }
-
-    $versionJsonPath = Join-Path $ProjectDir "Resources\version.json"
-    $versionInfo | ConvertTo-Json | Set-Content $versionJsonPath -Encoding UTF8
-
-    if (-not $SkipGit) {
-        git -C $ProjectDir add "$versionJsonPath"
-        git -C $ProjectDir commit -m "Update version.json (v$Version)"
-        git -C $ProjectDir push origin main
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Error: Failed to create release" -ForegroundColor Red
+        exit 1
     }
 }
 
-# Restore original ErrorActionPreference
-$ErrorActionPreference = $oldErrorAction
+# ✔ 永远走 upload（核心稳定点）
+Write-Host "Uploading installer..." -ForegroundColor Cyan
+
+& $ghPath release upload $tag $installerPath `
+    --repo $repoName `
+    --clobber
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Error: Failed to upload asset" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Release ready!" -ForegroundColor Green
+
+# ========== version.json（只在成功后写） ==========
+$versionInfo = @{
+    version      = $Version
+    releaseDate  = Get-Date -Format "yyyy-MM-dd"
+    releaseNotes = $CommitMessage
+    downloadUrl  = "https://github.com/$repoName/releases/download/v$Version/Quotix_Setup_$Version.exe"
+    fileSize     = "$([math]::Round((Get-Item $installerPath).Length / 1MB, 2))MB"
+    mandatory    = $false
+    whatsNew     = @($CommitMessage)
+}
+
+$versionJsonPath = Join-Path $ProjectDir "Resources\version.json"
+$versionInfo | ConvertTo-Json -Depth 10 | Set-Content $versionJsonPath -Encoding UTF8
+
+if (-not $SkipGit) {
+    git -C $ProjectDir add "$versionJsonPath"
+    git -C $ProjectDir commit -m "Update version.json (v$Version)"
+    git -C $ProjectDir push origin main
+}
 
 Write-Host ""
 Write-Host "=== Release process completed ===" -ForegroundColor Green
