@@ -1,16 +1,15 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "releaseDate": "2026-07-02",
-  "releaseNotes": "发布 v1.0.2 - 实现应用内下载并自动安装更新功能",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.2/Quotix_Setup_1.0.2.exe",
-  "fullPackageUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.2/Quotix_Setup_1.0.2.exe",
+  "releaseNotes": "发布 v1.0.3 - 添加 GitHub 镜像加速（国内下载加速）",
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.3/Quotix_Setup_1.0.3.exe",
+  "fullPackageUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.3/Quotix_Setup_1.0.3.exe",
   "fileSize": "56MB",
   "sha256": "",
   "mandatory": false,
   "whatsNew": [
-    "实现应用内下载更新功能",
-    "添加更新进度显示",
-    "优化更新安装流程（下载完成后自动安装）",
+    "添加 GitHub 镜像加速（国内下载速度大幅提升）",
+    "优化更新下载逻辑",
     "修复多个编译警告"
   ]
 }
