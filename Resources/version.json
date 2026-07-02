@@ -1,11 +1,11 @@
 ﻿{
-    "version":  "1.0.4",
-    "releaseNotes":  "Test v1.0.4",
+    "version":  "1.0.5",
+    "releaseNotes":  "发布 v1.0.5",
     "whatsNew":  [
-                     "Test v1.0.4"
+                     "发布 v1.0.5"
                  ],
-    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.4/Quotix_Setup_1.0.4.exe",
+    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.5/Quotix_Setup_1.0.5.exe",
     "mandatory":  false,
     "releaseDate":  "2026-07-03",
-    "fileSize":  "55.41MB"
+    "fileSize":  "55.42MB"
 }
