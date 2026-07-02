@@ -1,6 +1,6 @@
 # Build-Installer.ps1
-# 自动化构建安装包脚本
-# 从 .csproj 读取版本号并传递给 Inno Setup 编译器
+# Automated installer build script
+# Read version from .csproj and pass to Inno Setup compiler
 
 param(
     [string]$Configuration = "Release",
@@ -11,63 +11,63 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Quotix 安装包构建脚本 ===" -ForegroundColor Cyan
+Write-Host "=== Quotix Installer Build Script ===" -ForegroundColor Cyan
 
-# 1. 读取版本号 from .csproj
-Write-Host "正在读取版本号..." -ForegroundColor Yellow
+# 1. Read version from .csproj
+Write-Host "Reading version..." -ForegroundColor Yellow
 $csprojPath = Join-Path $PSScriptRoot "..\QuotixDesktop.csproj"
 [xml]$csproj = Get-Content $csprojPath
 $version = $csproj.Project.PropertyGroup.Version
 if (-not $version) {
     $version = "1.0.0"
-    Write-Host "警告: .csproj 中未找到 Version，使用默认值: $version" -ForegroundColor Yellow
+    Write-Host "Warning: Version not found in .csproj, using default: $version" -ForegroundColor Yellow
 } else {
-    Write-Host "版本号: $version" -ForegroundColor Green
+    Write-Host "Version: $version" -ForegroundColor Green
 }
 
-# 2. 构建项目 (除非跳过)
+# 2. Build project (unless skipped)
 if (-not $SkipBuild) {
-    Write-Host "正在构建项目..." -ForegroundColor Yellow
+    Write-Host "Building project..." -ForegroundColor Yellow
     $publishDir = Join-Path $PSScriptRoot "..\bin\$Configuration\$TargetFramework\$Runtime\publish"
     dotnet publish "$csprojPath" -c $Configuration -r $Runtime --self-contained true
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "错误: 项目构建失败" -ForegroundColor Red
+        Write-Host "Error: Build failed" -ForegroundColor Red
         exit 1
     }
-    Write-Host "项目构建成功" -ForegroundColor Green
+    Write-Host "Build successful" -ForegroundColor Green
 } else {
-    Write-Host "跳过构建步骤" -ForegroundColor Gray
+    Write-Host "Skipping build step" -ForegroundColor Gray
 }
 
-# 3. 准备 Staging 目录
-Write-Host "正在准备 Staging 目录..." -ForegroundColor Yellow
+# 3. Prepare Staging directory
+Write-Host "Preparing Staging directory..." -ForegroundColor Yellow
 $stagingDir = Join-Path $PSScriptRoot "Staging"
 $launcherDir = Join-Path $stagingDir "Launcher"
 
-# 清理并重建 Staging 目录
+# Clean and recreate Staging directory
 if (Test-Path $stagingDir) {
     Remove-Item $stagingDir -Recurse -Force
 }
 New-Item -ItemType Directory -Path $launcherDir -Force | Out-Null
 
-# 从 publish 目录复制文件
+# Copy files from publish directory
 $publishDir = Join-Path $PSScriptRoot "..\bin\$Configuration\$TargetFramework\$Runtime\publish"
 Copy-Item "$publishDir\*" $launcherDir -Recurse -Force
 
-# 创建 Data 目录 (空目录，运行时自动创建)
+# Create Data directory (empty, created at runtime)
 New-Item -ItemType Directory -Path (Join-Path $stagingDir "..\Data") -Force | Out-Null
 
-Write-Host "Staging 目录准备完成" -ForegroundColor Green
+Write-Host "Staging directory ready" -ForegroundColor Green
 
-# 4. 编译 Inno Setup 脚本
-Write-Host "正在编译安装包..." -ForegroundColor Yellow
+# 4. Compile Inno Setup script
+Write-Host "Compiling installer..." -ForegroundColor Yellow
 $issScript = Join-Path $PSScriptRoot "QuotixInstaller.iss"
 $outputDir = Join-Path $PSScriptRoot "Out"
 
-# 确保输出目录存在
+# Ensure output directory exists
 New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
-# 查找 ISCC.exe
+# Find ISCC.exe
 $isccPaths = @(
     "C:\Users\Evans\AppData\Local\Programs\Inno Setup 6\ISCC.exe",
     "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
@@ -83,23 +83,24 @@ foreach ($path in $isccPaths) {
 }
 
 if (-not $iscc) {
-    Write-Host "错误: 未找到 Inno Setup 编译器 (ISCC.exe)" -ForegroundColor Red
-    Write-Host "请安装 Inno Setup 6: https://jrsoftware.org/isdl.php" -ForegroundColor Yellow
+    Write-Host "Error: Inno Setup compiler (ISCC.exe) not found" -ForegroundColor Red
+    Write-Host "Please install Inno Setup 6: https://jrsoftware.org/isdl.php" -ForegroundColor Yellow
     exit 1
 }
 
-Write-Host "使用 Inno Setup 编译器: $iscc" -ForegroundColor Gray
+Write-Host "Using Inno Setup compiler: $iscc" -ForegroundColor Gray
 
-# 执行编译 (传递版本号)
+# Execute compilation (pass version)
 & "$iscc" "/DMyAppVersion=$version" "$issScript"
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "错误: 安装包编译失败" -ForegroundColor Red
+    Write-Host "Error: Installer compilation failed" -ForegroundColor Red
     exit 1
 }
 
-# 5. 显示结果
+# 5. Show results
 $outputFile = Get-ChildItem (Join-Path $outputDir "Quotix_Setup_*.exe") | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-Write-Host "=== 安装包构建成功 ===" -ForegroundColor Green
-Write-Host "版本号: $version" -ForegroundColor Cyan
-Write-Host "输出文件: $($outputFile.FullName)" -ForegroundColor Cyan
-Write-Host "文件大小: $([math]::Round($outputFile.Length / 1MB, 2)) MB" -ForegroundColor Cyan
+Write-Host "=== Installer Build Successful ===" -ForegroundColor Green
+Write-Host "Version: $version" -ForegroundColor Cyan
+Write-Host "Output file: $($outputFile.FullName)" -ForegroundColor Cyan
+$fileSizeMB = [math]::Round($outputFile.Length / 1MB, 2)
+Write-Host "File size: $fileSizeMB MB" -ForegroundColor Cyan
