@@ -69,6 +69,7 @@ New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
 # 查找 ISCC.exe
 $isccPaths = @(
+    "C:\Users\Evans\AppData\Local\Programs\Inno Setup 6\ISCC.exe",
     "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
     "C:\Program Files\Inno Setup 6\ISCC.exe"
 )
