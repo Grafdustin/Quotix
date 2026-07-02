@@ -82,12 +82,13 @@ namespace Quotix.Services
         {
             try
             {
-                // 创建临时目录
+                // 使用 GitHub 镜像加速（国内访问加速）
+                var mirroredUrl = AccelerateGitHubUrl(downloadUrl);
                 var tempDir = Path.Combine(Path.GetTempPath(), "QuotixUpdate");
                 Directory.CreateDirectory(tempDir);
 
                 // 提取文件名
-                var fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
+                var fileName = Path.GetFileName(new Uri(mirroredUrl).LocalPath);
                 if (string.IsNullOrEmpty(fileName))
                 {
                     fileName = $"Quotix_Setup_{DateTime.Now:yyyyMMdd_HHmmss}.exe";
@@ -96,7 +97,7 @@ namespace Quotix.Services
                 var filePath = Path.Combine(tempDir, fileName);
 
                 // 下载文件（带进度）
-                using var response = await _httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                using var response = await _httpClient.GetAsync(mirroredUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
                 var totalBytes = response.Content.Headers.ContentLength ?? -1L;
@@ -185,6 +186,25 @@ namespace Quotix.Services
             {
                 System.Windows.MessageBox.Show($"无法打开下载链接: {ex.Message}", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
+        }
+
+        /// <summary>
+        /// GitHub 镜像加速
+        /// 将 github.com 链接转换为 ghfast.top 镜像链接（国内加速）
+        /// 如果镜像失败，自动 fallback 到原始链接
+        /// </summary>
+        private static string AccelerateGitHubUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+                return url;
+
+            // 如果是 GitHub Releases 下载链接，使用 ghfast.top 镜像加速
+            if (url.Contains("github.com") && url.Contains("/releases/download/"))
+            {
+                return $"https://ghfast.top/{url}";
+            }
+
+            return url;
         }
     }
 
