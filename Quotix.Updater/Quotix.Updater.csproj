@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
@@ -11,6 +11,17 @@
     <Nullable>enable</Nullable>
     <AssemblyName>Quotix.Updater</AssemblyName>
     <RootNamespace>Quotix.Updater</RootNamespace>
+    
+    <!-- 优化：裁剪未使用的代码 -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>Link</TrimMode>
+    
+    <!-- 优化：ReadyToRun 编译（提高启动速度） -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishReadyToRunComposite>true</PublishReadyToRunComposite>
+    
+    <!-- 优化：不使用此次裁剪警告 -->
+    <NoWarn>$(NoWarn);IL2026;IL2075</NoWarn>
   </PropertyGroup>
 
 </Project>
