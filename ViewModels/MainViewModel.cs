@@ -56,6 +56,9 @@ public partial class MainViewModel : ObservableObject
     /// <summary>是否深色模式（与主题服务同步）</summary>
     [ObservableProperty] private bool _isDarkMode;
 
+    /// <summary>是否有可用更新（控制更新徽章显示）</summary>
+    [ObservableProperty] private bool _hasUpdate;
+
     /// <summary>预注入的可复用 ViewModel（每次开标签页复用同一实例）</summary>
     private readonly ProductDatabaseViewModel _productDbVM;
     private readonly HeaderDatabaseViewModel _headerDbVM;
@@ -101,6 +104,10 @@ public partial class MainViewModel : ObservableObject
             ProgressPercentage = s.Percentage;
             ProgressText = s.Text;
         });
+        WeakReferenceMessenger.Default.Register<UpdateAvailableMessage>(this, (r, m) =>
+        {
+            HasUpdate = m.Value;
+        });
 
         // 加载主题设置
         _themeService.Load();
@@ -110,6 +117,8 @@ public partial class MainViewModel : ObservableObject
         // 默认打开新建报价标签页
         OpenNewQuotationTab();
     }
+
+    // ============ 标签页管理 ============
 
     // ============ 标签页管理 ============
 

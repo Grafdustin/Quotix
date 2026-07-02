@@ -37,9 +37,29 @@ public partial class SettingsViewModel : ObservableObject
             new("RVI - Change", "products_rvi_change"),
             new("RVI - OT Code", "products_rvi_ot"),
         };
+
+        // 初始化自动更新开关
+        _autoUpdateEnabled = _settingsService.AutoUpdateEnabled;
+        
+        // 如果启用了自动更新，延迟 3 秒后检查
+        if (_autoUpdateEnabled)
+        {
+            Task.Delay(3000).ContinueWith(_ =>
+            {
+                CheckForUpdatesCommand.ExecuteAsync(null);
+            }, TaskScheduler.Default);
+        }
     }
 
     [ObservableProperty] private bool _isDarkMode;
+
+    [ObservableProperty]
+    private bool _autoUpdateEnabled = true;
+
+    partial void OnAutoUpdateEnabledChanged(bool value)
+    {
+        _settingsService.AutoUpdateEnabled = value;
+    }
 
     /// <summary>应用版本号（从程序集读取，与 csproj 同步）</summary>
     public string AppVersion => $"v{AppInfo.Version}";
@@ -226,6 +246,9 @@ public partial class SettingsViewModel : ObservableObject
             if (updateInfo != null)
             {
                 UpdateStatus = $"发现新版本 v{updateInfo.Version}";
+                
+                // 发送消息通知 MainWindow 显示更新徽章
+                WeakReferenceMessenger.Default.Send(new UpdateAvailableMessage(true));
                 
                 var changelog = string.Join("\n• ", updateInfo.Changelog);
                 var fileSizeText = FormatFileSize(updateInfo.FileSize);

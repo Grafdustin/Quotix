@@ -47,6 +47,13 @@ public class AppSettingsService
         set { _current.DefaultExportPath = value; SaveToDisk(); }
     }
 
+    /// <summary>是否启用自动检测更新（读写均自动持久化，默认开启）</summary>
+    public bool AutoUpdateEnabled
+    {
+        get => _current.AutoUpdateEnabled;
+        set { _current.AutoUpdateEnabled = value; SaveToDisk(); }
+    }
+
     /// <summary>
     /// 获取默认导出路径。
     /// 未设置或路径不存在时，返回桌面下的"Quotix Exports"目录。
@@ -109,4 +116,7 @@ public class AppSettings
 
     /// <summary>用户设置的默认导出路径</summary>
     public string? DefaultExportPath { get; set; }
+
+    /// <summary>是否启用自动检测更新（默认开启）</summary>
+    public bool AutoUpdateEnabled { get; set; } = true;
 }

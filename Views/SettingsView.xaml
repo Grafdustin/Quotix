@@ -290,6 +290,7 @@
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1" Padding="16,14">
                 <StackPanel>
+                    <!-- 自动检测更新开关 -->
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -297,21 +298,45 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- 图标 -->
                         <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}">
                             <ui:SymbolIcon Symbol="ArrowSync16" FontSize="18"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
 
-                        <!-- 文字 -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <ui:TextBlock Text="自动检测更新" FontSize="14" FontWeight="Medium"
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <ui:TextBlock Text="启动时自动检查是否有新版本" FontSize="12"
+                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                          Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <ui:ToggleSwitch Grid.Column="2"
+                                         IsChecked="{Binding AutoUpdateEnabled, Mode=TwoWay}"
+                                         VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- 分隔线 -->
+                    <Rectangle Height="1" Fill="{DynamicResource CardStrokeColorDefaultBrush}"
+                               Margin="0,0,0,12"/>
+
+                    <!-- 检查更新按钮 -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 文字 -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <ui:TextBlock Text="检查更新" FontSize="14" FontWeight="Medium"
-                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                             <ui:TextBlock Text="{Binding UpdateStatus}" FontSize="12"
-                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                              Margin="0,2,0,0"/>
+                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                          Margin="0,2,0,0"/>
                         </StackPanel>
 
                         <!-- 检查更新按钮 -->
@@ -323,7 +348,8 @@
                     </Grid>
 
                     <!-- 下载进度条（正在下载时显示） -->
-                    <Grid Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVis}}">
+                    <Grid Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVis}}"
+                          Margin="0,12,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -336,10 +362,10 @@
                                      VerticalAlignment="Center"/>
 
                         <ui:TextBlock Grid.Column="1" 
-                                       Text="{Binding DownloadProgress, StringFormat='{}{0}%'}"
-                                       FontSize="12"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                       VerticalAlignment="Center"/>
+                                      Text="{Binding DownloadProgress, StringFormat='{}{0}%'}"
+                                      FontSize="12"
+                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                      VerticalAlignment="Center"/>
 
                     </Grid>
                 </StackPanel>

@@ -7,6 +7,8 @@ using System.Windows.Threading;
 using Quotix.Services;
 using Wpf.Ui.Controls;
 using Quotix.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
+using Quotix.Messages;
 
 namespace Quotix;
 
@@ -35,6 +37,12 @@ public partial class MainWindow : FluentWindow
         LoadTitleBarIcon();
         Loaded += OnLoaded;
         Closed += OnClosed;
+
+        // 订阅更新可用消息
+        WeakReferenceMessenger.Default.Register<UpdateAvailableMessage>(this, (r, m) =>
+        {
+            Dispatcher.Invoke(() => SetUpdateBadge(m.Value));
+        });
     }
 
     /// <summary>
@@ -239,6 +247,17 @@ public partial class MainWindow : FluentWindow
     }
 
     // ─── 内嵌弹窗 ───
+
+    // ── 更新徽章 ───
+
+    /// <summary>
+    /// 设置更新红点可见性。
+    /// </summary>
+    /// <param name="show">是否显示更新红点</param>
+    private void SetUpdateBadge(bool show)
+    {
+        UpdateRedDot.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+    }
 
     private DispatcherFrame? _dialogFrame;
 

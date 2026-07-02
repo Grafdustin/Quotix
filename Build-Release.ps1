@@ -247,7 +247,8 @@ $build = [int]($Version -replace '\.', '')
 # 获取文件大小（字节数）
 $fileSizeBytes = (Get-Item $installerPath).Length
 
-$versionInfo = @{
+# ✔ 使用 [Ordered]@{} 保证 JSON 字段顺序（最佳实践）
+$versionInfo = [Ordered]@{
     version      = $Version
     build        = $build
     releaseDate  = Get-Date -Format "yyyy-MM-dd"
