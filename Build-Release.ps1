@@ -13,6 +13,8 @@ param(
     
     [switch]$NoAutoIncrement,
     
+    [switch]$Force,
+    
     [string]$Configuration = "Release"
 )
 
@@ -85,10 +87,14 @@ if ($Version) {
         $existingInstaller = Join-Path $InstallerDir "Out\Quotix_Setup_$Version.exe"
         if (Test-Path $existingInstaller) {
             Write-Host "Warning: Installer already exists: $existingInstaller" -ForegroundColor Yellow
-            $confirm = Read-Host "Continue and overwrite? (y/N)"
-            if ($confirm -ne "y" -and $confirm -ne "Y") {
-                Write-Host "Cancelled" -ForegroundColor Gray
-                exit 0
+            if ($Force) {
+                Write-Host "Force mode: Overwriting existing installer..." -ForegroundColor Yellow
+            } else {
+                $confirm = Read-Host "Continue and overwrite? (y/N)"
+                if ($confirm -ne "y" -and $confirm -ne "Y") {
+                    Write-Host "Cancelled" -ForegroundColor Gray
+                    exit 0
+                }
             }
         }
     }
