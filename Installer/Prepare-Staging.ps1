@@ -33,8 +33,7 @@ Write-Host "已复制文件到 Staging\Launcher\" -ForegroundColor Green
 $files = @(
     "$LauncherDir\Quotix.exe",
     "$LauncherDir\Resources\app.ico",
-    "$LauncherDir\Resources\quotation-template.xlsx",
-    "$LauncherDir\Resources\quotation.db"
+    "$LauncherDir\Resources\quotation-template.xlsx"
 )
 
 $allOk = $true

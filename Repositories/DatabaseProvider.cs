@@ -11,23 +11,7 @@ public class DatabaseProvider : IDisposable
 {
     private bool _disposed;
 
-    public static string DbPath
-    {
-        get
-        {
-            var dbPath = AppPaths.DatabasePath;
-
-            // 首次运行：从安装目录的模板复制
-            if (!File.Exists(dbPath))
-            {
-                var templateDb = AppPaths.TemplateDatabasePath;
-                if (File.Exists(templateDb))
-                    File.Copy(templateDb, dbPath);
-            }
-
-            return dbPath;
-        }
-    }
+    public static string DbPath => AppPaths.DatabasePath;
 
     public DatabaseProvider()
     {
