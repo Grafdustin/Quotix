@@ -1,14 +1,11 @@
 {
-  "version": "1.0.7",
-  "build": 107,
-  "releaseDate": "2026-07-03",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.7/Quotix_Setup_1.0.7.exe",
-  "fileSize": 58108045,
+  "fileSize": 58116088,
+  "build": 108,
+  "version": "1.0.8",
   "mandatory": false,
+  "releaseDate": "2026-07-03",
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.8/Quotix_Setup_1.0.8.exe",
   "changelog": [
-    "优化 UpdateService：适配 version.json 格式，升级为\"标准稳定版\"格式",
-    "添加 build 字段（构建号）",
-    "fileSize 改为字节数（更精确）",
-    "releaseNotes/whatsNew 统一为 changelog 数组"
+    "升级 version.json 为\\"
   ]
 }
