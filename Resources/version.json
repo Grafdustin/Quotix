@@ -1,11 +1,11 @@
 {
-  "version": "1.0.17",
-  "build": 1017,
+  "version": "1.0.18",
+  "build": 1018,
   "releaseDate": "2026-07-03",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.17/Quotix_Setup_1.0.17.exe",
-  "fileSize": 52434696,
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.18/Quotix_Setup_1.0.18.exe",
+  "fileSize": 52430253,
   "mandatory": false,
   "changelog": [
-    "fix: 修复 MainWindow 无法加载（去掉 InfoBadge 绑定，改用后台代码控制红点）"
+    "撤销升级提示箭头，只保留设置页自动更新开关"
   ]
 }
