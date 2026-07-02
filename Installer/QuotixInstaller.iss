@@ -49,45 +49,61 @@ Name: "{autodesktop}\Quotix"; Filename: "{app}\Launcher\Quotix.exe"; IconFilenam
 Filename: "{app}\Launcher\Quotix.exe"; Description: "{cm:LaunchProgram,Quotix}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
-; 卸载时删除 Data 目录
-Type: filesandordirs; Name: "{app}\Data"
 
 [Code]
-// 卸载时可选删除用户数据
+// 卸载时可选删除数据
+// 在卸载确认后、文件删除前询问用户（usAppMutexCheck 是卸载开始前的第一个步骤）
+var
+  g_DeleteData: Boolean;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
-  DeleteData: Boolean;
-  DataDir: string;
-  AppDataDir: string;
+  msg: string;
+  res: Integer;
 begin
-  // 在卸载完成后显示选项
-  if CurUninstallStep = usPostUninstall then
+  // 在卸载开始前的步骤中询问（仅执行一次）
+  if (CurUninstallStep = usAppMutexCheck) and (not g_DeleteData) then
   begin
-    // 检查是否有数据目录
-    DataDir := ExpandConstant('{app}\Data');
-    AppDataDir := ExpandConstant('{localappdata}\Programs\Quotix\Data');
-    
-    // 显示确认对话框
-    if MsgBox('是否删除所有用户数据（包括数据库和设置）？' + #13#10 + 
-              '选择"是"将删除所有数据，选择"否"将保留数据。',
-              mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+    // 静默卸载模式下默认不删除数据
+    if UninstallSilent() then
     begin
-      // 删除安装目录的 Data 文件夹
-      if DirExists(DataDir) then
-      begin
-        DelTree(DataDir, True, True, True);
-      end;
-      
-      // 删除可能的 AppData 残留
-      if DirExists(AppDataDir) then
-      begin
-        DelTree(AppDataDir, True, True, True);
-      end;
-      
-      // 删除设置文件（可能在其他位置）
-      DeleteFile(ExpandConstant('{localappdata}\Quotix\settings.json'));
-      DeleteFile(ExpandConstant('{localappdata}\Quotix\error.log'));
-      DelTree(ExpandConstant('{localappdata}\Quotix'), True, True, True);
+      g_DeleteData := False;
+      Exit;
+    end;
+
+    msg := '即将卸载 Quotix。' + #13#10#13#10 +
+          '是否同时删除用户数据？' + #13#10 +
+          '（包括数据库、设置、日志等个人数据）' + #13#10#13#10 +
+          '选择"是"：删除所有数据' + #13#10 +
+          '选择"否"：保留数据（重新安装后可继续使用）' + #13#10 +
+          '选择"取消"：中止卸载';
+
+    res := MsgBox(msg, mbConfirmation, MB_YESNOCANCEL or MB_DEFBUTTON2);
+
+    if res = IDYES then
+    begin
+      g_DeleteData := True;    // 删除数据
+    end
+    else if res = IDNO then
+    begin
+      g_DeleteData := False;   // 保留数据
+    end
+    else  // IDCANCEL 或关闭对话框
+    begin
+      Abort();  // 中止卸载
     end;
   end;
+
+  // 在卸载文件阶段处理数据目录
+  if (CurUninstallStep = usUninstall) and g_DeleteData then
+  begin
+    // 删除安装目录的 Data 文件夹
+    if DirExists(ExpandConstant('{app}\Data')) then
+      DelTree(ExpandConstant('{app}\Data'), True, True, True);
+
+    // 删除可能的残留目录
+    DelTree(ExpandConstant('{localappdata}\Programs\Quotix'), True, True, True);
+    DelTree(ExpandConstant('{localappdata}\Quotix'), True, True, True);
+  end;
 end;
+
