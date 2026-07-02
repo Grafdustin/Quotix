@@ -1,0 +1,65 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 推送 tag 时触发（如 v1.0.2）
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore Quotix/QuotixDesktop.csproj
+    
+    - name: Build and Publish
+      run: |
+        dotnet publish Quotix/QuotixDesktop.csproj -c Release -r win-x64 --self-contained true -o publish
+      shell: pwsh
+    
+    - name: Prepare Staging
+      run: |
+        New-Item -ItemType Directory -Force -Path Quotix/Installer/Staging/Launcher
+        Copy-Item -Path publish/* -Destination Quotix/Installer/Staging/Launcher/ -Recurse
+      shell: pwsh
+    
+    - name: Install Inno Setup
+      run: |
+        $url = "https://jrsoftware.org/download/is.exe"
+        $out = "innosetup.exe"
+        Invoke-WebRequest -Uri $url -OutFile $out
+        Start-Process -FilePath $out -Args "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait
+      shell: pwsh
+    
+    - name: Build Installer
+      run: |
+        $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+        if (-not (Test-Path $iscc)) {
+          $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+        }
+        & "$iscc" /DMyAppVersion=${{ github.ref_name }} Quotix/Installer/QuotixInstaller.iss
+      shell: pwsh
+    
+    - name: Get version from tag
+      id: version
+      run: echo "VERSION=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: Quotix/Installer/Out/Quotix_Setup_*.exe
+        body_path: Quotix/Resources/version.json
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
