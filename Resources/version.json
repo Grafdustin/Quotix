@@ -1,11 +1,11 @@
 {
-  "mandatory": false,
-  "build": 1013,
-  "changelog": [
-    "修复: Updater 更新功能（正确使用 ProcessStartInfo）"
-  ],
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.13/Quotix_Setup_1.0.13.exe",
-  "fileSize": 58110793,
+  "version": "1.0.14",
+  "build": 1014,
   "releaseDate": "2026-07-03",
-  "version": "1.0.13"
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.14/Quotix_Setup_1.0.14.exe",
+  "fileSize": 58116283,
+  "mandatory": false,
+  "changelog": [
+    " feat: 自动检测更新功能（设置页开关 + 红色升级箭头提示）"
+  ]
 }
