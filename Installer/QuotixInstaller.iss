@@ -18,6 +18,10 @@ PrivilegesRequired=lowest
 DisableDirPage=no
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+; 文件版本信息（与产品版本同步）
+VersionInfoVersion={#MyAppVersion}
+VersionInfoCompany=Quotix
+VersionInfoCopyright=Copyright (C) 2026 Quotix
 UninstallDisplayIcon={app}\Launcher\Quotix.exe
 UninstallFilesDir={app}\Uninstall
 WizardStyle=modern
