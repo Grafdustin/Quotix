@@ -263,7 +263,38 @@ $versionInfo | ConvertTo-Json -Depth 10 | Set-Content $versionJsonPath -Encoding
 if (-not $SkipGit) {
     git -C $ProjectDir add "$versionJsonPath"
     git -C $ProjectDir commit -m "Update version.json (v$Version)"
-    git -C $ProjectDir push origin main
+    
+    # 尝试 Git 推送
+    git -C $ProjectDir push origin main 2>$null
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Warning: Git push failed, using GitHub API to update version.json..." -ForegroundColor Yellow
+        
+        # 使用 GitHub API 直接更新 version.json
+        $ghPath = (Get-Command "gh" -ErrorAction SilentlyContinue).Source
+        if (-not $ghPath) {
+            $ghPath = "D:\GitHub CLI\gh.exe"
+        }
+        
+        $content = Get-Content $versionJsonPath -Raw
+        $encodedContent = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($content))
+        $fileSha = & $ghPath api "repos/$repoName/contents/Resources/version.json" --jq ".sha" 2>$null
+        
+        $body = @{
+            message = "Update version.json (v$Version)"
+            content = $encodedContent
+            sha     = $fileSha
+        } | ConvertTo-Json
+        
+        $tempFile = Join-Path $ProjectDir "temp_version_update.json"
+        $body | Out-File -FilePath $tempFile -Encoding UTF8
+        
+        & $ghPath api "repos/$repoName/contents/Resources/version.json" --method PUT --input $tempFile 2>$null
+        
+        Remove-Item $tempFile -Force 2>$null
+        
+        Write-Host "version.json updated via GitHub API" -ForegroundColor Green
+    }
 }
 
 Write-Host ""
