@@ -38,6 +38,15 @@ _ReSharper*/
 *.user
 *.sln.docstates
 
+# 构建产物
+Out/
+Staging/
+Installer/Out/
+Installer/Staging/
+
+# 日志
+*.log
+
 # 忽略临时文件
 *.tmp
 *.temp
@@ -57,4 +66,3 @@ Desktop.ini
 
 # 忽略安装包输出（可选）
 # Installer/Out/
-
