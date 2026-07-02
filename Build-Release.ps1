@@ -175,13 +175,35 @@ $skipRelease = $false
 $oldErrorAction = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
 
+# GitHub CLI 路径: D:\GitHub CLI\gh.exe
+# 检查 gh 是否可用（在 PATH 中或指定路径）
+$ghPath = "gh"
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-    Write-Host "Warning: GitHub CLI not installed" -ForegroundColor Yellow
-    $skipRelease = $true
+    # 尝试常见安装路径
+    $possiblePaths = @(
+        "D:\GitHub CLI\gh.exe",
+        "$env:LOCALAPPDATA\GitHub CLI\gh.exe",
+        "$env:ProgramFiles\GitHub CLI\gh.exe"
+    )
+    
+    $ghFound = $false
+    foreach ($path in $possiblePaths) {
+        if (Test-Path $path) {
+            $ghPath = $path
+            $ghFound = $true
+            Write-Host "Found GitHub CLI at: $path" -ForegroundColor Green
+            break
+        }
+    }
+    
+    if (-not $ghFound) {
+        Write-Host "Warning: GitHub CLI not found" -ForegroundColor Yellow
+        $skipRelease = $true
+    }
 }
 
 if (-not $skipRelease) {
-    & gh auth status 2>$null
+    & $ghPath auth status 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Warning: Not logged into GitHub CLI" -ForegroundColor Yellow
         $skipRelease = $true
@@ -202,7 +224,7 @@ if (-not $skipRelease) {
 
     $releaseNotes = "## Release Notes`r`n`r`n$CommitMessage"
 
-    & gh release create $tag $installerPath `
+    & $ghPath release create $tag $installerPath `
         --title "Quotix $tag" `
         --notes $releaseNotes `
         --repo $repoName 2>&1
@@ -214,7 +236,7 @@ if (-not $skipRelease) {
         Write-Host "Release may already exist, switching to upload mode..." -ForegroundColor Yellow
 
         # Do not delete release, just overwrite file (safer)
-        & gh release upload $tag $installerPath --clobber --repo $repoName
+        & $ghPath release upload $tag $installerPath --clobber --repo $repoName
 
         if ($LASTEXITCODE -eq 0) {
             Write-Host "Release asset updated successfully!" -ForegroundColor Green
