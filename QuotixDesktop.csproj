@@ -27,9 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Resources\quotation.db">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Resources\quotation-template.xlsx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
