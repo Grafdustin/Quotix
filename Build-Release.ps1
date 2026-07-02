@@ -162,67 +162,87 @@ if (Test-Path $buildInstallerScript) {
 Write-Host ""
 Write-Host "Step 5/5: Creating GitHub Release..." -ForegroundColor Yellow
 
-$ghPath = "D:\GitHub CLI\gh.exe"
+$repoName = "Grafdustin/Quotix"
+$skipRelease = $false
 
-if (Test-Path $ghPath) {
-    $ghAuthStatus = & "$ghPath" auth status 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        if ($installerPath -and (Test-Path $installerPath)) {
-            $existingRelease = & "$ghPath" release view "v$Version" 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "Warning: Release v$Version already exists" -ForegroundColor Yellow
-                $confirm = Read-Host "Delete and recreate? (y/N)"
-                if ($confirm -eq "y" -or $confirm -eq "Y") {
-                    & "$ghPath" release delete "v$Version" --yes
-                    Write-Host "Deleted old release" -ForegroundColor Green
-                } else {
-                    Write-Host "Skipping release creation" -ForegroundColor Gray
-                    Write-Host ""
-                    Write-Host "=== Release process completed ===" -ForegroundColor Green
-                    exit 0
-                }
-            }
-            
-            $releaseNotes = "## Release Notes`r`n`r`n$CommitMessage`r`n`r`n## Installation`r`n`r`nDownload and run the installer."
-            
-            Write-Host "Creating release v$Version..." -ForegroundColor Cyan
-            & "$ghPath" release create "v$Version" "$installerPath" --title "Quotix v$Version" --notes "$releaseNotes" --repo "Grafdustin/Quotix"
-            
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "Release created successfully!" -ForegroundColor Green
-                Write-Host "Release URL: https://github.com/Grafdustin/Quotix/releases/tag/v$Version" -ForegroundColor Cyan
-                
-                $versionInfo = @{
-                    version = $Version
-                    releaseDate = Get-Date -Format "yyyy-MM-dd"
-                    releaseNotes = $CommitMessage
-                    downloadUrl = "https://github.com/Grafdustin/Quotix/releases/download/v$Version/Quotix_Setup_$Version.exe"
-                    fileSize = "$([math]::Round((Get-Item $installerPath).Length / 1MB, 2))MB"
-                    mandatory = $false
-                    whatsNew = @($CommitMessage)
-                }
-                
-                $versionJsonPath = Join-Path $ProjectDir "Resources\version.json"
-                $versionInfo | ConvertTo-Json | Set-Content -Path $versionJsonPath -Encoding UTF8
-                
-                if (-not $SkipGit) {
-                    git -C $ProjectDir add "$versionJsonPath"
-                    git -C $ProjectDir commit -m "Update version.json (v$Version)"
-                    git -C $ProjectDir push origin main
-                    Write-Host "version.json updated and pushed" -ForegroundColor Green
-                }
-            } else {
-                Write-Host "Error: Failed to create release" -ForegroundColor Red
-            }
-        } else {
-            Write-Host "Warning: Installer not found, skipping release creation" -ForegroundColor Yellow
-        }
-    } else {
-        Write-Host "Warning: Not logged into GitHub CLI, skipping release creation" -ForegroundColor Yellow
-    }
-} else {
-    Write-Host "Warning: GitHub CLI not found, skipping release creation" -ForegroundColor Yellow
+# Temporarily disable "Stop" to allow gh to return non-zero exit codes
+$oldErrorAction = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+
+if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+    Write-Host "Warning: GitHub CLI not installed" -ForegroundColor Yellow
+    $skipRelease = $true
 }
+
+if (-not $skipRelease) {
+    & gh auth status 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Warning: Not logged into GitHub CLI" -ForegroundColor Yellow
+        $skipRelease = $true
+    }
+}
+
+if (-not $skipRelease) {
+    if (-not $installerPath -or -not (Test-Path $installerPath)) {
+        Write-Host "Warning: Installer not found, skipping release" -ForegroundColor Yellow
+        $skipRelease = $true
+    }
+}
+
+if (-not $skipRelease) {
+    $tag = "v$Version"
+
+    Write-Host "Creating release $tag..." -ForegroundColor Cyan
+
+    $releaseNotes = "## Release Notes`r`n`r`n$CommitMessage"
+
+    & gh release create $tag $installerPath `
+        --title "Quotix $tag" `
+        --notes $releaseNotes `
+        --repo $repoName 2>&1
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Release created successfully!" -ForegroundColor Green
+    }
+    else {
+        Write-Host "Release may already exist, switching to upload mode..." -ForegroundColor Yellow
+
+        # Do not delete release, just overwrite file (safer)
+        & gh release upload $tag $installerPath --clobber --repo $repoName
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release asset updated successfully!" -ForegroundColor Green
+        }
+        else {
+            Write-Host "Error: Failed to create/update release" -ForegroundColor Red
+            $ErrorActionPreference = $oldErrorAction
+            exit 1
+        }
+    }
+
+    # ========== version.json ==========
+    $versionInfo = @{
+        version      = $Version
+        releaseDate  = Get-Date -Format "yyyy-MM-dd"
+        releaseNotes = $CommitMessage
+        downloadUrl  = "https://github.com/$repoName/releases/download/v$Version/Quotix_Setup_$Version.exe"
+        fileSize     = "$([math]::Round((Get-Item $installerPath).Length / 1MB, 2))MB"
+        mandatory    = $false
+        whatsNew     = @($CommitMessage)
+    }
+
+    $versionJsonPath = Join-Path $ProjectDir "Resources\version.json"
+    $versionInfo | ConvertTo-Json | Set-Content $versionJsonPath -Encoding UTF8
+
+    if (-not $SkipGit) {
+        git -C $ProjectDir add "$versionJsonPath"
+        git -C $ProjectDir commit -m "Update version.json (v$Version)"
+        git -C $ProjectDir push origin main
+    }
+}
+
+# Restore original ErrorActionPreference
+$ErrorActionPreference = $oldErrorAction
 
 Write-Host ""
 Write-Host "=== Release process completed ===" -ForegroundColor Green
