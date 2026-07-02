@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -14,17 +15,20 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ProductImportService _productImport;
     private readonly ProductService _productService;
     private readonly DialogService _dialog;
+    private readonly UpdateService _updateService;
 
     public SettingsViewModel(
         ProductImportService productImport,
         ProductService productService,
         AppSettingsService settingsService,
-        DialogService dialog)
+        DialogService dialog,
+        UpdateService updateService)
     {
         _productImport = productImport;
         _productService = productService;
         _settingsService = settingsService;
         _dialog = dialog;
+        _updateService = updateService;
 
         DatabaseOptions = new ObservableCollection<DatabaseOption>
         {
@@ -192,6 +196,110 @@ public partial class SettingsViewModel : ObservableObject
         {
             SendProgress(false, 100, "");
             _dialog.ShowError($"清理失败: {ex.Message}");
+        }
+    }
+
+    // —— 检查更新 ——
+
+    [ObservableProperty]
+    private bool _isCheckingUpdate;
+
+    [ObservableProperty]
+    private string _updateStatus = "检查更新";
+
+    [ObservableProperty]
+    private bool _isDownloading;
+
+    [ObservableProperty]
+    private int _downloadProgress;
+
+    [RelayCommand]
+    private async Task CheckForUpdates()
+    {
+        IsCheckingUpdate = true;
+        UpdateStatus = "正在检查更新...";
+
+        try
+        {
+            var updateInfo = await _updateService.CheckForUpdatesAsync();
+
+            if (updateInfo != null)
+            {
+                UpdateStatus = $"发现新版本 v{updateInfo.Version}";
+                
+                var whatsNew = string.Join("\n• ", updateInfo.WhatsNew);
+                var message = $"发现新版本 v{updateInfo.Version}（当前版本：{AppInfo.Version}）\n\n" +
+                              $"发布日期：{updateInfo.ReleaseDate}\n" +
+                              $"文件大小：{updateInfo.FileSize}\n\n" +
+                              $"更新内容：\n• {whatsNew}\n\n" +
+                              $"是否现在下载并更新？";
+
+                if (_dialog.ShowConfirm(message, "发现新版本"))
+                {
+                    // 开始下载
+                    UpdateStatus = "正在下载更新包...";
+                    IsDownloading = true;
+                    DownloadProgress = 0;
+
+                    var progress = new Progress<int>(percent =>
+                    {
+                        DownloadProgress = percent;
+                        UpdateStatus = $"正在下载更新包... {percent}%";
+                    });
+
+                    var installerPath = await _updateService.DownloadUpdateAsync(
+                        updateInfo.DownloadUrl,
+                        progress
+                    );
+
+                    IsDownloading = false;
+
+                    if (installerPath != null)
+                    {
+                        // 下载成功，询问用户是否现在安装
+                        UpdateStatus = "下载完成，准备安装...";
+                        
+                        if (_dialog.ShowConfirm(
+                            $"更新包已下载完成。\n\n" +
+                            $"点击\"确定\"将开始安装更新，应用将自动重启。\n\n" +
+                            $"是否现在安装？",
+                            "准备安装"))
+                        {
+                            // 启动安装程序并关闭应用
+                            _updateService.InstallUpdate(installerPath);
+                        }
+                        else
+                        {
+                            UpdateStatus = "下载完成，等待安装";
+                        }
+                    }
+                    else
+                    {
+                        // 下载失败
+                        UpdateStatus = "下载失败";
+                        if (_dialog.ShowConfirm(
+                            "自动下载失败，是否打开浏览器手动下载？",
+                            "下载失败"))
+                        {
+                            _updateService.OpenDownloadPage(updateInfo.DownloadUrl);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                UpdateStatus = "已经是最新版本";
+                _dialog.ShowInfo($"当前版本 v{AppInfo.Version} 已经是最新版本。", "检查更新");
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus = "检查更新失败";
+            _dialog.ShowError($"检查更新失败: {ex.Message}");
+        }
+        finally
+        {
+            IsCheckingUpdate = false;
         }
     }
 }

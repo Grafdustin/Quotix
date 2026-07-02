@@ -41,6 +41,7 @@ public static class DiConfig
         services.AddSingleton<ProductService>();
         services.AddSingleton<QuotationService>();
         services.AddSingleton<HeaderService>();
+        services.AddSingleton<UpdateService>();  // 注册更新服务
 
         // ===== ViewModel 层（Transient — 每次解析新实例，防止状态共享）=====
         services.AddTransient<MainViewModel>();

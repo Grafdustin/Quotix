@@ -22,6 +22,11 @@ public static class AppInfo
     {
         get
         {
+            /*
+            // TODO: 测试更新功能 - 临时返回旧版本号
+            return "1.0.0";
+            */
+            
             var raw = _assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
             if (string.IsNullOrEmpty(raw))
                 return "1.0.0";

@@ -274,6 +274,83 @@
         <Rectangle Height="1" Fill="{DynamicResource CardStrokeColorDefaultBrush}"
                    Margin="0,0,0,24"/>
 
+        <!-- ====== 更新 ====== -->
+        <StackPanel Margin="0,0,0,24">
+
+            <StackPanel Margin="0,0,0,12">
+                <ui:TextBlock Text="更新" FontSize="12" FontWeight="SemiBold"
+                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                              Margin="0,0,0,4"/>
+                <ui:TextBlock Text="检查应用更新，获取最新功能" FontSize="11"
+                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+            </StackPanel>
+
+            <Border CornerRadius="10"
+                    Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" Padding="16,14">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 图标 -->
+                        <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                            <ui:SymbolIcon Symbol="ArrowSync16" FontSize="18"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- 文字 -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <ui:TextBlock Text="检查更新" FontSize="14" FontWeight="Medium"
+                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <ui:TextBlock Text="{Binding UpdateStatus}" FontSize="12"
+                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                              Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <!-- 检查更新按钮 -->
+                        <ui:Button Grid.Column="2" Content="检查更新"
+                                   Appearance="Primary" Height="34" FontSize="12"
+                                   Command="{Binding CheckForUpdatesCommand}"
+                                   IsEnabled="{Binding IsCheckingUpdate, Converter={StaticResource InverseBoolToVis}}"/>
+
+                    </Grid>
+
+                    <!-- 下载进度条（正在下载时显示） -->
+                    <Grid Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVis}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ProgressBar Grid.Column="0" 
+                                     Minimum="0" Maximum="100" 
+                                     Value="{Binding DownloadProgress}"
+                                     Height="8" Margin="0,8,12,0"
+                                     VerticalAlignment="Center"/>
+
+                        <ui:TextBlock Grid.Column="1" 
+                                       Text="{Binding DownloadProgress, StringFormat='{}{0}%'}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                       VerticalAlignment="Center"/>
+
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+
+        <!-- ====== 分隔线 ====== -->
+        <Rectangle Height="1" Fill="{DynamicResource CardStrokeColorDefaultBrush}"
+                   Margin="0,0,0,24"/>
+
         <!-- ====== 关于 ====== -->
         <StackPanel>
 
