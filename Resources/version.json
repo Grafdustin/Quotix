@@ -1,0 +1,15 @@
+{
+  "version": "1.0.1",
+  "releaseDate": "2026-07-02",
+  "releaseNotes": "修复版本号显示问题，重写代码注释",
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.1/Quotix_Setup_1.0.1.exe",
+  "fullPackageUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.1/Quotix_Setup_1.0.1.exe",
+  "fileSize": "56MB",
+  "sha256": "",
+  "mandatory": false,
+  "whatsNew": [
+    "修复版本号显示问题",
+    "重写所有代码注释为中文 XML 文档",
+    "优化发布流程（自动递增版本号）"
+  ]
+}
