@@ -1,6 +1,6 @@
 {
-  "build": 1010,
-  "version": "1.0.10",
+  "build": 1012,
+  "version": "1.0.12",
   "changelog": [
     "feat: 轻量级 Updater (166 KB)"
   ],
