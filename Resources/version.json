@@ -1,11 +1,11 @@
 {
-  "releaseDate": "2026-07-03",
-  "version": "1.0.6",
-  "releaseNotes": "优化发布脚本逻辑",
-  "fileSize": "55.41MB",
+  "releaseNotes": "优化 UpdateService：适配 version.json 格式",
+  "version": "1.0.7",
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.7/Quotix_Setup_1.0.7.exe",
+  "fileSize": "55.42MB",
+  "mandatory": false,
   "whatsNew": [
-    "优化发布脚本逻辑"
+    "优化 UpdateService：适配 version.json 格式"
   ],
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.6/Quotix_Setup_1.0.6.exe",
-  "mandatory": false
+  "releaseDate": "2026-07-03"
 }
