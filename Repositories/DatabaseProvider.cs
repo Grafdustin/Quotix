@@ -11,8 +11,33 @@ public class DatabaseProvider : IDisposable
 {
     private bool _disposed;
 
-    public static string DbPath =>
-        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "quotation.db");
+    public static string DbPath
+    {
+        get
+        {
+            // 运行时数据库：%LocalAppData%\Quotix\quotation.db（可写）
+            var appDataDb = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Quotix", "quotation.db");
+
+            // 首次运行：从安装目录的模板复制
+            if (!File.Exists(appDataDb))
+            {
+                var templateDb = Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory,
+                    "Resources", "quotation.db");
+                if (File.Exists(templateDb))
+                {
+                    var dir = Path.GetDirectoryName(appDataDb);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                        Directory.CreateDirectory(dir);
+                    File.Copy(templateDb, appDataDb);
+                }
+            }
+
+            return appDataDb;
+        }
+    }
 
     public DatabaseProvider()
     {

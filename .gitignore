@@ -1,51 +1,20 @@
-# ── 数据库文件 ──
-*.db
-*.sqlite
-*.sqlite3
-*.mdf
-*.ldf
+# Quotix 安装包构建产物
+Installer/Staging/
+Installer/Out/
 
-# ── Visual Studio ──
-.vs/
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-*.userprefs
-
-# ── 编译输出 ──
+# .NET 构建产物
 bin/
 obj/
-[Bb]uild/
-*.exe
-*.dll
-*.pdb
 
-# ── NuGet ──
-**/[Pp]ackages/*
-!**/[Pp]ackages/repositories.config
-*.nupkg
+# IDE 缓存
+.vs/
+*.user
 
-# ── Rider / JetBrains ──
-.idea/
-*.sln.iml
+# SQLite 数据库（用户数据，不提交模板外的数据库）
+*.db
+*.sqlite
+!**/Resources/quotation.db
 
-# ── VS Code ──
-.vscode/
-
-# ── macOS ──
-.DS_Store
-
-# ── Windows ──
-Thumbs.db
-Desktop.ini
-
-# ── 发布输出 ──
-publish/
-
-# ── 本地配置 / 临时文件 ──
+# 临时文件
+*.log
 *.tmp
-*.temp
-
-# ── WorkBuddy 项目记忆（非代码产物） ──
-.workbuddy/
