@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 $ProjectDir = Resolve-Path "$PSScriptRoot\.."
 $StagingDir = "$PSScriptRoot\Staging"
 $LauncherDir = "$StagingDir\Launcher"
-$SourceDir = "$ProjectDir\bin\Release\net10.0-windows\win-x64"
+$SourceDir = "$ProjectDir\bin\Release\net10.0-windows\win-x64\publish"
 
 Write-Host "=== Quotix 安装包文件分阶段 ===" -ForegroundColor Cyan
 Write-Host "源目录: $SourceDir"
