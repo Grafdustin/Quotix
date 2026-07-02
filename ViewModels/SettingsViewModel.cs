@@ -37,6 +37,9 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty] private bool _isDarkMode;
 
+    /// <summary>应用版本号（从程序集读取，与 csproj 同步）</summary>
+    public string AppVersion => $"v{AppInfo.Version}";
+
     private static void SendProgress(bool visible, double pct, string text) =>
         WeakReferenceMessenger.Default.Send(new ProgressMessage(
             new ProgressState(visible, pct, text)));

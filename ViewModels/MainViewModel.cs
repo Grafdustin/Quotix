@@ -258,7 +258,7 @@ public partial class MainViewModel : ObservableObject
     private void ShowAboutDialog()
     {
         _dialog.ShowInfo(
-            "Quotix v3.0\n\n" +
+            $"{AppInfo.GetVersionString()}\n\n" +
             "技术栈：.NET 10 + WPF UI (Fluent Design) + SQLite",
             "关于 Quotix");
     }
