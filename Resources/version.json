@@ -1,11 +1,11 @@
 {
-  "fileSize": 58118183,
-  "build": 1011,
-  "changelog": [
-    "feat: 隐藏 Updater cmd 窗口（改为 WinExe）"
-  ],
+  "build": 1012,
+  "fileSize": 58113212,
   "releaseDate": "2026-07-03",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.11/Quotix_Setup_1.0.11.exe",
-  "version": "1.0.11",
-  "mandatory": false
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.12/Quotix_Setup_1.0.12.exe",
+  "changelog": [
+    "优化: 使用 XML DOM 更新版本号（更干净可靠）"
+  ],
+  "mandatory": false,
+  "version": "1.0.12"
 }
