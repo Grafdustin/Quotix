@@ -66,8 +66,8 @@ Write-Host "Staging directory ready" -ForegroundColor Green
 
 # 3.5 Build and Copy Updater.exe to Staging
 Write-Host "Building and copying Updater.exe..." -ForegroundColor Yellow
-$updaterProj = Join-Path $PSScriptRoot "..\Quotix.Updater\Quotix.Updater.csproj"
-$updaterSource = Join-Path $PSScriptRoot "..\Quotix.Updater\bin\Release\net10.0\win-x64\publish\Quotix.Updater.exe"
+$updaterProj = Join-Path $PSScriptRoot "..\..\Quotix.Updater\Quotix.Updater.csproj"
+$updaterSource = Join-Path $PSScriptRoot "..\..\Quotix.Updater\bin\Release\net10.0\win-x64\publish\Quotix.Updater.exe"
 
 # Build Updater
 if (Test-Path $updaterProj) {
