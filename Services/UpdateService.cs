@@ -2,7 +2,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -284,46 +286,43 @@ namespace Quotix.Services
         /// <summary>
         /// 版本号（如 "1.0.1"）
         /// </summary>
+        [JsonPropertyName("version")]
         public string Version { get; set; } = "";
 
         /// <summary>
         /// 发布日期
         /// </summary>
+        [JsonPropertyName("releaseDate")]
         public string ReleaseDate { get; set; } = "";
 
         /// <summary>
         /// 发布说明
         /// </summary>
+        [JsonPropertyName("releaseNotes")]
         public string ReleaseNotes { get; set; } = "";
 
         /// <summary>
         /// 下载链接（GitHub Releases）
         /// </summary>
+        [JsonPropertyName("downloadUrl")]
         public string DownloadUrl { get; set; } = "";
-
-        /// <summary>
-        /// 全量安装包下载链接
-        /// </summary>
-        public string FullPackageUrl { get; set; } = "";
 
         /// <summary>
         /// 文件大小
         /// </summary>
+        [JsonPropertyName("fileSize")]
         public string FileSize { get; set; } = "";
-
-        /// <summary>
-        /// SHA256 校验和
-        /// </summary>
-        public string Sha256 { get; set; } = "";
 
         /// <summary>
         /// 是否强制更新
         /// </summary>
+        [JsonPropertyName("mandatory")]
         public bool Mandatory { get; set; }
 
         /// <summary>
         /// 更新内容列表
         /// </summary>
+        [JsonPropertyName("whatsNew")]
         public string[] WhatsNew { get; set; } = Array.Empty<string>();
     }
 }
