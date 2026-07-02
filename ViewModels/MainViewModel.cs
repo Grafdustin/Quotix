@@ -11,6 +11,10 @@ using Wpf.Ui.Controls;
 
 namespace Quotix.ViewModels;
 
+/// <summary>
+/// 主窗口 ViewModel。
+/// 负责标签页管理、主题切换、全局进度显示和消息通信。
+/// </summary>
 public partial class MainViewModel : ObservableObject
 {
     private readonly AppSettingsService _appSettings;
@@ -18,15 +22,18 @@ public partial class MainViewModel : ObservableObject
     private readonly DialogService _dialog;
     private readonly NewQuotationViewModel _newQuotationVM;
     private readonly SettingsViewModel _settingsVM;
-    
+
+    /// <summary>设置页 ViewModel（供绑定使用）</summary>
     public SettingsViewModel SettingsViewModel => _settingsVM;
 
-    // ===== Tabs =====
+    /// <summary>标签页集合</summary>
     public ObservableCollection<TabItemViewModel> Tabs { get; } = new();
 
+    /// <summary>当前活动标签页</summary>
     [ObservableProperty]
     private TabItemViewModel? _activeTab;
 
+    /// <summary>当前活动标签页的内容（供绑定使用）</summary>
     public object? ActiveTabContent => ActiveTab?.View;
 
     partial void OnActiveTabChanged(TabItemViewModel? value)
@@ -34,15 +41,25 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ActiveTabContent));
     }
 
+    /// <summary>状态栏文本</summary>
     [ObservableProperty] private string _statusText = "就绪";
 
-    // ===== Progress =====
+    /// <summary>进度条是否可见</summary>
     [ObservableProperty] private bool _isProgressVisible;
+
+    /// <summary>进度百分比（0~100）</summary>
     [ObservableProperty] private double _progressPercentage;
+
+    /// <summary>进度提示文本</summary>
     [ObservableProperty] private string _progressText = "请稍候...";
 
-    // ===== Dark Mode =====
+    /// <summary>是否深色模式（与主题服务同步）</summary>
     [ObservableProperty] private bool _isDarkMode;
+
+    /// <summary>预注入的可复用 ViewModel（每次开标签页复用同一实例）</summary>
+    private readonly ProductDatabaseViewModel _productDbVM;
+    private readonly HeaderDatabaseViewModel _headerDbVM;
+    private readonly HistoryViewModel _historyVM;
 
     public MainViewModel(
         AppSettingsService appSettings,
@@ -63,7 +80,7 @@ public partial class MainViewModel : ObservableObject
         _headerDbVM = headerDbVM;
         _historyVM = historyVM;
 
-        // Messenger 订阅（替代事件耦合）
+        // 订阅 Messenger 消息（替代事件耦合）
         WeakReferenceMessenger.Default.Register<ThemeChangedMessage>(this, (r, m) =>
         {
             _themeService.Apply(m.Value);
@@ -85,6 +102,7 @@ public partial class MainViewModel : ObservableObject
             ProgressText = s.Text;
         });
 
+        // 加载主题设置
         _themeService.Load();
         IsDarkMode = _themeService.IsDarkMode;
         _settingsVM.IsDarkMode = _themeService.IsDarkMode;
@@ -93,13 +111,9 @@ public partial class MainViewModel : ObservableObject
         OpenNewQuotationTab();
     }
 
-    // 预注入的可复用 VM（每次开标签页复用同一实例）
-    private readonly ProductDatabaseViewModel _productDbVM;
-    private readonly HeaderDatabaseViewModel _headerDbVM;
-    private readonly HistoryViewModel _historyVM;
+    // ============ 标签页管理 ============
 
-    // ===== Tab Management =====
-
+    /// <summary>打开新建报价标签页（已存在则激活）</summary>
     public void OpenNewQuotationTab()
     {
         var existing = Tabs.FirstOrDefault(t => t.TabId == "new-quotation");
@@ -122,6 +136,7 @@ public partial class MainViewModel : ObservableObject
         ActivateTab(tab);
     }
 
+    /// <summary>打开报价历史标签页（已存在则激活）</summary>
     public void OpenHistoryTab()
     {
         var existing = Tabs.FirstOrDefault(t => t.TabId == "history");
@@ -144,6 +159,7 @@ public partial class MainViewModel : ObservableObject
         ActivateTab(tab);
     }
 
+    /// <summary>打开产品列表标签页（已存在则激活，并刷新数据）</summary>
     public void OpenProductDatabaseTab()
     {
         var existing = Tabs.FirstOrDefault(t => t.TabId == "product-db");
@@ -168,6 +184,7 @@ public partial class MainViewModel : ObservableObject
         vm.Refresh();
     }
 
+    /// <summary>打开收录信息标签页（已存在则激活，并刷新数据）</summary>
     public void OpenHeaderDatabaseTab()
     {
         var existing = Tabs.FirstOrDefault(t => t.TabId == "header-db");
@@ -192,6 +209,7 @@ public partial class MainViewModel : ObservableObject
         vm.Refresh();
     }
 
+    /// <summary>打开设置标签页（已存在则激活）</summary>
     public void OpenSettingsTab()
     {
         var existing = Tabs.FirstOrDefault(t => t.TabId == "settings");
@@ -215,6 +233,7 @@ public partial class MainViewModel : ObservableObject
         ActivateTab(tab);
     }
 
+    /// <summary>激活指定标签页</summary>
     public void ActivateTab(TabItemViewModel tab)
     {
         foreach (var t in Tabs)
@@ -223,6 +242,7 @@ public partial class MainViewModel : ObservableObject
         ActiveTab = tab;
     }
 
+    /// <summary>关闭指定标签页，并自动切换到相邻标签页</summary>
     public void CloseTab(TabItemViewModel tab)
     {
         var index = Tabs.IndexOf(tab);
@@ -241,12 +261,16 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>编辑已有报价单（切换到新建报价页并加载数据）</summary>
     private void EditQuotation(string quotationId)
     {
         _newQuotationVM.LoadQuotation(quotationId);
         OpenNewQuotationTab();
     }
 
+    // ============ 命令 ============
+
+    /// <summary>切换深色/浅色模式</summary>
     [RelayCommand]
     private void ToggleDarkMode()
     {
@@ -255,22 +279,33 @@ public partial class MainViewModel : ObservableObject
         _settingsVM.IsDarkMode = _themeService.IsDarkMode;
     }
 
+    /// <summary>显示关于对话框</summary>
     private void ShowAboutDialog()
     {
         _dialog.ShowInfo(
-            $"{AppInfo.GetVersionString()}\n\n" +
-            "技术栈：.NET 10 + WPF UI (Fluent Design) + SQLite",
+            $"{AppInfo.GetVersionString()}\n\n技术栈：.NET 10 + WPF UI (Fluent Design) + SQLite",
             "关于 Quotix");
     }
 }
 
+/// <summary>标签页 ViewModel（每个打开的标签页对应一个实例）</summary>
 public partial class TabItemViewModel : ObservableObject
 {
+    /// <summary>标签页唯一标识</summary>
     public string TabId { get; set; } = "";
+
+    /// <summary>标签页标题</summary>
     public string Title { get; set; } = "";
+
+    /// <summary>标签页绑定的内容（ViewModel）</summary>
     public object? Content { get; set; }
+
+    /// <summary>标签页对应的视图（View）</summary>
     public System.Windows.FrameworkElement? View { get; set; }
 
+    /// <summary>是否选中（控制标签页高亮）</summary>
     [ObservableProperty] private bool _isSelected;
+
+    /// <summary>是否允许关闭（设置页不允许关闭时可设为 false）</summary>
     public bool CanClose { get; set; } = true;
 }

@@ -4,19 +4,20 @@ using Quotix.Repositories;
 namespace Quotix.Services;
 
 /// <summary>
-/// 内存缓存层 — 启动时加载数据到内存，搜索/报价/导出全部读缓存
-/// 仅在增删改时同步更新数据库+缓存，大幅提升 UI 响应速度
+/// 内存缓存服务。
+/// 启动时将数据加载到内存，搜索/报价/导出均读取缓存，大幅提升 UI 响应速度。
+/// 仅在增删改时同步更新数据库和缓存。
 /// </summary>
 public class CacheService
 {
     private readonly ProductRepository _productRepo;
     private readonly HeaderRepository _headerRepo;
 
-    // ============ Products ============
+    // ============ 产品缓存 ============
     private List<Product>? _allProducts;
     private bool _productsDirty = true;
 
-    // ============ Owners / Customers ============
+    // ============ 收录信息缓存 ============
     private List<Owner>? _owners;
     private List<Customer>? _customers;
     private bool _headersDirty = true;
@@ -27,9 +28,9 @@ public class CacheService
         _headerRepo = headerRepo;
     }
 
-    // ============ Products ============
+    // ============ 产品相关 ============
 
-    /// <summary>获取全量产品（自动加载缓存）</summary>
+    /// <summary>获取全量产品（自动加载缓存，脏标记时重新读取）</summary>
     public List<Product> GetAllProducts()
     {
         if (_productsDirty || _allProducts == null)
@@ -37,7 +38,7 @@ public class CacheService
         return _allProducts!;
     }
 
-    /// <summary>按表名筛选（分页）</summary>
+    /// <summary>按表名筛选产品（内存分页）</summary>
     public (List<Product> Products, int Total) GetByTable(
         string tableName, string? keyword, int page, int pageSize)
     {
@@ -58,15 +59,15 @@ public class CacheService
         return (paged, total);
     }
 
-    /// <summary>FTS 搜索</summary>
+    /// <summary>
+    /// FTS 全文搜索产品。
+    /// 注：FTS 仍走 SQLite（内存 LIKE 无法替代全文索引的排序和分词能力）。
+    /// </summary>
     public (List<Product> Products, int Total) SearchFts(
         string tableName, string keyword, int page, int pageSize)
-    {
-        // FTS 仍走 SQLite（内存 LIKE 无法替代全文索引的排序和分词）
-        return _productRepo.SearchFts(tableName, keyword, page, pageSize);
-    }
+        => _productRepo.SearchFts(tableName, keyword, page, pageSize);
 
-    /// <summary>标记产品缓存过期</summary>
+    /// <summary>标记产品缓存为脏（下次读取时重新加载）</summary>
     public void InvalidateProducts() => _productsDirty = true;
 
     /// <summary>强制刷新产品缓存</summary>
@@ -76,8 +77,9 @@ public class CacheService
         _productsDirty = false;
     }
 
-    // ============ Owners ============
+    // ============ 负责人相关 ============
 
+    /// <summary>获取所有负责人（自动加载缓存）</summary>
     public List<Owner> GetOwners()
     {
         if (_headersDirty || _owners == null)
@@ -85,8 +87,9 @@ public class CacheService
         return _owners!;
     }
 
-    // ============ Customers ============
+    // ============ 客户相关 ============
 
+    /// <summary>获取所有客户（自动加载缓存）</summary>
     public List<Customer> GetCustomers()
     {
         if (_headersDirty || _customers == null)
@@ -94,10 +97,10 @@ public class CacheService
         return _customers!;
     }
 
-    /// <summary>标记收录信息缓存过期</summary>
+    /// <summary>标记收录信息缓存为脏</summary>
     public void InvalidateHeaders() => _headersDirty = true;
 
-    /// <summary>强制刷新收录信息缓存</summary>
+    /// <summary>强制刷新收录信息缓存（负责人 + 客户）</summary>
     public void RefreshHeaders()
     {
         _owners = _headerRepo.GetOwners();
@@ -105,7 +108,7 @@ public class CacheService
         _headersDirty = false;
     }
 
-    /// <summary>全部预热（启动时调用）</summary>
+    /// <summary>启动时预热所有缓存</summary>
     public void WarmUp()
     {
         RefreshProducts();

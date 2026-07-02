@@ -25,7 +25,7 @@ public class HeaderExportService
     /// <summary>导出货主+客户到加密文件</summary>
     public void ExportToJson(string filePath, string password)
     {
-        var data = new HeaderExportData(_headerService.GetOwners(), _headerService.GetCustomers());
+        var data = new FullBackupData(_headerService.GetOwners(), _headerService.GetCustomers());
         var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
         CryptoService.EncryptToFile(filePath, json, password);
     }
@@ -34,7 +34,7 @@ public class HeaderExportService
     public (int owners, int customers) ImportFromJson(string filePath, string password)
     {
         var json = CryptoService.DecryptFromFile(filePath, password);
-        var data = JsonSerializer.Deserialize<HeaderExportData>(json)
+        var data = JsonSerializer.Deserialize<FullBackupData>(json)
                    ?? throw new InvalidOperationException("备份文件数据为空或格式无效");
 
         int ownerCount = 0, customerCount = 0;

@@ -8,10 +8,16 @@ using Quotix.ViewModels;
 
 namespace Quotix.Views;
 
+/// <summary>
+/// 产品数据库视图，负责产品数据的展示、分页、列动态生成以及表切换功能。
+/// </summary>
 public partial class ProductDatabaseView : UserControl
 {
     private ProductDatabaseViewModel? _currentVM;
 
+    /// <summary>
+    /// 初始化 ProductDatabaseView 实例。
+    /// </summary>
     public ProductDatabaseView()
     {
         InitializeComponent();
@@ -19,6 +25,9 @@ public partial class ProductDatabaseView : UserControl
         Unloaded += OnUnloaded;
     }
 
+    /// <summary>
+    /// 视图加载时调用，重新订阅 ViewModel 事件并刷新数据。
+    /// </summary>
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         // 标签页切回时，View 被重新挂载但 DataContext 未变，需重新订阅 VM 事件
@@ -34,6 +43,9 @@ public partial class ProductDatabaseView : UserControl
             _currentVM.Refresh();
     }
 
+    /// <summary>
+    /// DataContext 变化时调用，处理 ViewModel 的绑定与解绑。
+    /// </summary>
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         DetachVM();
@@ -53,6 +65,9 @@ public partial class ProductDatabaseView : UserControl
         }
     }
 
+    /// <summary>
+    /// 解绑当前 ViewModel 的事件订阅。
+    /// </summary>
     private void DetachVM()
     {
         if (_currentVM == null) return;
@@ -62,16 +77,25 @@ public partial class ProductDatabaseView : UserControl
         _currentVM = null;
     }
 
+    /// <summary>
+    /// 视图卸载时调用，清理事件订阅。
+    /// </summary>
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         DetachVM();
     }
 
+    /// <summary>
+    /// 集合即将更新时调用，解绑 DataGrid 的数据源。
+    /// </summary>
     private void OnBeforeCollectionUpdate()
     {
         ProductsGrid.ItemsSource = null;
     }
 
+    /// <summary>
+    /// 集合更新完毕后调用，重新构建列并绑定数据源。
+    /// </summary>
     private void OnAfterCollectionUpdate()
     {
         if (_currentVM == null) return;
@@ -81,6 +105,9 @@ public partial class ProductDatabaseView : UserControl
         ProductsGrid.UpdateLayout();
     }
 
+    /// <summary>
+    /// 根据 ViewModel 中的列头信息重新构建 DataGrid 列。
+    /// </summary>
     private void RebuildColumns()
     {
         if (_currentVM == null) return;
@@ -109,16 +136,25 @@ public partial class ProductDatabaseView : UserControl
         }
     }
 
+    /// <summary>
+    /// 切换到 NDT 表。
+    /// </summary>
     private void SwitchToNDT(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         _currentVM?.SwitchToNDTCommand.Execute(null);
     }
 
+    /// <summary>
+    /// 切换到 RVI 表。
+    /// </summary>
     private void SwitchToRVI(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         _currentVM?.SwitchToRVICommand.Execute(null);
     }
 
+    /// <summary>
+    /// 分页大小选择变化时调用，更新页大小并重新加载数据。
+    /// </summary>
     private void PageSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_currentVM == null || sender is not ComboBox cb || cb.SelectedItem is not ComboBoxItem item)
@@ -131,6 +167,9 @@ public partial class ProductDatabaseView : UserControl
         }
     }
 
+    /// <summary>
+    /// 分页大小下拉框加载时调用，添加弹出动画效果。
+    /// </summary>
     private void PageSizeCombo_Loaded(object sender, RoutedEventArgs e)
     {
         if (sender is not ComboBox cb) return;
@@ -145,7 +184,7 @@ public partial class ProductDatabaseView : UserControl
                 // 用 Dispatcher 延迟确保视觉树完全加载
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    // 检测Popup是向上还是向下展开
+                    // 检测 Popup 是向上还是向下展开
                     var transform = popupRoot.TransformToAncestor(cb);
                     var relativePos = transform.Transform(new Point(0, 0));
                     bool isOpeningUpward = relativePos.Y < 0;
@@ -185,6 +224,12 @@ public partial class ProductDatabaseView : UserControl
         }
     }
 
+    /// <summary>
+    /// 在可视化树中查找指定类型的子元素。
+    /// </summary>
+    /// <typeparam name="T">要查找的元素类型</typeparam>
+    /// <param name="parent">父元素</param>
+    /// <returns>找到的第一个匹配元素，未找到则返回 null</returns>
     private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
     {
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)

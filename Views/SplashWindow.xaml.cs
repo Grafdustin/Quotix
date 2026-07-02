@@ -12,23 +12,33 @@ using System.Windows.Media.Imaging;
 
 namespace Quotix.Views;
 
+/// <summary>
+/// 启动窗口，显示应用程序启动动画和加载进度。
+/// </summary>
 public partial class SplashWindow : Window
 {
-    // ── 外部信号 ──
+    // ─── 外部信号 ───
     private readonly TaskCompletionSource _externalReady = new();
     private readonly TaskCompletionSource _animationReady = new();
     private volatile bool _fastForwarded;
 
-    /// <summary>外部（如数据库初始化）完成时调用</summary>
+    /// <summary>
+    /// 外部（如数据库初始化）完成时调用。
+    /// </summary>
     public void SignalExternalReady() => _externalReady.TrySetResult();
 
-    /// <summary>等待动画和外部加载都完成</summary>
+    /// <summary>
+    /// 等待动画和外部加载都完成。
+    /// </summary>
     public Task WaitForReadyAsync() => Task.WhenAll(_animationReady.Task, _externalReady.Task);
 
-    // ── 日志项缓存 ──
+    // ─── 日志项缓存 ───
     private readonly List<(TextBlock check, TextBlock text, double delayMs, double progressPct)> _logItems = [];
     private int _currentLogIndex = -1;
 
+    /// <summary>
+    /// 初始化 SplashWindow 实例。
+    /// </summary>
     public SplashWindow()
     {
         InitializeComponent();
@@ -38,6 +48,10 @@ public partial class SplashWindow : Window
     // ═══════════════════════════════════════════
     //  主时间线
     // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 窗口加载时调用，启动启动动画序列。
+    /// </summary>
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         LoadIcon();
@@ -46,12 +60,12 @@ public partial class SplashWindow : Window
         // 设置圆角裁剪区域（基于窗口实际尺寸）
         ContentClip.Rect = new Rect(0, 0, ActualWidth, ActualHeight);
 
-        // ── 0.00s：窗口淡入 ──
+        // ─── 0.00s：窗口淡入 ───
         BeginAnimation(OpacityProperty,
             new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160))
             { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
 
-        // ── 0.00s–0.20s：Logo 淡入 + 微缩放 ──
+        // ─── 0.00s–0.20s：Logo 淡入 + 微缩放 ───
         LogoImage.BeginAnimation(OpacityProperty,
             new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200))
             { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
@@ -67,7 +81,7 @@ public partial class SplashWindow : Window
 
         await Task.Delay(200);
 
-        // ── 0.20s–0.50s：QUOTIX 逐字母（每 60ms 一个）──
+        // ─── 0.20s–0.50s：QUOTIX 逐字母（每 60ms 一个）───
         AnimateLetter(CharQ);
         if (_fastForwarded) goto fastForward;
         await Task.Delay(60);
@@ -85,7 +99,7 @@ public partial class SplashWindow : Window
         await Task.Delay(60);
         AnimateLetter(CharX);
 
-        // ── 0.45s+：加载日志逐步显示 ──
+        // ─── 0.45s+：加载日志逐步显示 ───
         foreach (var (check, text, delayMs, _) in _logItems)
         {
             if (_fastForwarded) goto fastForward;
@@ -94,7 +108,7 @@ public partial class SplashWindow : Window
             {
                 // 上一行 → ✓
                 var prev = _logItems[_currentLogIndex];
-                prev.check.Text = "\u2713"; // ✓
+                prev.check.Text = "✓";
                 prev.check.Foreground = new SolidColorBrush(Color.FromRgb(0x22, 0xC5, 0x5E));
                 prev.text.Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B));
             }
@@ -114,12 +128,12 @@ public partial class SplashWindow : Window
         if (_currentLogIndex >= 0)
         {
             var prev = _logItems[_currentLogIndex];
-            prev.check.Text = "\u2713";
+            prev.check.Text = "✓";
             prev.check.Foreground = new SolidColorBrush(Color.FromRgb(0x22, 0xC5, 0x5E));
             prev.text.Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B));
         }
 
-        // ── Ready. ──
+        // ─── Ready. ───
         await ShowReady();
         goto done;
 
@@ -137,6 +151,10 @@ public partial class SplashWindow : Window
     // ═══════════════════════════════════════════
     //  Ready 状态 + Logo 光效
     // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 显示 Ready 状态，补满进度条并播放 Logo 光效动画。
+    /// </summary>
     private async Task ShowReady()
     {
         // 强行补满进度条
@@ -175,6 +193,10 @@ public partial class SplashWindow : Window
     // ═══════════════════════════════════════════
     //  快速结束（外部加载先完成）
     // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 快速结束动画（当外部加载先完成时调用）。
+    /// </summary>
     public void FastForward()
     {
         if (_fastForwarded) return;
@@ -184,6 +206,10 @@ public partial class SplashWindow : Window
     // ═══════════════════════════════════════════
     //  进度条动画
     // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 执行进度条动画。
+    /// </summary>
     private async Task AnimateProgressBar()
     {
         // 等窗口渲染完拿到 ActualWidth
@@ -199,16 +225,25 @@ public partial class SplashWindow : Window
     // ═══════════════════════════════════════════
     //  预建日志项
     // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 预建加载日志项列表。
+    /// </summary>
     private void BuildLogItems()
     {
-        AddLogItem("Initializing...",           120);
-        AddLogItem("Loading Configuration...",  120);
-        AddLogItem("Connecting Database...",    150);
-        AddLogItem("Loading Product Library...",120);
-        AddLogItem("Loading Components...",     120);
-        AddLogItem("Checking License...",        80);
+        AddLogItem("正在初始化...",           120);
+        AddLogItem("正在加载配置...",         120);
+        AddLogItem("正在连接数据库...",       150);
+        AddLogItem("正在加载产品库...",       120);
+        AddLogItem("正在加载组件...",         120);
+        AddLogItem("正在检查许可...",         80);
     }
 
+    /// <summary>
+    /// 添加一个日志项到日志面板。
+    /// </summary>
+    /// <param name="label">日志文本</param>
+    /// <param name="delayMs">显示延迟（毫秒）</param>
     private void AddLogItem(string label, double delayMs)
     {
         var check = new TextBlock
@@ -239,6 +274,11 @@ public partial class SplashWindow : Window
     // ═══════════════════════════════════════════
     //  工具方法
     // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 播放字母淡入动画。
+    /// </summary>
+    /// <param name="element">目标元素</param>
     private static void AnimateLetter(FrameworkElement element)
     {
         element.BeginAnimation(OpacityProperty,
@@ -246,6 +286,9 @@ public partial class SplashWindow : Window
             { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
     }
 
+    /// <summary>
+    /// 加载应用程序图标。
+    /// </summary>
     private void LoadIcon()
     {
         try
@@ -267,6 +310,10 @@ public partial class SplashWindow : Window
     // ═══════════════════════════════════════════
     //  淡出
     // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 执行窗口淡出动画并关闭窗口。
+    /// </summary>
     public async Task FadeOutAsync()
     {
         var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(180))

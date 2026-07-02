@@ -6,18 +6,28 @@ using Quotix.Services;
 
 namespace Quotix.ViewModels;
 
+/// <summary>
+/// 表头数据库视图模型，负责负责人和客户信息的增删改查功能。
+/// </summary>
 public partial class HeaderDatabaseViewModel : ObservableObject
 {
     private readonly HeaderService _headerService;
     private readonly DialogService _dialog;
 
+    /// <summary>
+    /// 初始化 HeaderDatabaseViewModel 实例。
+    /// </summary>
+    /// <param name="headerService">表头服务</param>
+    /// <param name="dialog">对话框服务</param>
     public HeaderDatabaseViewModel(HeaderService headerService, DialogService dialog)
     {
         _headerService = headerService;
         _dialog = dialog;
     }
 
-    /// <summary>Parameterless ctor for XAML designer — uses default service instances.</summary>
+    /// <summary>
+    /// 无参构造函数，供 XAML 设计器使用（使用默认服务实例）。
+    /// </summary>
     public HeaderDatabaseViewModel()
     {
         _headerService = new HeaderService(
@@ -28,9 +38,15 @@ public partial class HeaderDatabaseViewModel : ObservableObject
         _dialog = new DialogService();
     }
 
+    /// <summary>
+    /// 是否显示负责人选项卡。
+    /// </summary>
     [ObservableProperty] private bool _isOwnerTab = true;
 
-    // Owner fields
+    // 负责人字段
+    /// <summary>
+    /// 负责人集合。
+    /// </summary>
     public ObservableCollection<Owner> Owners { get; } = new();
     [ObservableProperty] private string _ownerSearch = "";
     [ObservableProperty] private string _newOwnerName = "";
@@ -38,7 +54,10 @@ public partial class HeaderDatabaseViewModel : ObservableObject
     [ObservableProperty] private string _newOwnerTel = "";
     [ObservableProperty] private string _newOwnerEmail = "";
 
-    // Customer fields
+    // 客户字段
+    /// <summary>
+    /// 客户集合。
+    /// </summary>
     public ObservableCollection<Customer> Customers { get; } = new();
     [ObservableProperty] private string _customerSearch = "";
     [ObservableProperty] private string _newCustomerName = "";
@@ -46,11 +65,17 @@ public partial class HeaderDatabaseViewModel : ObservableObject
     [ObservableProperty] private string _newCustomerPhone = "";
     [ObservableProperty] private string _newCustomerEmail = "";
 
+    /// <summary>
+    /// 刷新当前选项卡的数据。
+    /// </summary>
     public void Refresh()
     {
         _ = RefreshAsync();
     }
 
+    /// <summary>
+    /// 异步刷新数据（根据当前选项卡加载对应数据）。
+    /// </summary>
     private async Task RefreshAsync()
     {
         if (IsOwnerTab)
@@ -59,6 +84,9 @@ public partial class HeaderDatabaseViewModel : ObservableObject
             await RefreshCustomersAsync();
     }
 
+    /// <summary>
+    /// 异步刷新负责人列表。
+    /// </summary>
     private async Task RefreshOwnersAsync()
     {
         var list = await Task.Run(() => _headerService.GetOwners());
@@ -67,6 +95,9 @@ public partial class HeaderDatabaseViewModel : ObservableObject
             Owners.Add(o);
     }
 
+    /// <summary>
+    /// 异步刷新客户列表。
+    /// </summary>
     private async Task RefreshCustomersAsync()
     {
         var list = await Task.Run(() => _headerService.GetCustomers());
@@ -75,6 +106,9 @@ public partial class HeaderDatabaseViewModel : ObservableObject
             Customers.Add(c);
     }
 
+    /// <summary>
+    /// 切换到负责人选项卡并加载数据。
+    /// </summary>
     [RelayCommand]
     private async Task SwitchToOwner()
     {
@@ -82,6 +116,9 @@ public partial class HeaderDatabaseViewModel : ObservableObject
         await RefreshOwnersAsync();
     }
 
+    /// <summary>
+    /// 切换到客户选项卡并加载数据。
+    /// </summary>
     [RelayCommand]
     private async Task SwitchToCustomer()
     {
@@ -89,6 +126,9 @@ public partial class HeaderDatabaseViewModel : ObservableObject
         await RefreshCustomersAsync();
     }
 
+    /// <summary>
+    /// 添加新的负责人。
+    /// </summary>
     [RelayCommand]
     private async Task AddOwner()
     {
@@ -110,6 +150,10 @@ public partial class HeaderDatabaseViewModel : ObservableObject
         await RefreshOwnersAsync();
     }
 
+    /// <summary>
+    /// 更新负责人信息。
+    /// </summary>
+    /// <param name="owner">要更新的负责人对象</param>
     [RelayCommand]
     private async Task UpdateOwner(Owner owner)
     {
@@ -117,6 +161,10 @@ public partial class HeaderDatabaseViewModel : ObservableObject
         await RefreshOwnersAsync();
     }
 
+    /// <summary>
+    /// 删除指定负责人。
+    /// </summary>
+    /// <param name="id">负责人 ID</param>
     [RelayCommand]
     private async Task DeleteOwner(string id)
     {
@@ -127,6 +175,9 @@ public partial class HeaderDatabaseViewModel : ObservableObject
         await RefreshOwnersAsync();
     }
 
+    /// <summary>
+    /// 添加新的客户。
+    /// </summary>
     [RelayCommand]
     private async Task AddCustomer()
     {
@@ -148,6 +199,10 @@ public partial class HeaderDatabaseViewModel : ObservableObject
         await RefreshCustomersAsync();
     }
 
+    /// <summary>
+    /// 更新客户信息。
+    /// </summary>
+    /// <param name="customer">要更新的客户对象</param>
     [RelayCommand]
     private async Task UpdateCustomer(Customer customer)
     {
@@ -155,6 +210,10 @@ public partial class HeaderDatabaseViewModel : ObservableObject
         await RefreshCustomersAsync();
     }
 
+    /// <summary>
+    /// 删除指定客户。
+    /// </summary>
+    /// <param name="id">客户 ID</param>
     [RelayCommand]
     private async Task DeleteCustomer(string id)
     {

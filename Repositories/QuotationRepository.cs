@@ -5,7 +5,8 @@ using Quotix.Models;
 namespace Quotix.Repositories;
 
 /// <summary>
-/// 报价单数据访问层 — 纯 SQL，继承 BaseRepository
+/// 报价单数据访问层。
+/// 负责 quotations 及 quotation_items 表的 CRUD 操作。
 /// </summary>
 public class QuotationRepository : BaseRepository
 {
@@ -13,10 +14,12 @@ public class QuotationRepository : BaseRepository
 
     // ============ 查询 ============
 
+    /// <summary>获取指定用户的所有报价单（按创建时间倒序）</summary>
     public List<Quotation> GetAll(string createdBy) =>
         Query("SELECT * FROM quotations WHERE created_by = @created_by ORDER BY created_at DESC",
             new() { ["@created_by"] = createdBy }, ReadQuotation);
 
+    /// <summary>获取所有报价单及其明细项</summary>
     public List<Quotation> GetAllWithItems()
     {
         var quotations = Query("SELECT * FROM quotations ORDER BY created_at DESC", null, ReadQuotation);
@@ -31,6 +34,7 @@ public class QuotationRepository : BaseRepository
         return quotations;
     }
 
+    /// <summary>根据 ID 获取报价单及其所有明细项</summary>
     public Quotation? GetById(string id)
     {
         var quotations = Query("SELECT * FROM quotations WHERE id = @id",
@@ -45,6 +49,7 @@ public class QuotationRepository : BaseRepository
 
     // ============ 写入（事务内）============
 
+    /// <summary>插入报价单主记录（事务内调用）</summary>
     public void InsertQuotation(SqliteConnection conn, SqliteTransaction tx, Quotation q)
     {
         using var cmd = conn.CreateCommand();
@@ -63,6 +68,7 @@ public class QuotationRepository : BaseRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>插入报价单明细项（事务内调用）</summary>
     public void InsertItem(SqliteConnection conn, SqliteTransaction tx, QuotationItem item)
     {
         using var cmd = conn.CreateCommand();
@@ -85,6 +91,7 @@ public class QuotationRepository : BaseRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>更新报价单主记录（事务内调用）</summary>
     public void UpdateQuotation(SqliteConnection conn, SqliteTransaction tx, Quotation q)
     {
         using var cmd = conn.CreateCommand();
@@ -102,6 +109,7 @@ public class QuotationRepository : BaseRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>删除报价单的所有明细项（事务内调用）</summary>
     public void DeleteItems(SqliteConnection conn, SqliteTransaction tx, string quotationId)
     {
         using var cmd = conn.CreateCommand();
@@ -111,11 +119,13 @@ public class QuotationRepository : BaseRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>根据 ID 删除报价单主记录</summary>
     public void Delete(string id) =>
         Execute("DELETE FROM quotations WHERE id = @id", new() { ["@id"] = id });
 
-    // ============ Reader ============
+    // ============ 实体映射 ============
 
+    /// <summary>从 SqliteDataReader 读取报价单实体</summary>
     public static Quotation ReadQuotation(SqliteDataReader r) => new()
     {
         Id = r.GetString(r.GetOrdinal("id")),
@@ -143,6 +153,7 @@ public class QuotationRepository : BaseRepository
         Filename = r.GetSafeString("filename")
     };
 
+    /// <summary>从 SqliteDataReader 读取报价单明细项实体</summary>
     public static QuotationItem ReadQuotationItem(SqliteDataReader r) => new()
     {
         Id = r.GetString(r.GetOrdinal("id")),
@@ -157,8 +168,9 @@ public class QuotationRepository : BaseRepository
         SortOrder = r.GetSafeInt32("sort_order")
     };
 
-    // ============ 参数绑定 ============
+    // ============ SQL 参数绑定 ============
 
+    /// <summary>为 SqliteCommand 绑定报价单实体的所有参数</summary>
     private static void AddQuotationParams(SqliteCommand cmd, Quotation q)
     {
         cmd.AddParam("@quote_number", q.QuoteNumber);

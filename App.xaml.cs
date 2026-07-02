@@ -14,12 +14,22 @@ using Quotix.Views;
 
 namespace Quotix;
 
+/// <summary>
+/// 应用程序入口类。
+/// 负责单实例检测、DI 容器构建、数据库初始化和主窗口启动。
+/// </summary>
 public partial class App : Application
 {
+    /// <summary>单实例互斥体名称</summary>
     private const string AppMutexName = "Quotix_SingleInstance_Mutex";
+
+    /// <summary>单实例互斥体</summary>
     private static Mutex? _singleInstanceMutex;
+
+    /// <summary>DI 容器</summary>
     private ServiceProvider? _serviceProvider;
 
+    /// <summary>恢复窗口所需的 user32 API</summary>
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -32,9 +42,10 @@ public partial class App : Application
     private const int SW_RESTORE = 9;
     private const int SW_SHOW = 5;
 
+    /// <summary>应用程序启动入口</summary>
     protected override async void OnStartup(StartupEventArgs e)
     {
-        // ── 单实例检测 + 激活已有窗口 ──
+        // ── 单实例检测（已运行则激活已有窗口）────
         _singleInstanceMutex = new Mutex(true, AppMutexName, out bool createdNew);
         if (!createdNew)
         {
@@ -73,7 +84,7 @@ public partial class App : Application
         {
             LogException(args.Exception);
             var innerMsg = GetInnerMostMessage(args.Exception);
-            var msg = $"程序发生未处理异常:\n\n{innerMsg}\n\n详细信息已写入:\n{AppPaths.ErrorLogPath}";
+            var msg = $"程序发生未处理异常：\n\n{innerMsg}\n\n详细信息已写入：\n{AppPaths.ErrorLogPath}";
 
             try
             {
@@ -101,10 +112,10 @@ public partial class App : Application
         var dbInitTask = InitializeDatabaseAsync();
         _ = MonitorDatabaseInit(dbInitTask, splash);
 
-        // 等待闪屏动画完成（同时外部信号触发可提前 FastForward）
+        // 等待闪屏动画完成
         await splash.WaitForReadyAsync();
 
-        // 确保 DB 也完成
+        // 确保数据库初始化完成
         await dbInitTask;
 
         // 数据库迁移
@@ -120,8 +131,7 @@ public partial class App : Application
             mainWindow.Show();
             await splash.FadeOutAsync();
 
-            // ⑧ 显式指定 MainWindow：SplashWindow 关闭后 WPF 可能不会自动提升
-            //    mainWindow 为 Application.Current.MainWindow，导致后续 ShowDialog 失败
+            // 显式指定 MainWindow（SplashWindow 关闭后 WPF 可能不会自动提升）
             Application.Current.MainWindow = mainWindow;
         }
         catch (Exception ex)
@@ -132,6 +142,7 @@ public partial class App : Application
         }
     }
 
+    /// <summary>应用程序退出时释放资源</summary>
     protected override void OnExit(ExitEventArgs e)
     {
         _serviceProvider?.Dispose();
@@ -139,7 +150,7 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    /// <summary>监控数据库初始化，先完成则通知闪屏 FastForward</summary>
+    /// <summary>监控数据库初始化任务，完成后通知闪屏</summary>
     private static async Task MonitorDatabaseInit(Task dbInitTask, SplashWindow splash)
     {
         await dbInitTask;
@@ -150,10 +161,10 @@ public partial class App : Application
     /// <summary>模拟数据库初始化（后续可替换为实际加载逻辑）</summary>
     private static async Task InitializeDatabaseAsync()
     {
-        // 模拟加载延迟；实际应替换为真正的 DB 初始化
         await Task.Delay(600);
     }
 
+    /// <summary>获取异常的最内层消息</summary>
     private static string GetInnerMostMessage(Exception ex)
     {
         var msg = ex.Message;
@@ -166,6 +177,7 @@ public partial class App : Application
         return msg;
     }
 
+    /// <summary>从设置文件加载主题偏好</summary>
     private static bool LoadThemeSetting()
     {
         try
@@ -181,6 +193,7 @@ public partial class App : Application
         return false;
     }
 
+    /// <summary>将异常信息写入错误日志文件</summary>
     private static void LogException(Exception ex)
     {
         try

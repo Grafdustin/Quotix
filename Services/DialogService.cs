@@ -5,25 +5,30 @@ using WpfMessageBoxResult = Wpf.Ui.Controls.MessageBoxResult;
 namespace Quotix.Services;
 
 /// <summary>
-/// Fluent-styled dialog service — uses an in-app overlay card instead of
-/// a separate OS <see cref="Window"/> to avoid WPF window-sizing quirks.
+/// 对话框服务。
+/// 使用应用内嵌浮层弹窗（非独立 Window），避免 WPF 窗口尺寸异常问题。
 /// </summary>
 public class DialogService
 {
+    /// <summary>显示信息提示弹窗</summary>
     public void ShowInfo(string message, string title = "提示")
         => Show(title, message, SymbolRegular.CheckmarkCircle16, "确定", null);
 
+    /// <summary>显示警告提示弹窗</summary>
     public void ShowWarning(string message, string title = "提示")
         => Show(title, message, SymbolRegular.Warning16, "确定", null);
 
+    /// <summary>显示错误提示弹窗</summary>
     public void ShowError(string message, string title = "提示")
         => Show(title, message, SymbolRegular.ErrorCircle16, "确定", null);
 
+    /// <summary>显示确认弹窗，返回用户是否确认</summary>
     public bool ShowConfirm(string message, string title = "提示")
         => Show(title, message, SymbolRegular.QuestionCircle16, "确定", "取消") == WpfMessageBoxResult.Primary;
 
     /// <summary>
-    /// 程序内嵌密码输入弹窗 — 返回用户输入的密码，取消时返回 null。
+    /// 显示内嵌密码输入弹窗。
+    /// 返回用户输入的密码，用户取消时返回 null。
     /// </summary>
     public string? ShowPasswordPrompt(string title, string message, string? errorMessage = null)
     {
@@ -31,8 +36,9 @@ public class DialogService
         return mainWindow?.ShowInlinePasswordPrompt(title, message, errorMessage);
     }
 
-    // ── core ──
+    // ============ 私有方法 ============
 
+    /// <summary>通过 MainWindow 显示内嵌弹窗</summary>
     private static WpfMessageBoxResult Show(
         string title,
         string message,

@@ -3,10 +3,12 @@ using Microsoft.Data.Sqlite;
 namespace Quotix.Repositories;
 
 /// <summary>
-/// Repository 基类 — 封装 SQL 执行、事务管理，消除子类重复样板代码
+/// Repository 基类。
+/// 封装 SQL 执行、标量查询、事务管理等通用数据访问操作，消除子类重复样板代码。
 /// </summary>
 public abstract class BaseRepository
 {
+    /// <summary>数据库提供者（由子类通过构造函数注入）</summary>
     protected readonly DatabaseProvider Db;
 
     protected BaseRepository(DatabaseProvider db)
@@ -19,7 +21,7 @@ public abstract class BaseRepository
 
     // ============ 查询 ============
 
-    /// <summary>执行查询，返回映射后的列表</summary>
+    /// <summary>执行查询 SQL，通过 rowMapper 映射为实体列表</summary>
     protected List<T> Query<T>(
         string sql,
         Dictionary<string, object?>? parameters,
@@ -32,19 +34,19 @@ public abstract class BaseRepository
 
     // ============ 写入 ============
 
-    /// <summary>执行非查询 SQL</summary>
+    /// <summary>执行非查询 SQL（INSERT / UPDATE / DELETE）</summary>
     protected int Execute(string sql, Dictionary<string, object?>? parameters = null)
         => Db.ExecuteNonQuery(sql, parameters);
 
     // ============ 标量 ============
 
-    /// <summary>执行查询返回单个标量值</summary>
+    /// <summary>执行标量查询，返回单个值</summary>
     protected T? Scalar<T>(string sql, Dictionary<string, object?>? parameters = null)
         => Db.ExecuteScalar<T>(sql, parameters);
 
     // ============ 事务 ============
 
-    /// <summary>在事务中执行操作，自动 commit/rollback</summary>
+    /// <summary>在事务中执行操作（无返回值），自动 Commit / Rollback</summary>
     protected void RunInTransaction(Action<SqliteConnection, SqliteTransaction> action)
     {
         using var conn = Db.GetConnection();
@@ -61,7 +63,7 @@ public abstract class BaseRepository
         }
     }
 
-    /// <summary>在事务中执行操作并返回结果，自动 commit/rollback</summary>
+    /// <summary>在事务中执行操作并返回结果，自动 Commit / Rollback</summary>
     protected T RunInTransaction<T>(Func<SqliteConnection, SqliteTransaction, T> func)
     {
         using var conn = Db.GetConnection();

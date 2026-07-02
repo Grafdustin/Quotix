@@ -5,7 +5,8 @@ using Quotix.Models;
 namespace Quotix.Repositories;
 
 /// <summary>
-/// 产品数据访问层 — 纯 SQL，继承 BaseRepository 消除重复样板
+/// 产品数据访问层。
+/// 负责 products 表及 FTS 全文索引的 CRUD 操作。
 /// </summary>
 public class ProductRepository : BaseRepository
 {
@@ -13,14 +14,17 @@ public class ProductRepository : BaseRepository
 
     // ============ 查询 ============
 
+    /// <summary>获取指定数据表的所有产品（按更新时间倒序）</summary>
     public List<Product> GetAll(string tableName) =>
         Query("SELECT * FROM products WHERE table_name = @table_name ORDER BY updated_at DESC",
             new() { ["@table_name"] = tableName }, ReadProduct);
 
+    /// <summary>获取所有非空的表产品（按表名、更新时间排序）</summary>
     public List<Product> GetAllTables() =>
         Query("SELECT * FROM products WHERE table_name != '' ORDER BY table_name, updated_at DESC",
             new(), ReadProduct);
 
+    /// <summary>分页查询指定数据表的产品</summary>
     public (List<Product> Products, int TotalCount) GetPaged(
         string tableName, string? keyword, int page, int pageSize)
     {
@@ -43,6 +47,7 @@ public class ProductRepository : BaseRepository
         return (products, total);
     }
 
+    /// <summary>使用 FTS5 全文索引搜索产品</summary>
     public (List<Product> Products, int TotalCount) SearchFts(
         string tableName, string keyword, int page, int pageSize)
     {
@@ -66,6 +71,7 @@ public class ProductRepository : BaseRepository
 
     // ============ 写入（事务内）============
 
+    /// <summary>插入新产品记录（事务内调用）</summary>
     public void Insert(SqliteConnection conn, SqliteTransaction tx, Product product)
     {
         using var cmd = conn.CreateCommand();
@@ -82,6 +88,7 @@ public class ProductRepository : BaseRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>向 FTS 索引插入对应记录（事务内调用）</summary>
     public void InsertFts(SqliteConnection conn, SqliteTransaction tx, Product product)
     {
         using var cmd = conn.CreateCommand();
@@ -95,6 +102,7 @@ public class ProductRepository : BaseRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>检查指定产品是否存在（事务内调用）</summary>
     public bool Exists(SqliteConnection conn, SqliteTransaction tx, string id, string tableName)
     {
         using var cmd = conn.CreateCommand();
@@ -105,6 +113,7 @@ public class ProductRepository : BaseRepository
         return (long)cmd.ExecuteScalar()! > 0;
     }
 
+    /// <summary>更新产品数据 JSON 及更新时间</summary>
     public void Update(Product product)
     {
         product.UpdatedAt = DateTime.Now.ToString(Constants.DateTimeFormat);
@@ -112,12 +121,14 @@ public class ProductRepository : BaseRepository
             new() { ["@data_json"] = product.DataJson, ["@updated_at"] = product.UpdatedAt, ["@id"] = product.Id, ["@table_name"] = product.TableName });
     }
 
+    /// <summary>删除指定产品（同时清理 FTS 索引）</summary>
     public void Delete(string id, string tableName) => RunInTransaction((conn, tx) =>
     {
         DeleteFts(conn, tx, id);
         DeleteRow(conn, tx, id, tableName);
     });
 
+    /// <summary>清空指定数据表的所有产品</summary>
     public void Clear(string tableName)
     {
         RunInTransaction((conn, tx) =>
@@ -136,17 +147,18 @@ public class ProductRepository : BaseRepository
             cmd.AddParam("@table_name", tableName);
             cmd.ExecuteNonQuery();
 
-            // 3. 删除旧的独立分表（如 products_ndt、products_rvi_change 等遗留表）
+            // 3. 删除旧的独立分表（遗留兼容）
             DropLegacyTableIfExists(conn, tx, tableName);
         });
 
-        // 4. 重建 FTS 索引，清理内部表碎片（products_fts_data / products_fts_idx）
+        // 4. 重建 FTS 索引，清理内部表碎片
         RebuildFts();
 
         // 批量删除后回收磁盘空间
         Db.Vacuum();
     }
 
+    /// <summary>清理孤立/空数据产品记录</summary>
     public int CleanOrphans()
     {
         var deleted = RunInTransaction((conn, tx) =>
@@ -161,13 +173,15 @@ public class ProductRepository : BaseRepository
             cmd.CommandText = "DELETE FROM products WHERE table_name = '' OR data_json = '' OR data_json = '{}'";
             return cmd.ExecuteNonQuery();
         });
+
         // 批量删除后回收磁盘空间
         Db.Vacuum();
         return deleted;
     }
 
-    // ============ Helpers ============
+    // ============ 私有辅助 ============
 
+    /// <summary>从 FTS 索引中删除指定产品</summary>
     private static void DeleteFts(SqliteConnection conn, SqliteTransaction tx, string id)
     {
         using var cmd = conn.CreateCommand();
@@ -177,6 +191,7 @@ public class ProductRepository : BaseRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>从主表中删除指定产品</summary>
     private static void DeleteRow(SqliteConnection conn, SqliteTransaction tx, string id, string tableName)
     {
         using var cmd = conn.CreateCommand();
@@ -187,7 +202,7 @@ public class ProductRepository : BaseRepository
         cmd.ExecuteNonQuery();
     }
 
-    /// <summary>删除旧的独立分表（如 products_ndt、products_rvi_change 等遗留表）</summary>
+    /// <summary>删除旧的独立分表（兼容遗留数据结构）</summary>
     private static void DropLegacyTableIfExists(SqliteConnection conn, SqliteTransaction tx, string tableName)
     {
         using var cmd = conn.CreateCommand();
@@ -198,10 +213,9 @@ public class ProductRepository : BaseRepository
 
     /// <summary>重建 FTS 索引，清理内部碎片数据</summary>
     private void RebuildFts()
-    {
-        Execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
-    }
+        => Execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
 
+    /// <summary>从 SqliteDataReader 读取产品实体</summary>
     public static Product ReadProduct(SqliteDataReader r) => new()
     {
         Id = r.GetString(r.GetOrdinal("id")),

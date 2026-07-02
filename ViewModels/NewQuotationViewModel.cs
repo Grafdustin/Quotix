@@ -7,6 +7,9 @@ using Quotix.Views;
 
 namespace Quotix.ViewModels;
 
+/// <summary>
+/// 新建报价单视图模型，负责报价单的创建、编辑、保存以及产品快速搜索功能。
+/// </summary>
 public partial class NewQuotationViewModel : ObservableObject
 {
     private readonly QuotationService _quotationService;
@@ -14,26 +17,28 @@ public partial class NewQuotationViewModel : ObservableObject
     private readonly HeaderService _headerService;
     private readonly DialogService _dialog;
 
-    // Company info
+    // 公司信息
     [ObservableProperty] private string _companyContact = "";
     [ObservableProperty] private string _companyPhone = "";
     [ObservableProperty] private string _companyTel = "";
     [ObservableProperty] private string _companyEmail = "";
 
-    // Customer info
+    // 客户信息
     [ObservableProperty] private string _customerName = "";
     [ObservableProperty] private string _customerContact = "";
     [ObservableProperty] private string _customerPhone = "";
     [ObservableProperty] private string _customerEmail = "";
 
-    // Quote notes
+    // 报价说明
     [ObservableProperty] private string _validity = "1个月";
     [ObservableProperty] private string _payment = "预付30%，发货前付全款";
     [ObservableProperty] private string _deliveryTime = "8-12周";
     [ObservableProperty] private string _deliveryMethod = "客户项目现场，含海运、内陆运输费用及相关保险费用";
     [ObservableProperty] private string _quoteDate;
     
-    // DatePicker 绑定的 DateTime? 属性，与 QuoteDate 字符串同步
+    /// <summary>
+    /// DatePicker 绑定的 DateTime? 属性，与 QuoteDate 字符串同步。
+    /// </summary>
     public DateTime? QuoteDateValue
     {
         get
@@ -51,17 +56,17 @@ public partial class NewQuotationViewModel : ObservableObject
     
     [ObservableProperty] private string _filename = "";
 
-    // Currency
+    // 币种
     [ObservableProperty] private string _currency = "RMB";
     [ObservableProperty] private string _currencySymbol = "¥";
 
-    // Items
+    // 报价项集合
     public ObservableCollection<QuotationItemViewModel> Items { get; } = new();
 
-    // Grand total
+    // 总计金额
     [ObservableProperty] private decimal _grandTotal;
 
-    // Editing state
+    // 编辑状态
     [ObservableProperty] private string? _editingId;
     [ObservableProperty] private string _saveButtonText = "保存报价单";
     [ObservableProperty] private bool _isEditing;
@@ -71,7 +76,13 @@ public partial class NewQuotationViewModel : ObservableObject
     [ObservableProperty] private string _quickSearchText = "";
     [ObservableProperty] private int _activeItemIndex = -1;
     [ObservableProperty] private bool _isQuickSearchVisible;
-    [ObservableProperty] private string _quickSearchContext = "product"; // product / owner / customer
+    /// <summary>
+    /// 快速搜索上下文，取值为 "product"、"owner" 或 "customer"。
+    /// </summary>
+    [ObservableProperty] private string _quickSearchContext = "product";
+    /// <summary>
+    /// 快速搜索结果集合。
+    /// </summary>
     public ObservableCollection<QuickSearchResult> QuickSearchResults { get; } = new();
 
     // ---- 防抖 + 取消 + 缓存 ----
@@ -82,7 +93,9 @@ public partial class NewQuotationViewModel : ObservableObject
     private List<QuickSearchIndex>? _cachedProductIndex;
     private string _cachedDatabaseType = "";
 
-    /// <summary>预建搜索索引：避免每次击键都遍历 JSON 数据</summary>
+    /// <summary>
+    /// 预建搜索索引：避免每次击键都遍历 JSON 数据。
+    /// </summary>
     private class QuickSearchIndex
     {
         public string SearchText = "";           // 全字段拼接（小写），用于 Contains 匹配
@@ -93,6 +106,13 @@ public partial class NewQuotationViewModel : ObservableObject
         public Dictionary<string, string> RawData = null!;
     }
 
+    /// <summary>
+    /// 初始化 NewQuotationViewModel 实例。
+    /// </summary>
+    /// <param name="quotationService">报价单服务</param>
+    /// <param name="productService">产品服务</param>
+    /// <param name="headerService">表头服务</param>
+    /// <param name="dialog">对话框服务</param>
     public NewQuotationViewModel(
         QuotationService quotationService,
         ProductService productService,
@@ -107,6 +127,9 @@ public partial class NewQuotationViewModel : ObservableObject
         AddItem();
     }
 
+    /// <summary>
+    /// 添加一个新的报价项。
+    /// </summary>
     [RelayCommand]
     private void AddItem()
     {
@@ -116,6 +139,9 @@ public partial class NewQuotationViewModel : ObservableObject
         UpdateGrandTotal();
     }
 
+    /// <summary>
+    /// 移除最后一个报价项（至少保留一项）。
+    /// </summary>
     [RelayCommand]
     private void RemoveItem()
     {
@@ -126,12 +152,19 @@ public partial class NewQuotationViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 更新总计金额和币种符号。
+    /// </summary>
     private void UpdateGrandTotal()
     {
         GrandTotal = Items.Sum(i => i.Quantity * i.UnitPrice);
         CurrencySymbol = Currency == "USD" ? "$" : "¥";
     }
 
+    /// <summary>
+    /// 切换币种（RMB 或 USD）。
+    /// </summary>
+    /// <param name="currency">目标币种</param>
     [RelayCommand]
     private void SwitchCurrency(string currency)
     {
@@ -139,6 +172,9 @@ public partial class NewQuotationViewModel : ObservableObject
         CurrencySymbol = currency == "USD" ? "$" : "¥";
     }
 
+    /// <summary>
+    /// 重置表单为初始状态。
+    /// </summary>
     [RelayCommand]
     private void ResetForm()
     {
@@ -157,6 +193,9 @@ public partial class NewQuotationViewModel : ObservableObject
         SaveButtonText = "保存报价单";
     }
 
+    /// <summary>
+    /// 保存报价单（新建或更新）。
+    /// </summary>
     [RelayCommand]
     private void Save()
     {
@@ -215,6 +254,9 @@ public partial class NewQuotationViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 打开价格计算器对话框。
+    /// </summary>
     [RelayCommand]
     private void PriceCalculator()
     {
@@ -227,6 +269,10 @@ public partial class NewQuotationViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 加载已有报价单到表单（用于编辑）。
+    /// </summary>
+    /// <param name="id">报价单 ID</param>
     public void LoadQuotation(string id)
     {
         var q = _quotationService.GetQuotation(id);
@@ -270,6 +316,10 @@ public partial class NewQuotationViewModel : ObservableObject
 
     // ==================== 快速输入（防抖 + 取消 + 缓存） ====================
 
+    /// <summary>
+    /// 切换快速输入数据库（NDT 或 RVI）。
+    /// </summary>
+    /// <param name="db">目标数据库类型</param>
     [RelayCommand]
     private void SwitchQuickDatabase(string db)
     {
@@ -282,6 +332,10 @@ public partial class NewQuotationViewModel : ObservableObject
             TriggerDebouncedSearch(QuickSearchText);
     }
 
+    /// <summary>
+    /// 编码字段获得焦点时调用，激活产品搜索模式。
+    /// </summary>
+    /// <param name="rowIndex">当前行索引</param>
     public void OnCodeFieldFocused(int rowIndex)
     {
         ActiveItemIndex = rowIndex;
@@ -290,19 +344,28 @@ public partial class NewQuotationViewModel : ObservableObject
             QuickSearchText = Items[rowIndex].Code;
     }
 
+    /// <summary>
+    /// 负责人字段获得焦点时调用，激活负责人搜索模式。
+    /// </summary>
     public void OnOwnerFieldFocused()
     {
         QuickSearchContext = "owner";
         QuickSearchText = CompanyContact;
     }
 
+    /// <summary>
+    /// 客户字段获得焦点时调用，激活客户搜索模式。
+    /// </summary>
     public void OnCustomerFieldFocused()
     {
         QuickSearchContext = "customer";
         QuickSearchText = CustomerName;
     }
 
-    /// <summary>由 View 调用：文本变化时触发搜索（带防抖）</summary>
+    /// <summary>
+    /// 由 View 调用：文本变化时触发搜索（带防抖）。
+    /// </summary>
+    /// <param name="text">搜索文本</param>
     public void HandleQuickSearchTextChanged(string text)
     {
         QuickSearchText = text;
@@ -316,6 +379,9 @@ public partial class NewQuotationViewModel : ObservableObject
         TriggerDebouncedSearch(text);
     }
 
+    /// <summary>
+    /// 快速搜索失去焦点时调用，延迟隐藏搜索结果。
+    /// </summary>
     public void OnQuickSearchLostFocus()
     {
         System.Threading.Tasks.Task.Delay(200).ContinueWith(_ =>
@@ -328,7 +394,10 @@ public partial class NewQuotationViewModel : ObservableObject
         });
     }
 
-    /// <summary>取消当前搜索 + 启动 250ms 防抖</summary>
+    /// <summary>
+    /// 取消当前搜索并启动 250ms 防抖。
+    /// </summary>
+    /// <param name="query">搜索查询字符串</param>
     private async void TriggerDebouncedSearch(string query)
     {
         CancelSearch();
@@ -337,7 +406,7 @@ public partial class NewQuotationViewModel : ObservableObject
 
         try
         {
-            // 防抖：等 250ms，期间如果有新输入，CancelSearch 会被再次调用
+            // 防抖：等待 250ms，期间如果有新输入，CancelSearch 会被再次调用
             await System.Threading.Tasks.Task.Delay(DebounceInterval, token);
             if (token.IsCancellationRequested) return;
 
@@ -346,6 +415,9 @@ public partial class NewQuotationViewModel : ObservableObject
         catch (OperationCanceledException) { }
     }
 
+    /// <summary>
+    /// 取消当前正在进行的搜索。
+    /// </summary>
     private void CancelSearch()
     {
         _searchCts?.Cancel();
@@ -353,6 +425,11 @@ public partial class NewQuotationViewModel : ObservableObject
         _searchCts = null;
     }
 
+    /// <summary>
+    /// 执行异步快速搜索（根据上下文搜索产品、负责人或客户）。
+    /// </summary>
+    /// <param name="query">搜索查询字符串</param>
+    /// <param name="ct">取消令牌</param>
     private async System.Threading.Tasks.Task QuickSearchAsync(string query, CancellationToken ct)
     {
         var lower = query.ToLowerInvariant();
@@ -460,7 +537,11 @@ public partial class NewQuotationViewModel : ObservableObject
         }
     }
 
-    /// <summary>构建搜索索引：加载全部产品，预计算 SearchText（只做一次，后缓存）</summary>
+    /// <summary>
+    /// 构建搜索索引：加载全部产品，预计算 SearchText（只做一次，后缓存）。
+    /// </summary>
+    /// <param name="dbType">数据库类型（NDT 或 RVI）</param>
+    /// <returns>搜索索引列表</returns>
     private List<QuickSearchIndex> BuildSearchIndex(string dbType)
     {
         var tableName = dbType == "NDT" ? "products_ndt" : "products_rvi_change";
@@ -513,7 +594,10 @@ public partial class NewQuotationViewModel : ObservableObject
         return index;
     }
 
-    /// <summary>由 View 调用：选择了搜索结果</summary>
+    /// <summary>
+    /// 由 View 调用：选择了搜索结果后填充对应字段。
+    /// </summary>
+    /// <param name="result">选中的搜索结果</param>
     public void OnQuickResultSelected(QuickSearchResult result)
     {
         if (result.ResultType == "product" && ActiveItemIndex >= 0 && ActiveItemIndex < Items.Count)
@@ -553,6 +637,9 @@ public partial class NewQuotationViewModel : ObservableObject
     }
 }
 
+/// <summary>
+/// 报价项视图模型，表示报价单中的一个产品条目。
+/// </summary>
 public partial class QuotationItemViewModel : ObservableObject
 {
     [ObservableProperty] private string _itemName = "";

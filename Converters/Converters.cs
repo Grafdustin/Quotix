@@ -6,6 +6,9 @@ using Wpf.Ui.Controls;
 
 namespace Quotix.Converters;
 
+/// <summary>
+/// 布尔值转可见性转换器。当值为 true 时返回 Visible，否则返回 Collapsed。
+/// </summary>
 public class BoolToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -14,6 +17,9 @@ public class BoolToVisibilityConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
+/// <summary>
+/// 反布尔值转可见性转换器。当值为 true 时返回 Collapsed，否则返回 Visible。
+/// </summary>
 public class InverseBoolConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -22,6 +28,9 @@ public class InverseBoolConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
+/// <summary>
+/// 乘法转换器，将两个值相乘并返回格式化字符串。
+/// </summary>
 public class MultiplyConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
@@ -34,6 +43,9 @@ public class MultiplyConverter : IMultiValueConverter
         => throw new NotImplementedException();
 }
 
+/// <summary>
+/// 字符串转可见性转换器。当字符串为空时返回 Collapsed，否则返回 Visible。
+/// </summary>
 public class StringToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -42,7 +54,9 @@ public class StringToVisibilityConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-// RMB/USD 按钮高亮
+/// <summary>
+/// 币种按钮背景转换器。当前币种与目标币种匹配时返回 Primary，否则返回 Secondary。
+/// </summary>
 public class CurrencyBgConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -56,7 +70,9 @@ public class CurrencyBgConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-// 快速输入数据库切换高亮 (NDT / RVI)
+/// <summary>
+/// 快速输入数据库切换高亮转换器。当前数据库与目标数据库匹配时返回 Primary，否则返回 Secondary。
+/// </summary>
 public class QuickDbAppearanceConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -70,7 +86,9 @@ public class QuickDbAppearanceConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-// ItemsControl 行号索引 (使用 ContentPresenter)
+/// <summary>
+/// ItemsControl 行号索引转换器。根据 ContentPresenter 获取其在 ItemsControl 中的索引（从 1 开始）。
+/// </summary>
 public class IndexConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -87,7 +105,9 @@ public class IndexConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-// decimal 为 0 时显示空字符串
+/// <summary>
+/// 零值转空字符串转换器。当 decimal 值为 0 时返回空字符串，否则返回原值。
+/// </summary>
 public class ZeroToEmptyConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

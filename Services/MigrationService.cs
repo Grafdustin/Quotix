@@ -4,7 +4,9 @@ using Quotix.Repositories;
 namespace Quotix.Services;
 
 /// <summary>
-/// 数据库迁移服务 — 负责建表、补列、索引、FTS 初始化
+/// 数据库迁移服务。
+/// 负责建表、补列、创建索引和 FTS 全文索引初始化。
+/// 在应用启动时调用一次。
 /// </summary>
 public class MigrationService
 {
@@ -15,33 +17,35 @@ public class MigrationService
         _db = db;
     }
 
+    /// <summary>执行完整迁移流程</summary>
     public void Run()
     {
         using var conn = _db.GetConnection();
 
-        // 1. WAL 模式（性能优化）
+        // 1. 启用 WAL 模式（提升并发写入性能）
         using (var walCmd = conn.CreateCommand())
         {
             walCmd.CommandText = "PRAGMA journal_mode=WAL;";
             walCmd.ExecuteNonQuery();
         }
 
-        // 2. 建表（幂等）
+        // 2. 建表（幂等操作，已存在则跳过）
         CreateTables(conn);
 
-        // 3. 补列（幂等）
+        // 3. 补列（幂等操作，已存在则跳过）
         AddMissingColumns(conn);
 
-        // 4. 索引
+        // 4. 创建索引
         CreateIndexes(conn);
 
-        // 5. FTS 全文索引
+        // 5. 创建 FTS5 全文索引虚拟表
         CreateFts(conn);
 
-        // 6. 首次启动重建 FTS 索引
+        // 6. 首次启动时重建 FTS 索引（从 products 表同步数据）
         RebuildFtsIfNeeded(conn);
     }
 
+    /// <summary>创建所有业务表（幂等）</summary>
     private static void CreateTables(SqliteConnection conn)
     {
         using var cmd = conn.CreateCommand();
@@ -76,6 +80,7 @@ public class MigrationService
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>为已有表补充缺失的列（幂等）</summary>
     private static void AddMissingColumns(SqliteConnection conn)
     {
         TryExec(conn, "ALTER TABLE products ADD COLUMN table_name TEXT NOT NULL DEFAULT ''");
@@ -85,6 +90,7 @@ public class MigrationService
         TryExec(conn, "ALTER TABLE products ADD COLUMN updated_at TEXT");
     }
 
+    /// <summary>创建业务索引（幂等）</summary>
     private static void CreateIndexes(SqliteConnection conn)
     {
         TryExec(conn, "CREATE INDEX IF NOT EXISTS idx_quotations_created_by ON quotations(created_by)");
@@ -94,6 +100,7 @@ public class MigrationService
         TryExec(conn, "CREATE INDEX IF NOT EXISTS idx_products_table_data_json ON products(table_name, data_json)");
     }
 
+    /// <summary>创建 FTS5 全文索引虚拟表</summary>
     private static void CreateFts(SqliteConnection conn)
     {
         TryExec(conn, @"CREATE VIRTUAL TABLE IF NOT EXISTS products_fts USING fts5(
@@ -101,6 +108,7 @@ public class MigrationService
         )");
     }
 
+    /// <summary>首次启动时，若 FTS 索引为空但 products 表有数据，则同步重建</summary>
     private static void RebuildFtsIfNeeded(SqliteConnection conn)
     {
         try
@@ -124,6 +132,7 @@ public class MigrationService
         catch { }
     }
 
+    /// <summary>执行 SQL，忽略异常（用于幂等的 DDL 操作）</summary>
     private static void TryExec(SqliteConnection conn, string sql)
     {
         try

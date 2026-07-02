@@ -8,12 +8,21 @@ using Quotix.Services;
 
 namespace Quotix.ViewModels;
 
+/// <summary>
+/// 产品数据库视图模型，负责产品数据的分页查询、导入、删除以及表切换功能。
+/// </summary>
 public partial class ProductDatabaseViewModel : ObservableObject
 {
     private readonly ProductService _productService;
     private readonly ProductImportService _importService;
     private readonly DialogService _dialog;
 
+    /// <summary>
+    /// 初始化 ProductDatabaseViewModel 实例。
+    /// </summary>
+    /// <param name="productService">产品服务</param>
+    /// <param name="importService">产品导入服务</param>
+    /// <param name="dialog">对话框服务</param>
     public ProductDatabaseViewModel(ProductService productService, ProductImportService importService, DialogService dialog)
     {
         _productService = productService;
@@ -23,11 +32,20 @@ public partial class ProductDatabaseViewModel : ObservableObject
 
     private int _pendingSearchToken;
 
+    /// <summary>
+    /// 产品数据行集合。
+    /// </summary>
     public ObservableCollection<ProductRowViewModel> Products { get; } = new();
 
     [ObservableProperty] private string _searchText = "";
     [ObservableProperty] private string _statusText = "就绪";
+    /// <summary>
+    /// 是否为 NDT 表（否则为 RVI 表）。
+    /// </summary>
     [ObservableProperty] private bool _isNDT = true;
+    /// <summary>
+    /// 是否为主表（否则为副表）。
+    /// </summary>
     [ObservableProperty] private bool _isMainTable = true;
     [ObservableProperty] private string _currentTableLabel = "NDT - 价表";
     [ObservableProperty] private bool _isLoading;
@@ -38,6 +56,9 @@ public partial class ProductDatabaseViewModel : ObservableObject
     [ObservableProperty] private int _pageSize = 50;
 
     private int _currentPage = 1;
+    /// <summary>
+    /// 当前页码。
+    /// </summary>
     public int CurrentPage
     {
         get => _currentPage;
@@ -55,6 +76,9 @@ public partial class ProductDatabaseViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 总页数理变化时，通知分页命令状态更新。
+    /// </summary>
     partial void OnTotalPagesChanged(int value)
     {
         OnPropertyChanged(nameof(CanGoPrev));
@@ -65,14 +89,27 @@ public partial class ProductDatabaseViewModel : ObservableObject
         GoToLastPageCommand.NotifyCanExecuteChanged();
     }
 
+    /// <summary>
+    /// 是否可以向前翻页。
+    /// </summary>
     public bool CanGoPrev => CurrentPage > 1;
+    /// <summary>
+    /// 是否可以向后翻页。
+    /// </summary>
     public bool CanGoNext => CurrentPage < TotalPages;
 
+    /// <summary>
+    /// 列头集合。
+    /// </summary>
     public ObservableCollection<string> ColumnHeaders { get; } = new();
 
-    /// <summary>View 订阅：集合即将更新，请解绑 DataGrid</summary>
+    /// <summary>
+    /// View 订阅：集合即将更新，请解绑 DataGrid。
+    /// </summary>
     public event Action? BeforeCollectionUpdate;
-    /// <summary>View 订阅：集合更新完毕，请重新绑定 DataGrid</summary>
+    /// <summary>
+    /// View 订阅：集合更新完毕，请重新绑定 DataGrid。
+    /// </summary>
     public event Action? AfterCollectionUpdate;
 
     // —— 搜索文本变化时 300ms 防抖重新加载 ——
@@ -87,6 +124,10 @@ public partial class ProductDatabaseViewModel : ObservableObject
         });
     }
 
+    /// <summary>
+    /// 获取当前选中的表名。
+    /// </summary>
+    /// <returns>表名字符串</returns>
     private string GetCurrentTableName()
     {
         if (IsNDT)
@@ -95,11 +136,18 @@ public partial class ProductDatabaseViewModel : ObservableObject
             return IsMainTable ? "products_rvi_change" : "products_rvi_ot";
     }
 
+    /// <summary>
+    /// 刷新当前页数据。
+    /// </summary>
     public void Refresh()
     {
         _ = LoadPageAsync(1);
     }
 
+    /// <summary>
+    /// 异步加载指定页的数据。
+    /// </summary>
+    /// <param name="page">目标页码</param>
     public async Task LoadPageAsync(int page)
     {
         IsLoading = true;
@@ -171,6 +219,10 @@ public partial class ProductDatabaseViewModel : ObservableObject
     }
 
     // —— 分页导航 ——
+
+    /// <summary>
+    /// 跳转到下一页。
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanGoNext))]
     private async Task NextPage()
     {
@@ -178,6 +230,9 @@ public partial class ProductDatabaseViewModel : ObservableObject
             await LoadPageAsync(CurrentPage + 1);
     }
 
+    /// <summary>
+    /// 跳转到上一页。
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanGoPrev))]
     private async Task PrevPage()
     {
@@ -185,13 +240,23 @@ public partial class ProductDatabaseViewModel : ObservableObject
             await LoadPageAsync(CurrentPage - 1);
     }
 
+    /// <summary>
+    /// 跳转到第一页。
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanGoPrev))]
     private async Task GoToFirstPage() => await LoadPageAsync(1);
 
+    /// <summary>
+    /// 跳转到最后一页。
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanGoNext))]
     private async Task GoToLastPage() => await LoadPageAsync(TotalPages);
 
     // —— 表切换 ——
+
+    /// <summary>
+    /// 切换到 NDT 表。
+    /// </summary>
     [RelayCommand]
     private async Task SwitchToNDT()
     {
@@ -200,6 +265,9 @@ public partial class ProductDatabaseViewModel : ObservableObject
         await LoadPageAsync(1);
     }
 
+    /// <summary>
+    /// 切换到 RVI 表。
+    /// </summary>
     [RelayCommand]
     private async Task SwitchToRVI()
     {
@@ -208,6 +276,10 @@ public partial class ProductDatabaseViewModel : ObservableObject
         await LoadPageAsync(1);
     }
 
+    /// <summary>
+    /// 切换 NDT 子表（主表或货期表）。
+    /// </summary>
+    /// <param name="table">表类型，"main" 为主表</param>
     [RelayCommand]
     private async Task SwitchNdtTable(string table)
     {
@@ -215,6 +287,10 @@ public partial class ProductDatabaseViewModel : ObservableObject
         await LoadPageAsync(1);
     }
 
+    /// <summary>
+    /// 切换 RVI 子表（Change 或 OT Code）。
+    /// </summary>
+    /// <param name="table">表类型，"change" 为主表</param>
     [RelayCommand]
     private async Task SwitchRviTable(string table)
     {
@@ -223,6 +299,10 @@ public partial class ProductDatabaseViewModel : ObservableObject
     }
 
     // —— 导入 ——
+
+    /// <summary>
+    /// 从 Excel 文件导入产品数据。
+    /// </summary>
     [RelayCommand]
     private async Task Import()
     {
@@ -257,6 +337,9 @@ public partial class ProductDatabaseViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 清除当前表的所有数据。
+    /// </summary>
     [RelayCommand]
     private async Task ClearData()
     {
@@ -267,6 +350,10 @@ public partial class ProductDatabaseViewModel : ObservableObject
         await LoadPageAsync(1);
     }
 
+    /// <summary>
+    /// 删除指定产品。
+    /// </summary>
+    /// <param name="id">产品 ID</param>
     [RelayCommand]
     private async Task DeleteProduct(string id)
     {
@@ -275,9 +362,21 @@ public partial class ProductDatabaseViewModel : ObservableObject
     }
 }
 
+/// <summary>
+/// 产品数据行视图模型，表示产品表中的一行数据。
+/// </summary>
 public partial class ProductRowViewModel : ObservableObject
 {
+    /// <summary>
+    /// 产品 ID。
+    /// </summary>
     public string Id { get; set; } = "";
+    /// <summary>
+    /// 创建者。
+    /// </summary>
     public string CreatedBy { get; set; } = "";
+    /// <summary>
+    /// 产品数据字典（列名-值）。
+    /// </summary>
     public Dictionary<string, string> Data { get; set; } = new();
 }

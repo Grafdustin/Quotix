@@ -1,13 +1,14 @@
 using System.IO;
 using Quotix.Common;
 using Quotix.Models;
+using Quotix.Repositories;
 using Quotix.Services.Exporters;
 
 namespace Quotix.Services;
 
 /// <summary>
-/// 导出服务 — 协调 IExporter 实现，选择导出格式
-/// 仅负责路径解析 + 导出器选择，具体格式由 IExporter 实现
+/// 导出服务。
+/// 协调 IExporter 实现，负责导出格式选择和输出路径解析。
 /// </summary>
 public class ExportService
 {
@@ -19,14 +20,14 @@ public class ExportService
         _settings = settings;
     }
 
-    /// <summary>导出报价单为 Excel</summary>
+    /// <summary>导出报价单为 Excel 文件</summary>
     public string ExportToExcel(Quotation quotation)
     {
         var outputDir = ResolveOutputDir();
         return _excelExporter.Export(quotation, outputDir);
     }
 
-    /// <summary>按扩展名选择导出器（预留 PDF / 打印）</summary>
+    /// <summary>按格式导出报价单（默认 Excel）</summary>
     public string Export(Quotation quotation, string format = "xlsx")
     {
         var outputDir = ResolveOutputDir();
@@ -42,6 +43,7 @@ public class ExportService
         return exporter.Export(quotation, outputDir);
     }
 
+    /// <summary>解析输出目录（优先使用用户设置，未设置则使用桌面默认路径）</summary>
     private string ResolveOutputDir()
     {
         if (!string.IsNullOrWhiteSpace(_settings.DefaultExportPath)
