@@ -41,8 +41,8 @@ public static class AppPaths
         }
     }
 
-    /// <summary>数据库文件路径（DataDir\quotation.db）</summary>
-    public static string DatabasePath => Path.Combine(DataDir, "quotation.db");
+    /// <summary>数据库文件路径（DataDir\data.db）</summary>
+    public static string DatabasePath => Path.Combine(DataDir, "data.db");
 
     /// <summary>设置文件路径（DataDir\settings.json）</summary>
     public static string SettingsPath => Path.Combine(DataDir, "settings.json");
