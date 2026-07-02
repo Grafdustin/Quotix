@@ -67,27 +67,30 @@ Write-Host "Staging directory ready" -ForegroundColor Green
 # 3.5 Build and Copy Updater files to Staging
 Write-Host "Building and copying updater files..." -ForegroundColor Yellow
 $updaterProj = Join-Path $PSScriptRoot "..\..\Quotix.Updater\Quotix.Updater.csproj"
-$updaterPublishDir = Join-Path $PSScriptRoot "..\..\Quotix.Updater\bin\Release\net10.0-windows\win-x64\publish"
+$updaterOutputDir = Join-Path $PSScriptRoot "..\..\Quotix.Updater\bin\Release\net10.0-windows"
 
-# Build Updater (self-contained)
+# Build Updater (framework-dependent, small output)
 if (Test-Path $updaterProj) {
-    Write-Host "Publishing Updater (self-contained)..." -ForegroundColor Cyan
-    dotnet publish $updaterProj -c Release --self-contained true -r win-x64
+    Write-Host "Building Updater (framework-dependent)..." -ForegroundColor Cyan
+    dotnet build $updaterProj -c Release
     
-    if (Test-Path "$updaterPublishDir\Quotix.Updater.exe") {
-        # Create separate Updater directory (avoid DLL conflicts with main app)
+    if (Test-Path "$updaterOutputDir\Quotix.Updater.exe") {
+        # Create separate Updater directory
         $updaterDir = Join-Path $launcherDir "Updater"
         New-Item -ItemType Directory -Path $updaterDir -Force | Out-Null
         
-        # Copy ALL files from publish directory to Updater subdirectory
-        Copy-Item "$updaterPublishDir\*" $updaterDir -Recurse -Force
+        # Copy only necessary files (framework-dependent, only 4 files)
+        Copy-Item "$updaterOutputDir\Quotix.Updater.exe" $updaterDir -Force
+        Copy-Item "$updaterOutputDir\Quotix.Updater.dll" $updaterDir -Force
+        Copy-Item "$updaterOutputDir\Quotix.Updater.deps.json" $updaterDir -Force
+        Copy-Item "$updaterOutputDir\Quotix.Updater.runtimeconfig.json" $updaterDir -Force
         
-        # Check file size (self-contained exe should be ~20 MB)
-        $exeSize = (Get-Item "$updaterDir\Quotix.Updater.exe").Length / 1MB
-        $fileCount = (Get-ChildItem "$updaterDir" -Recurse -File).Count
-        Write-Host "Updater files copied to separate directory (EXE: $([math]::Round($exeSize, 2)) MB, Files: $fileCount)" -ForegroundColor Green
+        # Check file sizes
+        $exeSize = (Get-Item "$updaterDir\Quotix.Updater.exe").Length / 1KB
+        $dllSize = (Get-Item "$updaterDir\Quotix.Updater.dll").Length / 1KB
+        Write-Host "Updater files copied (framework-dependent, EXE: $([math]::Round($exeSize, 2)) KB, DLL: $([math]::Round($dllSize, 2)) KB)" -ForegroundColor Green
     } else {
-        Write-Host "Error: Failed to publish Updater" -ForegroundColor Red
+        Write-Host "Error: Failed to build Updater" -ForegroundColor Red
         exit 1
     }
 } else {
