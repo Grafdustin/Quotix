@@ -64,22 +64,29 @@ New-Item -ItemType Directory -Path (Join-Path $stagingDir "..\Data") -Force | Ou
 
 Write-Host "Staging directory ready" -ForegroundColor Green
 
-# 3.5 Build and Copy Updater.exe to Staging
-Write-Host "Building and copying Updater.exe..." -ForegroundColor Yellow
-$updaterProj = Join-Path $PSScriptRoot "..\..\Quotix.Updater\Quotix.Updater.csproj"
-$updaterSource = Join-Path $PSScriptRoot "..\..\Quotix.Updater\bin\Release\net10.0\win-x64\publish\Quotix.Updater.exe"
+# 3.5 Build and Copy Updater files to Staging
+Write-Host "Building and copying Updater files..." -ForegroundColor Yellow
+$updaterProj = Join-Path $PSScriptRoot "..\Quotix.Updater\Quotix.Updater.csproj"
+$updaterOutputDir = Join-Path $PSScriptRoot "..\Quotix.Updater\bin\Release\net10.0"
 
-# Build Updater
+# Build Updater (framework-dependent, not self-contained)
 if (Test-Path $updaterProj) {
-    Write-Host "Building Updater..." -ForegroundColor Cyan
-    dotnet publish $updaterProj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
+    Write-Host "Building Updater (framework-dependent)..." -ForegroundColor Cyan
+    dotnet build $updaterProj -c Release
     
-    if (Test-Path $updaterSource) {
-        Copy-Item $updaterSource $launcherDir -Force
-        Write-Host "Updater.exe built and copied" -ForegroundColor Green
+    if (Test-Path "$updaterOutputDir\Quotix.Updater.exe") {
+        # Copy all necessary files (not single-file publish)
+        Copy-Item "$updaterOutputDir\Quotix.Updater.exe" $launcherDir -Force
+        Copy-Item "$updaterOutputDir\Quotix.Updater.dll" $launcherDir -Force
+        Copy-Item "$updaterOutputDir\Quotix.Updater.deps.json" $launcherDir -Force
+        Copy-Item "$updaterOutputDir\Quotix.Updater.runtimeconfig.json" $launcherDir -Force
+        
+        # Check file sizes
+        $exeSize = (Get-Item "$launcherDir\Quotix.Updater.exe").Length / 1KB
+        $dllSize = (Get-Item "$launcherDir\Quotix.Updater.dll").Length / 1KB
+        Write-Host "Updater files copied (EXE: $([math]::Round($exeSize, 2)) KB, DLL: $([math]::Round($dllSize, 2)) KB)" -ForegroundColor Green
     } else {
         Write-Host "Error: Failed to build Updater" -ForegroundColor Red
-        Write-Host "Expected path: $updaterSource" -ForegroundColor Yellow
         exit 1
     }
 } else {
