@@ -75,12 +75,17 @@ if (Test-Path $updaterProj) {
     dotnet publish $updaterProj -c Release --self-contained true -r win-x64
     
     if (Test-Path "$updaterPublishDir\Quotix.Updater.exe") {
-        # Copy ALL files from publish directory (self-contained app)
-        Copy-Item "$updaterPublishDir\*" $launcherDir -Recurse -Force
+        # Create separate Updater directory (avoid DLL conflicts with main app)
+        $updaterDir = Join-Path $launcherDir "Updater"
+        New-Item -ItemType Directory -Path $updaterDir -Force | Out-Null
+        
+        # Copy ALL files from publish directory to Updater subdirectory
+        Copy-Item "$updaterPublishDir\*" $updaterDir -Recurse -Force
         
         # Check file size (self-contained exe should be ~20 MB)
-        $exeSize = (Get-Item "$launcherDir\Quotix.Updater.exe").Length / 1MB
-        Write-Host "Updater files copied (self-contained, EXE: $([math]::Round($exeSize, 2)) MB)" -ForegroundColor Green
+        $exeSize = (Get-Item "$updaterDir\Quotix.Updater.exe").Length / 1MB
+        $fileCount = (Get-ChildItem "$updaterDir" -Recurse -File).Count
+        Write-Host "Updater files copied to separate directory (EXE: $([math]::Round($exeSize, 2)) MB, Files: $fileCount)" -ForegroundColor Green
     } else {
         Write-Host "Error: Failed to publish Updater" -ForegroundColor Red
         exit 1

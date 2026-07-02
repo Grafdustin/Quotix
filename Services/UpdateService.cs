@@ -153,15 +153,15 @@ namespace Quotix.Services
         {
             try
             {
-                // 获取 Updater 路径（在程序安装目录下）
+                // 获取 Updater 路径（在程序安装目录下的 Updater 子目录）
                 var appDir = AppContext.BaseDirectory;
-                var updaterPath = Path.Combine(appDir, "Quotix.Updater.exe");
+                var updaterPath = Path.Combine(appDir, "Updater", "Quotix.Updater.exe");
 
                 // 如果 Updater 不存在，尝试使用完整路径
                 if (!File.Exists(updaterPath))
                 {
-                    // 尝试在 Launcher 目录下查找
-                    updaterPath = Path.Combine(appDir, "Launcher", "Quotix.Updater.exe");
+                    // 尝试在 Launcher\Updater 目录下查找
+                    updaterPath = Path.Combine(appDir, "Launcher", "Updater", "Quotix.Updater.exe");
                 }
 
                 if (!File.Exists(updaterPath))
