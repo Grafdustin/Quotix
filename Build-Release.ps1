@@ -285,52 +285,6 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Release ready!" -ForegroundColor Green
 
-# ========== version.json（Release 成功后才生成） ==========
-Write-Host ""
-Write-Host "Generating version.json..." -ForegroundColor Yellow
-
-$fileSizeBytes = (Get-Item $installerPath).Length
-
-# 从版本号计算 build 值（如 1.0.15 → 1015）
-$buildNumber = [int]($Version -replace '\.', '')
-
-$versionInfo = @{
-    version      = $Version
-    build        = $buildNumber
-    releaseDate  = Get-Date -Format "yyyy-MM-dd"
-    downloadUrl  = "https://github.com/$repoName/releases/download/v$Version/Quotix_Setup_$Version.exe"
-    fileSize     = $fileSizeBytes
-    mandatory    = $false
-    changelog    = @($CommitMessage -split "`n" | Where-Object { $_.Trim() -ne "" } | ForEach-Object { $_.Trim() })
-}
-
-$versionJsonPath = Join-Path $ProjectDir "Resources\version.json"
-$versionInfo | ConvertTo-Json -Depth 10 | Set-Content $versionJsonPath -Encoding UTF8
-Write-Host "version.json written: v$Version (build $buildNumber, $fileSizeBytes bytes)" -ForegroundColor Green
-
-# 提交并推送 version.json
-if (-not $SkipGit) {
-    git -C $ProjectDir add "$versionJsonPath"
-    git -C $ProjectDir commit -m "Update version.json (v$Version)"
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Warning: version.json commit failed (no changes?)" -ForegroundColor Yellow
-    }
-    
-    # 推送到远程
-    $prevEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    $pushResult = & git -C $ProjectDir push origin main 2>&1
-    $ErrorActionPreference = $prevEAP
-    if ($pushResult) {
-        $pushResult | ForEach-Object { Write-Host $_ }
-    }
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "version.json push failed (exit code $LASTEXITCODE)" -ForegroundColor Red
-    } else {
-        Write-Host "version.json pushed to remote" -ForegroundColor Green
-    }
-}
-
 Write-Host ""
 Write-Host "=== Release process completed ===" -ForegroundColor Green
 if ($installerPath) {
