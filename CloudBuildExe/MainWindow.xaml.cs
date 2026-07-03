@@ -183,72 +183,123 @@ public partial class MainWindow : Window
         AppendLog("监控构建进度...");
         ProgressText.Text = "等待构建开始...";
         UpdateProgress(90);
-        BuildStatusText.Text = "⏳ 队列中...";
+        BuildStatusText.Text = "⏳ 等待 GitHub Actions 启动...";
 
         var repo = "Grafdustin/Quotix";
         var maxWait = TimeSpan.FromMinutes(10);
         var startTime = DateTime.Now;
+        string? runId = null;
         var lastStatus = "";
 
-        while (DateTime.Now - startTime < maxWait)
+        // 等待新的 workflow run 出现（最多等 2 分钟）
+        AppendLog("等待 GitHub Actions workflow 启动...");
+        var waitStart = DateTime.Now;
+        while (DateTime.Now - waitStart < TimeSpan.FromMinutes(2))
         {
             ct.ThrowIfCancellationRequested();
 
-            // gh run list 返回 JSON 数组，需要取第一个
-            var runJson = await RunCmdAsync("gh", $"run list --repo {repo} --workflow build-and-release.yml --limit 1 --json status,conclusion", ct);
+            // 获取最新的 run
+            var runListJson = await RunCmdAsync("gh", $"run list --repo {repo} --workflow build-and-release.yml --branch main --limit 1 --json databaseId,status,conclusion,createdAt", ct);
 
-            if (!string.IsNullOrWhiteSpace(runJson) && runJson.TrimStart().StartsWith("["))
+            if (!string.IsNullOrWhiteSpace(runListJson) && runListJson.TrimStart().StartsWith("["))
             {
                 try
                 {
-                    using var doc = JsonDocument.Parse(runJson);
+                    using var doc = JsonDocument.Parse(runListJson);
                     var array = doc.RootElement;
 
                     if (array.GetArrayLength() > 0)
                     {
                         var run = array[0];
+                        var newRunId = run.GetProperty("databaseId").GetInt64().ToString();
                         var status = run.GetProperty("status").GetString();
-                        var conclusion = run.TryGetProperty("conclusion", out var c) ? c.GetString() : null;
 
-                        // 只在状态变化时更新日志
-                        if (status != lastStatus)
+                        // 检查这个 run 是否是我们刚触发的（通过创建时间判断）
+                        var createdAt = run.GetProperty("createdAt").GetString();
+                        if (createdAt != null)
                         {
-                            lastStatus = status ?? "";
-                            AppendLog($"构建状态：{status}");
-                        }
-
-                        BuildStatusText.Text = status switch
-                        {
-                            "queued" => "⏳ 队列中...",
-                            "in_progress" => "🔄 构建中...",
-                            "completed" when conclusion == "success" => "✅ 构建成功！",
-                            "completed" => $"❌ 构建失败：{conclusion}",
-                            _ => status ?? "未知"
-                        };
-
-                        if (status == "completed")
-                        {
-                            UpdateProgress(100);
-                            if (conclusion == "success")
+                            var createdTime = DateTime.Parse(createdAt);
+                            // 如果 workflow 是在我们推送 tag 后创建的（允许 5 分钟误差）
+                            if (createdTime > startTime.AddMinutes(-5))
                             {
-                                ProgressText.Text = "构建完成！";
-                                AppendLog("✅ 构建成功！");
-                                AppendLog($"下载：https://github.com/{repo}/releases/tag/v{version}");
-                                MessageBox.Show(
-                                    $"构建成功！\n\n下载地址：\nhttps://github.com/{repo}/releases/tag/v{version}",
-                                    "完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                                runId = newRunId;
+                                AppendLog($"找到新的 workflow run: #{runId}, 状态: {status}");
+                                break;
                             }
-                            else
-                            {
-                                ProgressText.Text = "构建失败";
-                                AppendLog($"❌ 构建失败：{conclusion}");
-                            }
-                            return;
                         }
                     }
-                    else
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"解析 workflow 列表失败：{ex.Message}");
+                }
+            }
+
+            AppendLog("等待 workflow 启动...");
+            await Task.Delay(10000, ct);
+        }
+
+        if (runId == null)
+        {
+            AppendLog("错误：无法找到刚触发的 workflow run");
+            AppendLog("请手动查看：https://github.com/Grafdustin/Quotix/actions");
+            ProgressText.Text = "监控失败";
+            return;
+        }
+
+        // 监控特定的 run ID
+        AppendLog($"开始监控 run #{runId}...");
+        while (DateTime.Now - startTime < maxWait)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            // 使用 gh run view 监控特定的 run
+            var runJson = await RunCmdAsync("gh", $"run view {runId} --repo {repo} --json status,conclusion", ct);
+
+            if (!string.IsNullOrWhiteSpace(runJson) && runJson.TrimStart().StartsWith("{"))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(runJson);
+                    var run = doc.RootElement;
+                    var status = run.GetProperty("status").GetString();
+                    var conclusion = run.TryGetProperty("conclusion", out var c) ? c.GetString() : null;
+
+                    // 只在状态变化时更新日志
+                    if (status != lastStatus)
                     {
-                        AppendLog("等待 GitHub Actions 启动...");
+                        lastStatus = status ?? "";
+                        AppendLog($"构建状态：{status}");
+                    }
+
+                    BuildStatusText.Text = status switch
+                    {
+                        "queued" => "⏳ 队列中...",
+                        "in_progress" => "🔄 构建中...",
+                        "completed" when conclusion == "success" => "✅ 构建成功！",
+                        "completed" => $"❌ 构建失败：{conclusion}",
+                        _ => status ?? "未知"
+                    };
+
+                    if (status == "completed")
+                    {
+                        UpdateProgress(100);
+                        if (conclusion == "success")
+                        {
+                            ProgressText.Text = "构建完成！";
+                            AppendLog("✅ 构建成功！");
+                            AppendLog($"下载：https://github.com/{repo}/releases/tag/v{version}");
+                            MessageBox.Show(
+                                $"构建成功！\n\n下载地址：\nhttps://github.com/{repo}/releases/tag/v{version}",
+                                "完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            ProgressText.Text = "构建失败";
+                            AppendLog($"❌ 构建失败：{conclusion}");
+                            AppendLog($"查看详情：https://github.com/{repo}/actions/runs/{runId}");
+                        }
+                        return;
                     }
                 }
                 catch (JsonException ex)
@@ -257,15 +308,12 @@ public partial class MainWindow : Window
                     AppendLog($"原始输出：{runJson}");
                 }
             }
-            else
-            {
-                AppendLog("等待 GitHub Actions 启动...");
-            }
 
-            await Task.Delay(10000, ct);  // 改为 10 秒检查一次
+            await Task.Delay(10000, ct);  // 10 秒检查一次
         }
 
         AppendLog("超时，请手动查看：https://github.com/Grafdustin/Quotix/actions");
+        AppendLog($"Run ID: {runId}");
     }
 
     private void UpdateProgress(int value)
