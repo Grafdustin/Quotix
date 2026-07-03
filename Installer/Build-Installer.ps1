@@ -1,4 +1,4 @@
-# Build-Installer.ps1
+﻿# Build-Installer.ps1
 # Automated installer build script
 # Read version from parameter (preferred) or .csproj, then compile Inno Setup
 

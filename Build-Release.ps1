@@ -1,4 +1,4 @@
-# Build-Release.ps1
+﻿# Build-Release.ps1
 # Standard release process:
 #   1. Git commit (source changes)
 #   2. Version increment (in csproj)
