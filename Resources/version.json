@@ -1,11 +1,11 @@
-{
-  "version": "1.0.33",
-  "build": 1033,
-  "releaseDate": "2026-07-03",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.33/Quotix_Setup_1.0.33.exe",
-  "fileSize": 58011664,
-  "mandatory": false,
-  "changelog": [
-    "v1.0.33 version.json 时序修复：在 Tag 和 Release 之前生成推送，确保同步"
-  ]
+﻿{
+    "build":  1033,
+    "version":  "1.0.33",
+    "changelog":  [
+                      "1"
+                  ],
+    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.33/Quotix_Setup_1.0.33.exe",
+    "mandatory":  false,
+    "releaseDate":  "2026-07-03",
+    "fileSize":  57999428
 }
