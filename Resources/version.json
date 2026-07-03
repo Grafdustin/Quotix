@@ -1,11 +1,11 @@
 {
-  "version": "1.0.30",
-  "build": 1030,
+  "version": "1.0.31",
+  "build": 1031,
   "releaseDate": "2026-07-03",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.30/Quotix_Setup_1.0.30.exe",
-  "fileSize": 58005523,
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.31/Quotix_Setup_1.0.31.exe",
+  "fileSize": 58013137,
   "mandatory": false,
   "changelog": [
-    "v1.0.30 GBK修复 + 安装包过滤 + GitTag + 路径归一化"
+    "v1.0.31 版本验证修复：UpdateRedDot + 启动自动检查 + Build-Installer 版本参数"
   ]
 }
