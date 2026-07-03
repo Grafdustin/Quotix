@@ -1,5 +1,9 @@
 name: Build and Release
 
+# 需要 contents: write 权限才能创建 GitHub Release
+permissions:
+  contents: write
+
 on:
   push:
     tags:
