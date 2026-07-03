@@ -219,7 +219,7 @@ public partial class MainWindow : Window
             ct.ThrowIfCancellationRequested();
 
             // 获取最新的 run（不限制 branch，因为 tag 触发可能在任意分支）
-            var runListJson = await RunCmdAsync("gh", $"run list --repo {repo} --workflow build-and-release.yml --limit 3 --json databaseId,status,conclusion,createdAt,headBranch,headSha", ct);
+            var runListJson = await RunCmdAsync("gh", $"run list --repo {repo} --workflow build-and-release.yml --limit 5 --json databaseId,status,conclusion,createdAt", ct);
 
             AppendLog($"gh run list 返回：{runListJson}");
 
@@ -238,9 +238,8 @@ public partial class MainWindow : Window
                         var newRunId = run.GetProperty("databaseId").GetInt64().ToString();
                         var status = run.GetProperty("status").GetString();
                         var createdAt = run.GetProperty("createdAt").GetString();
-                        var headBranch = run.TryGetProperty("headBranch", out var b) ? b.GetString() : "unknown";
 
-                        AppendLog($"Run #{newRunId}: status={status}, branch={headBranch}, created={createdAt}");
+                        AppendLog($"Run #{newRunId}: status={status}, created={createdAt}");
 
                         // 检查这个 run 是否是我们刚触发的（通过创建时间判断）
                         if (createdAt != null)
