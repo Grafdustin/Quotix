@@ -6,11 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>Quotix</AssemblyName>
-    <Version>1.0.55</Version>
-    <!-- AssemblyVersion: 缂傚倸鍊搁崐鎼佸磹妞嬪海鐭嗗〒姘ｅ亾妞ゃ垺鐗犲畷銊╁箹椤撶喐娅堥梻浣告啞娓氭宕归崹顐ｅ弿闁惧浚鍋佹禍婊堟煙閹冭埞闁诲浚浜弻宥夋煥鐎ｎ剙鈷岄梺鍝勬湰閻╊垶宕洪崟顖氱妞ゅ繐鎳庡▍鎴炰繆閻愵亜鈧呭緤娴犲围闁归棿绀侀拑鐔兼煥閻斿搫孝闂佸崬娲﹂妵鍕箛閳轰胶浠奸梺鎶芥敱濞叉粎妲愰幘瀛樺濞寸姴顑呴幗鐢电磽娴ｇ瓔鍤欓柛鐔稿閸掓帒顫濈捄铏诡攨闂佺粯鍔忛弲婊堝棘閳ь剟姊绘担瑙勫仩闁稿孩绮撳畷銊╊敊?1.0.0.0 婵犵數濮烽弫鎼佸磻閻愬搫鍨傞柛顐ｆ礀缁犱即鏌涘┑鍕姢闁活厽鎸鹃惀顏堝箚瑜滈崕宥吤?-->
+    <Version>1.0.56</Version>
+    <!-- AssemblyVersion: 缂傚倸鍊搁崐鎼佸磹閹间礁纾瑰瀣捣閻棗銆掑锝呬壕濡炪們鍨洪悧鐘茬暦閵娾晛绠规い鎾跺枑濞呭牓姊绘担鍛婂暈濞撴碍顨婂畷褰掑垂椤愶絽寮块梺鎯ф禋閸嬩焦绂嶅鍫熺厵闁诡垎鍐煘闂佽娴氭禍顏堝蓟瀹ュ鐓ラ悗锝庡墮閳峰矂姊洪崫鍕拱闁烩晩鍨跺畷娲礋椤栨氨顦ㄥ銈呯箰閹冲骸鈻嶉幋鐐扮箚闁绘劦浜滈埀顑懎绶ゅù鐘差儏鍥撮梺褰掓？缁€渚€鎷戦悢鍏肩叆闁绘柨鎼瓭闂備礁宕ú锕傚Φ閸曨垰绠涢柍杞拌兌娴犲ジ姊洪幎鑺ユ暠婵炲弶绮庡Σ鎰板箻鐎涙ê顎撴繛瀵稿Т椤戝懘骞楅悽鐢电＝濞达絿鐡旈崵娆撴煕閻旂顥嬮柛鎺撳笒椤繄鎹勯搹璇℃敤闂備胶绮崝蹇涘疾濠婂牆妫橀柍褜鍓熷缁樻媴鐟欏嫬浠╅梺绋垮缁挸鐣烽妸鈺婃晩?1.0.0.0 濠电姷鏁告慨鐑藉极閹间礁纾婚柣鎰惈閸ㄥ倿鏌涢锝嗙缂佺姳鍗抽弻娑樷攽閸曨偄濮㈤梺娲诲幗閹搁箖鎯€椤忓牆绠氱憸婊堝磿瀹ュ悿?-->
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.55.0</FileVersion>
-    <InformationalVersion>1.0.55</InformationalVersion>
+    <FileVersion>1.0.56.0</FileVersion>
+    <InformationalVersion>1.0.56</InformationalVersion>
     <Company>NISYO</Company>
     <Copyright>Copyright (C) 2026 NISYO</Copyright>
     <PublishSingleFile>false</PublishSingleFile>
