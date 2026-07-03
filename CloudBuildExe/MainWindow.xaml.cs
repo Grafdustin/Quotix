@@ -212,12 +212,16 @@ public partial class MainWindow : Window
         // 等待新的 workflow run 出现（最多等 2 分钟）
         AppendLog("等待 GitHub Actions workflow 启动...");
         var waitStart = DateTime.Now;
+        var foundRun = false;
+
         while (DateTime.Now - waitStart < TimeSpan.FromMinutes(2))
         {
             ct.ThrowIfCancellationRequested();
 
-            // 获取最新的 run
-            var runListJson = await RunCmdAsync("gh", $"run list --repo {repo} --workflow build-and-release.yml --branch main --limit 1 --json databaseId,status,conclusion,createdAt", ct);
+            // 获取最新的 run（不限制 branch，因为 tag 触发可能在任意分支）
+            var runListJson = await RunCmdAsync("gh", $"run list --repo {repo} --workflow build-and-release.yml --limit 3 --json databaseId,status,conclusion,createdAt,headBranch,headSha", ct);
+
+            AppendLog($"gh run list 返回：{runListJson}");
 
             if (!string.IsNullOrWhiteSpace(runListJson) && runListJson.TrimStart().StartsWith("["))
             {
@@ -226,31 +230,44 @@ public partial class MainWindow : Window
                     using var doc = JsonDocument.Parse(runListJson);
                     var array = doc.RootElement;
 
-                    if (array.GetArrayLength() > 0)
+                    AppendLog($"找到 {array.GetArrayLength()} 个 workflow runs");
+
+                    for (int i = 0; i < array.GetArrayLength(); i++)
                     {
-                        var run = array[0];
+                        var run = array[i];
                         var newRunId = run.GetProperty("databaseId").GetInt64().ToString();
                         var status = run.GetProperty("status").GetString();
+                        var createdAt = run.GetProperty("createdAt").GetString();
+                        var headBranch = run.TryGetProperty("headBranch", out var b) ? b.GetString() : "unknown";
+
+                        AppendLog($"Run #{newRunId}: status={status}, branch={headBranch}, created={createdAt}");
 
                         // 检查这个 run 是否是我们刚触发的（通过创建时间判断）
-                        var createdAt = run.GetProperty("createdAt").GetString();
                         if (createdAt != null)
                         {
                             var createdTime = DateTime.Parse(createdAt);
-                            // 如果 workflow 是在我们推送 tag 后创建的（允许 5 分钟误差）
-                            if (createdTime > startTime.AddMinutes(-5))
+                            // 如果 workflow 是在我们推送 tag 后创建的（允许 10 分钟误差）
+                            if (createdTime > DateTime.UtcNow.AddMinutes(-10))
                             {
                                 runId = newRunId;
-                                AppendLog($"找到新的 workflow run: #{runId}, 状态: {status}");
+                                AppendLog($"✅ 找到新的 workflow run: #{runId}, 状态: {status}");
+                                foundRun = true;
                                 break;
                             }
                         }
                     }
+
+                    if (foundRun) break;
                 }
                 catch (Exception ex)
                 {
                     AppendLog($"解析 workflow 列表失败：{ex.Message}");
+                    AppendLog($"原始 JSON：{runListJson}");
                 }
+            }
+            else
+            {
+                AppendLog("gh run list 返回为空或格式错误");
             }
 
             AppendLog("等待 workflow 启动...");
@@ -260,7 +277,11 @@ public partial class MainWindow : Window
         if (runId == null)
         {
             AppendLog("错误：无法找到刚触发的 workflow run");
-            AppendLog("请手动查看：https://github.com/Grafdustin/Quotix/actions");
+            AppendLog("可能的原因：");
+            AppendLog("1. GitHub Actions 未启用");
+            AppendLog("2. workflow 文件名不匹配");
+            AppendLog("3. tag 触发条件不满足");
+            AppendLog($"请手动查看：https://github.com/{repo}/actions");
             ProgressText.Text = "监控失败";
             return;
         }
