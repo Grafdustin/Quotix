@@ -1,11 +1,11 @@
 {
-  "version": "1.0.26",
-  "build": 1026,
+  "version": "1.0.27",
+  "build": 1027,
   "releaseDate": "2026-07-03",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.26/Quotix_Setup_1.0.26.exe",
-  "fileSize": 58112838,
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.27/Quotix_Setup_1.0.27.exe",
+  "fileSize": 58112733,
   "mandatory": false,
   "changelog": [
-    "v1.0.26 版本推送测试"
+    "v1.0.27 版本推送测试 - CI/CD 专业方案验证"
   ]
 }
