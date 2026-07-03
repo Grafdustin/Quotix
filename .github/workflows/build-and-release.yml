@@ -51,7 +51,8 @@ jobs:
         if (-not (Test-Path $iscc)) {
           $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
         }
-        & "$iscc" /DMyAppVersion=${{ github.ref_name }} Installer/QuotixInstaller.iss
+        $version = "${{ github.ref_name }}".TrimStart('v')
+        & "$iscc" /DMyAppVersion=$version Installer/QuotixInstaller.iss
       shell: pwsh
     
     - name: Get version from tag
