@@ -129,6 +129,20 @@ if (-not $SkipBuild) {
         exit 1
     }
     Write-Host "Build successful" -ForegroundColor Green
+    
+    # 方案3：编译成功后自动打 Git tag（版本完全由 Git 控制）
+    if (-not $SkipGit) {
+        # 检查 tag 是否已存在
+        $existingTag = & git -C $ProjectDir tag -l "v$Version" 2>$null
+        if ($existingTag) {
+            Write-Host "Warning: Tag v$Version already exists, deleting and re-creating..." -ForegroundColor Yellow
+            git -C $ProjectDir tag -d "v$Version" 2>$null
+        }
+        git -C $ProjectDir tag -a "v$Version" -m "Release v$Version"
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Git tag v$Version created" -ForegroundColor Green
+        }
+    }
 } else {
     Write-Host ""
     Write-Host "Step 3/5: Skipping build" -ForegroundColor Gray
@@ -266,6 +280,18 @@ if (-not $SkipGit) {
         Write-Host "Warning: git push failed, please push manually" -ForegroundColor Yellow
     } else {
         Write-Host "Pushed version.json to remote" -ForegroundColor Green
+    }
+    
+    # 推送 Git tag（方案3：版本由 Git 控制）
+    Write-Host "Pushing tag v$Version..." -ForegroundColor Cyan
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    git -C $ProjectDir push origin "refs/tags/v$Version" 2>&1
+    $ErrorActionPreference = $prevEAP
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Tag v$Version pushed to remote" -ForegroundColor Green
+    } else {
+        Write-Host "Warning: Tag push failed, please push manually: git push origin v$Version" -ForegroundColor Yellow
     }
 }
 
