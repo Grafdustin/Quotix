@@ -6,11 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>Quotix</AssemblyName>
-    <Version>1.0.49</Version>
-    <!-- AssemblyVersion: 程序集版本，保持 1.0.0.0 不变 -->
+    <Version>1.0.50</Version>
+    <!-- AssemblyVersion: 绋嬪簭闆嗙増鏈紝淇濇寔 1.0.0.0 涓嶅彉 -->
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.49.0</FileVersion>
-    <InformationalVersion>1.0.49</InformationalVersion>
+    <FileVersion>1.0.50.0</FileVersion>
+    <InformationalVersion>1.0.50</InformationalVersion>
     <Company>NISYO</Company>
     <Copyright>Copyright (C) 2026 NISYO</Copyright>
     <PublishSingleFile>false</PublishSingleFile>
