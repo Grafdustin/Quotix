@@ -39,29 +39,36 @@ _ReSharper*/
 *.sln.docstates
 
 # 构建产物
-Out/
-Staging/
-Installer/Out/
 Installer/Staging/
+Installer/Out/
 
 # 日志
 *.log
 
-# 忽略临时文件
+# 临时文件
 *.tmp
 *.temp
 ~$*
 Thumbs.db
 Desktop.ini
 
-# 忽略 IDE 文件
+# IDE
 .vs/
 .vscode/
 *.suo
 *.user
+*.sln.docstates
 
-# 忽略 WorkBuddy 
-.workbuddy
+# WorkBuddy
+.workbuddy/
 
-# 忽略安装包输出（可选）
-# Installer/Out/
+# 数据库
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-journal
+
+# 更新包缓存
+Updates/
