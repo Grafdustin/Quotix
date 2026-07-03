@@ -30,8 +30,31 @@ $CsprojPath = Join-Path $ProjectDir "QuotixDesktop.csproj"
 try {
 # 交互式输入 CommitMessage（右键运行时没有参数）
 if (-not $CommitMessage) {
-    $CommitMessage = Read-Host "请输入提交信息"
+    $tempFile = Join-Path $env:TEMP "quotix_commitmsg.txt"
+    $instructions = @"
+# 请输入提交信息
+# 第一行作为标题，后续行作为更新日志（可多行）
+# 以 # 开头的行会被忽略
+# 保存并关闭记事本后脚本继续
+"@
+    Set-Content $tempFile $instructions -Encoding UTF8
+    Write-Host "即将打开记事本输入提交信息..." -ForegroundColor Cyan
+    Start-Process notepad.exe $tempFile -Wait
+
+    $lines = Get-Content $tempFile -Encoding UTF8 | Where-Object { $_.Trim() -ne "" -and -not $_.StartsWith("#") }
+    $CommitMessage = $lines -join "`n"
+    Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+
+    if (-not $CommitMessage) {
+        throw "提交信息不能为空"
+    }
 }
+
+# 从 CommitMessage 提取标题（第一行）和内容（剩余行）
+$commitTitle = ($CommitMessage -split "`n" | Where-Object { $_.Trim() -ne "" } | Select-Object -First 1).Trim()
+$commitBody  = ($CommitMessage -split "`n" | Where-Object { $_.Trim() -ne "" } | Select-Object -Skip 1) -join "`n"
+if (-not $commitTitle) { $commitTitle = "Update" }
+
 if (-not $CommitMessage) {
     throw "提交信息不能为空"
 }
@@ -54,7 +77,11 @@ if (-not $SkipGit) {
         $gitStatus = git -C $ProjectDir status --porcelain
         if ($gitStatus) {
             git -C $ProjectDir add -A
-            git -C $ProjectDir commit -m "$CommitMessage"
+            if ($commitBody) {
+                git -C $ProjectDir commit -m "$commitTitle" -m "$commitBody"
+            } else {
+                git -C $ProjectDir commit -m "$commitTitle"
+            }
             if ($LASTEXITCODE -ne 0) {
                 throw "Git commit failed"
             }
@@ -216,15 +243,29 @@ if (-not $installerPath -or -not (Test-Path $installerPath)) {
 
 Write-Host "Ensuring release exists: $tag" -ForegroundColor Cyan
 
+# 兜底：如果标题为空，用默认格式
+if (-not $commitTitle) { $commitTitle = "Release v$Version" }
+
 # 确保 release 存在（不存在就创建）
 & $ghPath release view $tag --repo $repoName 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Release not found, creating..." -ForegroundColor Yellow
 
-    & $ghPath release create $tag `
-        --title "Quotix $tag" `
-        --notes "$CommitMessage" `
-        --repo $repoName
+    # 用临时文件传递多行 Release Notes
+    $notesFile = Join-Path $env:TEMP "quotix_releasenotes.txt"
+    if ($commitBody) {
+        Set-Content $notesFile $commitBody -Encoding UTF8
+        & $ghPath release create $tag `
+            --title "$commitTitle" `
+            --notes-file $notesFile `
+            --repo $repoName
+    } else {
+        & $ghPath release create $tag `
+            --title "$commitTitle" `
+            --notes "$commitTitle" `
+            --repo $repoName
+    }
+    Remove-Item $notesFile -Force -ErrorAction SilentlyContinue
 
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to create release"
@@ -260,7 +301,7 @@ $versionInfo = @{
     downloadUrl  = "https://github.com/$repoName/releases/download/v$Version/Quotix_Setup_$Version.exe"
     fileSize     = $fileSizeBytes
     mandatory    = $false
-    changelog    = @($CommitMessage)
+    changelog    = @($CommitMessage -split "`n" | Where-Object { $_.Trim() -ne "" } | ForEach-Object { $_.Trim() })
 }
 
 $versionJsonPath = Join-Path $ProjectDir "Resources\version.json"
