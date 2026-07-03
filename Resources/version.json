@@ -1,11 +1,11 @@
 {
+  "version": "1.0.25",
+  "build": 1025,
   "releaseDate": "2026-07-03",
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.25/Quotix_Setup_1.0.25.exe",
+  "fileSize": 58099955,
   "mandatory": false,
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.24/Quotix_Setup_1.0.24.exe",
-  "version": "1.0.24",
-  "whatsNew": [
-    "回退到v1.0.7稳定版后重新发布"
-  ],
-  "releaseNotes": "回退到v1.0.7稳定版后重新发布",
-  "fileSize": "55.41MB"
+  "changelog": [
+    "升级 version.json 为标准稳定版格式：添加 build 字段，whatsNew→changelog，fileSize 改为整数字节"
+  ]
 }
