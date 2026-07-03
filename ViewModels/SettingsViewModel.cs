@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using CommunityToolkit.Mvvm.Messaging;
 using Quotix.Messages;
+using Quotix.Models;
 using Quotix.Services;
 
 namespace Quotix.ViewModels;
@@ -15,20 +16,28 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ProductImportService _productImport;
     private readonly ProductService _productService;
     private readonly DialogService _dialog;
-    private readonly UpdateService _updateService;
+    private readonly UpdatePipeline _updatePipeline;
+
+    /// <summary>
+    /// 统一更新状态对象（UI 绑定的唯一数据源）。
+    /// </summary>
+    public UpdateState UpdateState { get; } = new();
+
+    /// <summary>检测到的更新信息（缓存，供下载阶段使用）</summary>
+    private UpdateInfo? _pendingUpdate;
 
     public SettingsViewModel(
         ProductImportService productImport,
         ProductService productService,
         AppSettingsService settingsService,
         DialogService dialog,
-        UpdateService updateService)
+        UpdatePipeline updatePipeline)
     {
         _productImport = productImport;
         _productService = productService;
         _settingsService = settingsService;
         _dialog = dialog;
-        _updateService = updateService;
+        _updatePipeline = updatePipeline;
 
         DatabaseOptions = new ObservableCollection<DatabaseOption>
         {
@@ -37,6 +46,26 @@ public partial class SettingsViewModel : ObservableObject
             new("RVI - Change", "products_rvi_change"),
             new("RVI - OT Code", "products_rvi_ot"),
         };
+
+        // 页面加载时自动检查更新（如果 pipeline 已有缓存则直接使用）
+        _ = AutoCheckAsync();
+    }
+
+    /// <summary>
+    /// 自动检查更新：如果 pipeline 已有缓存结果则直接使用，否则发起检查。
+    /// </summary>
+    private async Task AutoCheckAsync()
+    {
+        // 先尝试用缓存的检查结果（MainWindow 启动时可能已经检查过）
+        var cached = await _updatePipeline.CheckForUpdatesAsync();
+        if (cached != null)
+        {
+            UpdateState.Stage = UpdateStage.UpdateAvailable;
+            UpdateState.NewVersion = cached.Version;
+            UpdateState.FileSize = cached.FileSize;
+            UpdateState.Message = $"发现新版本 v{cached.Version}（{UpdateState.FileSizeDisplay}）";
+            _pendingUpdate = cached;
+        }
     }
 
     [ObservableProperty] private bool _isDarkMode;
@@ -199,232 +228,71 @@ public partial class SettingsViewModel : ObservableObject
         }
     }
 
-    // —— 检查更新 ——
-
-    [ObservableProperty] private bool _isCheckingUpdate;
-    [ObservableProperty] private string _updateStatus = "检查更新";
-    [ObservableProperty] private bool _isDownloading;
-    [ObservableProperty] private int _downloadProgress;
-
-    /// <summary>已检测到新版本，显示下载按钮</summary>
-    [ObservableProperty] private bool _hasUpdate;
-
-    /// <summary>下载完成，显示安装按钮</summary>
-    [ObservableProperty] private bool _isDownloaded;
-
-    /// <summary>是否显示「检查更新」按钮（无更新 + 未在下载）</summary>
-    public bool ShowCheckButton => !HasUpdate && !IsDownloading && !IsDownloaded;
-
-    /// <summary>是否显示「下载」按钮（有更新 + 未下载）</summary>
-    public bool ShowDownloadButton => HasUpdate && !IsDownloading && !IsDownloaded;
-
-    /// <summary>当 HasUpdate 变更时同步通知按钮可见性</summary>
-    partial void OnHasUpdateChanged(bool value) => RefreshButtonVisibility();
-
-    /// <summary>当 IsDownloading 变更时同步通知按钮可见性</summary>
-    partial void OnIsDownloadingChanged(bool value) => RefreshButtonVisibility();
-
-    /// <summary>当 IsDownloaded 变更时同步通知按钮可见性</summary>
-    partial void OnIsDownloadedChanged(bool value) => RefreshButtonVisibility();
-
-    private void RefreshButtonVisibility()
-    {
-        OnPropertyChanged(nameof(ShowCheckButton));
-        OnPropertyChanged(nameof(ShowDownloadButton));
-    }
-
-    /// <summary>下载速度文本</summary>
-    [ObservableProperty] private string _downloadSpeed = "";
-
-    /// <summary>已下载 / 总大小文本</summary>
-    [ObservableProperty] private string _downloadSizeInfo = "";
-
-    /// <summary>预估剩余时间文本</summary>
-    [ObservableProperty] private string _estimatedTime = "";
-
-    /// <summary>检测到的新版本信息（缓存，供下载使用）</summary>
-    private UpdateInfo? _pendingUpdate;
-
-    /// <summary>已下载的安装包路径</summary>
-    private string? _downloadedInstallerPath;
-
-    /// <summary>下载开始时间（用于计算网速）</summary>
-    private DateTime _downloadStartTime;
-
-    /// <summary>上次进度报告时的已下载字节数</summary>
-    private long _lastReportedBytes;
-
-    /// <summary>上次进度报告的时间</summary>
-    private DateTime _lastReportTime;
+    // ════════════════════════════════════════
+    //  更新流水线 — 单一命令，根据 Stage 分发
+    // ════════════════════════════════════════
 
     /// <summary>
-    /// 格式化字节数为人类可读大小（MB 或 KB）。
+    /// 统一更新操作命令：根据当前 Stage 自动执行对应操作。
+    /// <list type="bullet">
+    ///   <item>Idle / Failed → 检查更新</item>
+    ///   <item>UpdateAvailable → 下载</item>
+    ///   <item>ReadyToInstall → 安装</item>
+    /// </list>
     /// </summary>
-    private static string FormatSize(long bytes)
-    {
-        if (bytes >= 1_048_576)
-            return $"{bytes / 1_048_576.0:F1} MB";
-        return $"{bytes / 1024.0:F1} KB";
-    }
-
-    /// <summary>
-    /// 格式化时间为人类可读（分钟:秒 或 秒）。
-    /// </summary>
-    private static string FormatTime(int totalSeconds)
-    {
-        if (totalSeconds <= 0) return "";
-        if (totalSeconds < 60) return $"{totalSeconds} 秒";
-        return $"{totalSeconds / 60} 分 {totalSeconds % 60} 秒";
-    }
-
     [RelayCommand]
-    private async Task CheckForUpdates()
+    private async Task ExecuteUpdateAction()
     {
-        IsCheckingUpdate = true;
-        UpdateStatus = "正在检查更新...";
-        HasUpdate = false;
-        IsDownloaded = false;
+        switch (UpdateState.Stage)
+        {
+            case UpdateStage.Idle:
+            case UpdateStage.Failed:
+            case UpdateStage.UpToDate:
+                await RunCheckAsync();
+                break;
 
-        try
-        {
-            _pendingUpdate = await _updateService.CheckForUpdatesAsync();
+            case UpdateStage.UpdateAvailable:
+                await RunDownloadAsync();
+                break;
 
-            if (_pendingUpdate != null)
-            {
-                var fileSizeStr = _pendingUpdate.FileSize >= 1_048_576
-                    ? $"{_pendingUpdate.FileSize / 1_048_576.0:F1} MB"
-                    : $"{_pendingUpdate.FileSize / 1024.0:F1} KB";
-                UpdateStatus = $"发现新版本 v{_pendingUpdate.Version}（{fileSizeStr}）";
-                HasUpdate = true;
-            }
-            else
-            {
-                UpdateStatus = "已经是最新版本";
-                _dialog.ShowInfo($"当前版本 v{AppInfo.Version} 已经是最新版本。", "检查更新");
-            }
-        }
-        catch (Exception ex)
-        {
-            UpdateStatus = "检查更新失败";
-            _dialog.ShowError($"检查更新失败: {ex.Message}");
-        }
-        finally
-        {
-            IsCheckingUpdate = false;
+            case UpdateStage.ReadyToInstall:
+                RunInstall();
+                break;
         }
     }
 
-    [RelayCommand]
-    private async Task DownloadUpdate()
+    /// <summary>[Check 阶段] 检查更新</summary>
+    private async Task RunCheckAsync()
     {
-        if (_pendingUpdate == null) return;
-
-        IsDownloading = true;
-        HasUpdate = false;
-        IsDownloaded = false;
-        DownloadProgress = 0;
-        DownloadSpeed = "";
-        DownloadSizeInfo = "";
-        EstimatedTime = "";
-        UpdateStatus = "正在下载更新包...";
-
-        // 记录下载起始时间
-        _downloadStartTime = DateTime.Now;
-        _lastReportTime = _downloadStartTime;
-        _lastReportedBytes = 0;
-
-        try
-        {
-            var progress = new Progress<int>(percent =>
-            {
-                DownloadProgress = percent;
-            });
-
-            var detailProgress = new Progress<DownloadProgressReport>(report =>
-            {
-                var now = DateTime.Now;
-                var elapsed = (now - _lastReportTime).TotalSeconds;
-
-                // 每 0.5 秒更新一次速度（避免闪烁）
-                if (elapsed >= 0.5)
-                {
-                    var bytesInInterval = report.BytesDownloaded - _lastReportedBytes;
-                    var speed = elapsed > 0 ? bytesInInterval / elapsed : 0;
-                    DownloadSpeed = speed >= 1_048_576
-                        ? $"{(speed / 1_048_576):F1} MB/s"
-                        : $"{(speed / 1024):F0} KB/s";
-
-                    _lastReportTime = now;
-                    _lastReportedBytes = report.BytesDownloaded;
-                }
-
-                // 已下载 / 总大小
-                DownloadSizeInfo = $"{FormatSize(report.BytesDownloaded)} / {FormatSize(report.TotalBytes)}";
-
-                // 预估剩余时间（基于整体平均速度）
-                var totalElapsed = (now - _downloadStartTime).TotalSeconds;
-                if (totalElapsed > 0 && report.BytesDownloaded > 0)
-                {
-                    var avgSpeed = report.BytesDownloaded / totalElapsed;
-                    if (avgSpeed > 0)
-                    {
-                        var remainingBytes = report.TotalBytes - report.BytesDownloaded;
-                        var remainingSeconds = (int)(remainingBytes / avgSpeed);
-                        EstimatedTime = $"剩余 {FormatTime(remainingSeconds)}";
-                    }
-                }
-
-                // 属性 setter 已自动触发 PropertyChanged，无需手动通知
-            });
-
-            var installerPath = await _updateService.DownloadUpdateAsync(
-                _pendingUpdate.DownloadUrl,
-                progress,
-                detailProgress
-            );
-
-            IsDownloading = false;
-
-            if (installerPath != null)
-            {
-                _downloadedInstallerPath = installerPath;
-                UpdateStatus = "下载完成，点击安装即可更新";
-                IsDownloaded = true;
-            }
-            else
-            {
-                UpdateStatus = "下载失败，点击重试";
-                HasUpdate = true;
-
-                if (_dialog.ShowConfirm("自动下载失败，是否打开浏览器手动下载？", "下载失败"))
-                {
-                    _updateService.OpenDownloadPage(_pendingUpdate.DownloadUrl);
-                }
-            }
-        }
-        catch (Exception)
-        {
-            IsDownloading = false;
-            UpdateStatus = "下载失败，点击重试";
-            HasUpdate = true;
-            DownloadSpeed = "";
-            DownloadSizeInfo = "";
-            EstimatedTime = "";
-        }
+        var result = await _updatePipeline.CheckAsync(UpdateState);
+        _pendingUpdate = result;
     }
 
-    [RelayCommand]
-    private void InstallUpdate()
+    /// <summary>[Download 阶段] 下载更新包</summary>
+    private async Task RunDownloadAsync()
     {
-        if (string.IsNullOrEmpty(_downloadedInstallerPath) || !File.Exists(_downloadedInstallerPath))
+        if (_pendingUpdate == null)
         {
-            _dialog.ShowInfo("未找到下载的安装包，请重新下载。", "提示");
-            IsDownloaded = false;
-            HasUpdate = true;
+            // 回退：重新检查
+            await RunCheckAsync();
             return;
         }
 
-        _updateService.InstallUpdate(_downloadedInstallerPath);
+        var success = await _updatePipeline.DownloadAsync(_pendingUpdate.DownloadUrl, UpdateState);
+
+        if (!success && UpdateState.Stage == UpdateStage.Failed)
+        {
+            if (_dialog.ShowConfirm("自动下载失败，是否打开浏览器手动下载？", "下载失败"))
+            {
+                _updatePipeline.OpenDownloadPage(_pendingUpdate.DownloadUrl);
+            }
+        }
+    }
+
+    /// <summary>[Install 阶段] 安装更新</summary>
+    private void RunInstall()
+    {
+        _updatePipeline.Install(UpdateState);
     }
 }
 

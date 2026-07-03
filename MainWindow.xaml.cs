@@ -21,19 +21,19 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private MainViewModel VM => (MainViewModel)DataContext;
     private readonly AppSettingsService _settingsService;
-    private readonly UpdateService _updateService;
+    private readonly UpdatePipeline _updatePipeline;
 
     /// <summary>
     /// 初始化 MainWindow 实例。
     /// </summary>
     /// <param name="viewModel">主视图模型</param>
     /// <param name="settingsService">应用设置服务</param>
-    /// <param name="updateService">更新检查服务</param>
-    public MainWindow(MainViewModel viewModel, AppSettingsService settingsService, UpdateService updateService)
+    /// <param name="updatePipeline">更新流水线</param>
+    public MainWindow(MainViewModel viewModel, AppSettingsService settingsService, UpdatePipeline updatePipeline)
     {
         DataContext = viewModel;
         _settingsService = settingsService;
-        _updateService = updateService;
+        _updatePipeline = updatePipeline;
         InitializeComponent();
         LoadIcon();
         LoadTitleBarIcon();
@@ -82,7 +82,7 @@ public partial class MainWindow : FluentWindow
     {
         try
         {
-            var updateInfo = await _updateService.CheckForUpdatesAsync();
+            var updateInfo = await _updatePipeline.CheckForUpdatesAsync();
             if (updateInfo != null)
             {
                 // 有新版本，显示红点（需要在 UI 线程）

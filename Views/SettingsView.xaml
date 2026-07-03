@@ -290,7 +290,9 @@
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1" Padding="16,14">
                 <StackPanel>
-                    <Grid Margin="0,0,0,0">
+
+                    <!-- 顶部：图标 + 状态文字 + 操作按钮 -->
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -305,44 +307,38 @@
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
 
-                        <!-- 文字 -->
+                        <!-- 状态文字 -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
-                            <ui:TextBlock Text="检查更新" FontSize="14" FontWeight="Medium"
+                            <ui:TextBlock Text="应用更新" FontSize="14" FontWeight="Medium"
                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                            <ui:TextBlock Text="{Binding UpdateStatus}" FontSize="12"
+                            <ui:TextBlock Text="{Binding UpdateState.Message}" FontSize="12"
                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                           Margin="0,2,0,0"/>
                         </StackPanel>
 
                         <!-- 按钮区 -->
                         <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                            <!-- 初始状态：检查更新 -->
-                            <ui:Button Content="检查更新"
+                            <!-- Primary 按钮（检查更新 / 下载 / 重试） -->
+                            <ui:Button Content="{Binding UpdateState.ActionButtonText}"
                                        Appearance="Primary" Height="34" FontSize="12"
-                                       Command="{Binding CheckForUpdatesCommand}"
-                                       Visibility="{Binding ShowCheckButton, Converter={StaticResource BoolToVis}}"
-                                       IsEnabled="{Binding IsCheckingUpdate, Converter={StaticResource InverseBoolToVis}}"/>
+                                       Command="{Binding ExecuteUpdateActionCommand}"
+                                       Visibility="{Binding UpdateState.ShowPrimaryButton, Converter={StaticResource BoolToVis}}"/>
 
-                            <!-- 发现新版本：下载 -->
-                            <ui:Button Content="下载"
-                                       Appearance="Primary" Height="34" FontSize="12"
-                                       Command="{Binding DownloadUpdateCommand}"
-                                       Visibility="{Binding ShowDownloadButton, Converter={StaticResource BoolToVis}}"/>
-
-                            <!-- 下载完成：安装 -->
-                            <ui:Button Content="安装"
+                            <!-- 安装按钮（Success 绿色） -->
+                            <ui:Button Content="{Binding UpdateState.ActionButtonText}"
                                        Appearance="Success" Height="34" FontSize="12"
-                                       Command="{Binding InstallUpdateCommand}"
-                                       Visibility="{Binding IsDownloaded, Converter={StaticResource BoolToVis}}"/>
+                                       Command="{Binding ExecuteUpdateActionCommand}"
+                                       Visibility="{Binding UpdateState.ShowInstallButton, Converter={StaticResource BoolToVis}}"/>
                         </StackPanel>
                     </Grid>
 
-                    <!-- 下载进度区域（正在下载时显示） -->
-                    <StackPanel Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVis}}"
+                    <!-- 进度区域（下载中 / 校验中显示） -->
+                    <StackPanel Visibility="{Binding UpdateState.ShowProgressBar, Converter={StaticResource BoolToVis}}"
                                 Margin="0,12,0,0">
 
-                        <!-- 下载详情：网速 + 大小 + 剩余时间 -->
-                        <Grid Margin="0,0,0,8">
+                        <!-- 下载详情：网速 + 大小 + 剩余时间（仅下载中显示） -->
+                        <Grid Margin="0,0,0,8"
+                              Visibility="{Binding UpdateState.ShowDownloadDetail, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
@@ -350,19 +346,19 @@
                             </Grid.ColumnDefinitions>
 
                             <ui:TextBlock Grid.Column="0"
-                                          Text="{Binding DownloadSpeed}"
+                                          Text="{Binding UpdateState.SpeedDisplay}"
                                           FontSize="12" FontWeight="SemiBold"
                                           Foreground="{DynamicResource AccentFillColorDefaultBrush}"
                                           VerticalAlignment="Center"/>
 
                             <ui:TextBlock Grid.Column="1"
-                                          Text="{Binding DownloadSizeInfo}"
+                                          Text="{Binding UpdateState.SizeDisplay}"
                                           FontSize="12"
                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                           VerticalAlignment="Center" Margin="12,0,0,0"/>
 
                             <ui:TextBlock Grid.Column="2"
-                                          Text="{Binding EstimatedTime}"
+                                          Text="{Binding UpdateState.EtaDisplay}"
                                           FontSize="12"
                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                           VerticalAlignment="Center"/>
@@ -377,12 +373,12 @@
 
                             <ProgressBar Grid.Column="0"
                                          Minimum="0" Maximum="100"
-                                         Value="{Binding DownloadProgress}"
+                                         Value="{Binding UpdateState.Progress}"
                                          Height="6"
                                          VerticalAlignment="Center"/>
 
                             <ui:TextBlock Grid.Column="1"
-                                          Text="{Binding DownloadProgress, StringFormat='{}{0}%'}"
+                                          Text="{Binding UpdateState.ProgressDisplay}"
                                           FontSize="12"
                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                           VerticalAlignment="Center" Margin="10,0,0,0"/>
