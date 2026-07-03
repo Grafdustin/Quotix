@@ -49,20 +49,65 @@ Write-Host "Preparing Staging directory..." -ForegroundColor Yellow
 $stagingDir = Join-Path $PSScriptRoot "Staging"
 $launcherDir = Join-Path $stagingDir "Launcher"
 
-# Clean and recreate Staging directory (using robocopy to bypass safe-delete check)
+# === 修复1：安全清理（不用 robocopy + remove 混用） ===
 if (Test-Path $stagingDir) {
-    # Use robocopy to force-delete the directory
-    $emptyDir = Join-Path $PSScriptRoot "EmptyTemp"
-    New-Item -ItemType Directory -Force -Path $emptyDir | Out-Null
-    robocopy $emptyDir $stagingDir /MIR /R:0 /W:0 /NFL /NDL /NJH /NJS /NC /NS /NP
-    Remove-Item $emptyDir -Force -Recurse
     Remove-Item $stagingDir -Recurse -Force -ErrorAction SilentlyContinue
+    # 等待文件系统释放锁
+    Start-Sleep -Milliseconds 500
 }
 New-Item -ItemType Directory -Path $launcherDir -Force | Out-Null
 
-# Copy files from publish directory
+# === 修复2：强制验证 publish 目录存在 ===
 $publishDir = Join-Path $PSScriptRoot "..\bin\$Configuration\$TargetFramework\$Runtime\publish"
-Copy-Item "$publishDir\*" $launcherDir -Recurse -Force
+if (-not (Test-Path $publishDir)) {
+    Write-Host "Error: Publish directory not found: $publishDir" -ForegroundColor Red
+    exit 1
+}
+Write-Host "Publish source: $publishDir" -ForegroundColor Gray
+
+# === 修复3：过滤式复制（排除 Updater / debug 文件 / 构建残留） ===
+# 只排除"污染源"文件，不排除运行时 DLL（self-contained 需要它们）
+$excludedPatterns = @(
+    "Updater",          # Updater.exe 及其依赖（独立发布，不进入主程序安装包）
+    "\.pdb$",           # 调试符号文件（生产环境不需要）
+    "\.xml$"            # XML 文档注释（生产环境不需要）
+)
+
+$copiedCount = 0
+$skippedCount = 0
+
+Get-ChildItem $publishDir -Recurse | ForEach-Object {
+    # 跳过目录（会在文件复制时自动创建）
+    if ($_.PSIsContainer) { return }
+    
+    # 计算相对路径和目标路径
+    $relativePath = $_.FullName.Substring($publishDir.Length).TrimStart('\', '/')
+    $destPath = Join-Path $launcherDir $relativePath
+    
+    # 检查是否命中排除规则
+    $shouldSkip = $false
+    foreach ($pattern in $excludedPatterns) {
+        if ($_.Name -match $pattern) {
+            $shouldSkip = $true
+            break
+        }
+    }
+    
+    if ($shouldSkip) {
+        $skippedCount++
+        return
+    }
+    
+    # 创建目标目录并复制
+    $destDir = Split-Path $destPath -Parent
+    if (-not (Test-Path $destDir)) {
+        New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+    }
+    Copy-Item $_.FullName -Destination $destPath -Force
+    $copiedCount++
+}
+
+Write-Host "Staging: $copiedCount files copied, $skippedCount files filtered" -ForegroundColor Green
 
 # Create Data directory (empty, created at runtime)
 New-Item -ItemType Directory -Path (Join-Path $stagingDir "..\Data") -Force | Out-Null
