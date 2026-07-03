@@ -259,8 +259,8 @@ if (-not $installerPath -or -not (Test-Path $installerPath)) {
 
 Write-Host "Ensuring release exists: $tag" -ForegroundColor Cyan
 
-# 兜底：如果标题为空，用默认格式
-if (-not $commitTitle) { $commitTitle = "Release v$Version" }
+# 兜底：如果标题为空，用版本号作为标题
+if (-not $commitTitle) { $commitTitle = "v$Version" }
 
 # 确保 release 存在（不存在就创建）
 & $ghPath release view $tag --repo $repoName 2>$null
