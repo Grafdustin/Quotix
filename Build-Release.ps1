@@ -28,40 +28,35 @@ $InstallerDir = Join-Path $ProjectDir "Installer"
 $CsprojPath = Join-Path $ProjectDir "QuotixDesktop.csproj"
 
 try {
-# 交互式输入 CommitMessage（右键运行时没有参数）
+# 交互式输入更新日志（右键运行时没有参数）
 if (-not $CommitMessage) {
     $tempFile = Join-Path $env:TEMP "quotix_commitmsg.txt"
     $instructions = @"
-// 请输入提交信息
-// 第一行作为标题，后续行作为更新日志（可多行）
+// 请输入更新日志
 // 以 # 开头的行作为章节标题（如：# 新功能）
+// 其余行作为章节内容
 // 以 // 开头的行会被忽略
 // 保存并关闭记事本后脚本继续
 "@
     Set-Content $tempFile $instructions -Encoding UTF8
-    Write-Host "即将打开记事本输入提交信息..." -ForegroundColor Cyan
+    Write-Host "即将打开记事本输入更新日志..." -ForegroundColor Cyan
     Start-Process notepad.exe $tempFile -Wait
 
     $lines = Get-Content $tempFile -Encoding UTF8 | Where-Object { $_.Trim() -ne "" -and -not $_.StartsWith("//") }
-    $CommitMessage = $lines -join "`n"
+    $commitBody = $lines -join "`n"
     Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
 
-    if (-not $CommitMessage) {
-        throw "提交信息不能为空"
+    if (-not $commitBody) {
+        throw "更新日志不能为空"
     }
+} else {
+    $commitBody = $CommitMessage
 }
 
-# 从 CommitMessage 提取标题（第一行）和内容（剩余行）
-$commitTitle = ($CommitMessage -split "`n" | Where-Object { $_.Trim() -ne "" } | Select-Object -First 1).Trim()
-$commitBody  = ($CommitMessage -split "`n" | Where-Object { $_.Trim() -ne "" } | Select-Object -Skip 1) -join "`n"
-if (-not $commitTitle) { $commitTitle = "Update" }
-
-if (-not $CommitMessage) {
-    throw "提交信息不能为空"
-}
+$commitTitle = $null
 
 Write-Host "=== Quotix Release Process ===" -ForegroundColor Cyan
-Write-Host "Commit message: $CommitMessage" -ForegroundColor Gray
+Write-Host "Changelog: $commitBody" -ForegroundColor Gray
 if ($Version) {
     Write-Host "Version: $Version" -ForegroundColor Gray
 }
@@ -78,11 +73,7 @@ if (-not $SkipGit) {
         $gitStatus = git -C $ProjectDir status --porcelain
         if ($gitStatus) {
             git -C $ProjectDir add -A
-            if ($commitBody) {
-                git -C $ProjectDir commit -m "$commitTitle" -m "$commitBody"
-            } else {
-                git -C $ProjectDir commit -m "$commitTitle"
-            }
+            git -C $ProjectDir commit -m "Update" -m "$commitBody"
             if ($LASTEXITCODE -ne 0) {
                 throw "Git commit failed"
             }
