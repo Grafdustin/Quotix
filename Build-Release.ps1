@@ -267,10 +267,18 @@ if (-not $commitTitle) { $commitTitle = "Release v$Version" }
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Release not found, creating..." -ForegroundColor Yellow
 
-    # 用临时文件传递多行 Release Notes
+    # 用临时文件传递多行 Release Notes（# 转为 ### 作为 markdown 标题）
     $notesFile = Join-Path $env:TEMP "quotix_releasenotes.txt"
     if ($commitBody) {
-        Set-Content $notesFile $commitBody -Encoding UTF8
+        $releaseNotes = ($commitBody -split "`n" | ForEach-Object {
+            $trimmed = $_.TrimStart()
+            if ($trimmed.StartsWith("#")) {
+                "### " + $trimmed.Substring(1).Trim()
+            } else {
+                $_
+            }
+        }) -join "`n"
+        Set-Content $notesFile $releaseNotes -Encoding UTF8
         & $ghPath release create $tag `
             --title "$commitTitle" `
             --notes-file $notesFile `
