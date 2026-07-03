@@ -58,7 +58,11 @@ public partial class HistoryViewModel : ObservableObject
     [RelayCommand]
     private void Edit(string id)
     {
-        WeakReferenceMessenger.Default.Send(new EditQuotationMessage(id));
+        var quotation = _quotationService.GetQuotation(id);
+        if (quotation != null)
+        {
+            WeakReferenceMessenger.Default.Send(new EditQuotationMessage(quotation));
+        }
     }
 
     /// <summary>

@@ -93,7 +93,7 @@ public partial class MainViewModel : ObservableObject
             ShowAboutDialog();
         });
         WeakReferenceMessenger.Default.Register<EditQuotationMessage>(this, (r, m) =>
-            EditQuotation(m.Value));
+            EditQuotation(m.Value.Id));
         WeakReferenceMessenger.Default.Register<ProgressMessage>(this, (r, m) =>
         {
             var s = m.Value;

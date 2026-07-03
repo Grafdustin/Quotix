@@ -1,12 +1,13 @@
 {
-  "version": "1.0.21",
-  "build": "2025070301",
+  "version": "1.0.22",
+  "build": 1022,
   "releaseDate": "2026-07-03",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.21/Quotix_Setup_1.0.21.exe",
-  "fileSize": 58106811,
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.22/Quotix_Setup_1.0.22.exe",
+  "fileSize": 58106606,
   "mandatory": false,
   "changelog": [
-    "移除 Updater.exe，回到干净状态",
-    "后续将重新添加更新功能"
+    "增加自动检测更新功能",
+    "设置按钮右侧新增红色升级箭头提示",
+    "适配新的 version.json 格式"
   ]
 }

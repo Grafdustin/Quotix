@@ -4,6 +4,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using CommunityToolkit.Mvvm.Messaging;
+using Quotix.Messages;
 using Quotix.Services;
 using Wpf.Ui.Controls;
 using Quotix.ViewModels;
@@ -35,6 +37,12 @@ public partial class MainWindow : FluentWindow
         LoadTitleBarIcon();
         Loaded += OnLoaded;
         Closed += OnClosed;
+
+        // 订阅更新可用消息
+        WeakReferenceMessenger.Default.Register<UpdateAvailableMessage>(this, (r, m) =>
+        {
+            Dispatcher.Invoke(() => SetUpdateBadge(m.Value));
+        });
     }
 
     /// <summary>
@@ -66,6 +74,14 @@ public partial class MainWindow : FluentWindow
 
         // 给设置弹窗注入 SettingsViewModel（它不在 ContentControl 的 DataTemplate 体系中）
         SettingsViewControl.DataContext = VM.SettingsViewModel;
+    }
+
+    /// <summary>
+    /// 设置更新徽章显示状态
+    /// </summary>
+    private void SetUpdateBadge(bool show)
+    {
+        UpdateRedDot.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>
