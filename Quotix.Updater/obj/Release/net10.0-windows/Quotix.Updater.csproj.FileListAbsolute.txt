@@ -12,3 +12,4 @@ D:\桌面\QUO\Quotix.Updater\obj\Release\net10.0-windows\refint\Quotix.Updater.d
 D:\桌面\QUO\Quotix.Updater\obj\Release\net10.0-windows\Quotix.Updater.pdb
 D:\桌面\QUO\Quotix.Updater\obj\Release\net10.0-windows\Quotix.Updater.genruntimeconfig.cache
 D:\桌面\QUO\Quotix.Updater\obj\Release\net10.0-windows\ref\Quotix.Updater.dll
+D:\桌面\QUO\Quotix.Updater\obj\Release\net10.0-windows\Quotix.Updater.sourcelink.json

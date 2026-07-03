@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Quotix.Updater")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c40c565b837b439542aae0deb3e8cc8d8c1cffb6")]
 [assembly: System.Reflection.AssemblyProductAttribute("Quotix.Updater")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Quotix.Updater")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

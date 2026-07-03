@@ -7,7 +7,14 @@
     <Nullable>disable</Nullable>
     <AssemblyName>Quotix.Updater</AssemblyName>
     <RootNamespace>Quotix.Updater</RootNamespace>
-    <!-- 框架依赖（主程序已确保 .NET 运行时存在） -->
+    
+    <!-- 单文件自包含发布 -->
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>link</TrimMode>
   </PropertyGroup>
 
 </Project>
