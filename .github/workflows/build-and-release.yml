@@ -8,30 +8,56 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
-    
+      with:
+        fetch-depth: 0  # 获取完整提交历史，用于提取 changelog
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.0.x'
-    
+
+    - name: Extract version and changelog
+      id: meta
+      run: |
+        $version = "${{ github.ref_name }}".TrimStart('v')
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        # 从 commit message 提取 changelog（跳过第一行标题）
+        $commitBody = git log -1 --format="%b"
+        echo "CHANGELOG<<EOF" >> $env:GITHUB_OUTPUT
+        echo "$commitBody" >> $env:GITHUB_OUTPUT
+        echo "EOF" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+
     - name: Restore dependencies
       run: dotnet restore QuotixDesktop.csproj
-    
+
     - name: Build and Publish
       run: |
-        dotnet publish QuotixDesktop.csproj -c Release -r win-x64 --self-contained true -o publish
+        dotnet publish QuotixDesktop.csproj -c Release -r win-x64 --self-contained true -p:Version=${{ steps.meta.outputs.VERSION }} -o publish
       shell: pwsh
-    
+
     - name: Prepare Staging
       run: |
-        New-Item -ItemType Directory -Force -Path Installer/Staging/Launcher
-        Copy-Item -Path publish/* -Destination Installer/Staging/Launcher/ -Recurse
+        $stagingDir = "Installer/Staging/Launcher"
+        if (Test-Path $stagingDir) { Remove-Item $stagingDir -Recurse -Force }
+        New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
+        # 复制 publish 输出，过滤 .pdb 和 .xml 调试文件
+        Get-ChildItem publish -Recurse -File | Where-Object {
+          $_.Extension -ne ".pdb" -and $_.Extension -ne ".xml"
+        } | ForEach-Object {
+          $relativePath = $_.FullName.Substring((Resolve-Path "publish").Path.Length).TrimStart('\', '/')
+          $destPath = Join-Path $stagingDir $relativePath
+          $destDir = Split-Path $destPath -Parent
+          if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Force -Path $destDir | Out-Null }
+          Copy-Item $_.FullName -Destination $destPath -Force
+        }
+        Write-Host "Staging prepared"
       shell: pwsh
-    
+
     - name: Install Inno Setup
       run: |
         $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
@@ -44,26 +70,63 @@ jobs:
         Invoke-WebRequest -Uri $url -OutFile $out
         Start-Process -FilePath $out -Args "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait
       shell: pwsh
-    
+
     - name: Build Installer
       run: |
         $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
         if (-not (Test-Path $iscc)) {
           $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
         }
-        $version = "${{ github.ref_name }}".TrimStart('v')
-        & "$iscc" /DMyAppVersion=$version Installer/QuotixInstaller.iss
+        & "$iscc" /DMyAppVersion=${{ steps.meta.outputs.VERSION }} Installer/QuotixInstaller.iss
       shell: pwsh
-    
-    - name: Get version from tag
-      id: version
-      run: echo "VERSION=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+
+    - name: Generate latest.yml
+      run: |
+        $version = "${{ steps.meta.outputs.VERSION }}"
+        $changelog = "${{ steps.meta.outputs.CHANGELOG }}"
+        $ymlContent = "version: $version`n"
+        $ymlContent += "changelog: |`n"
+        if ($changelog) {
+          foreach ($line in ($changelog -split "`n")) {
+            $trimmed = $line.Trim()
+            if ($trimmed -ne "") {
+              $ymlContent += "  $trimmed`n"
+            }
+          }
+        }
+        Set-Content -Path "Installer/Out/latest.yml" -Value $ymlContent -Encoding UTF8 -NoNewline
+        Write-Host "latest.yml generated:"
+        Get-Content "Installer/Out/latest.yml"
       shell: pwsh
-    
+
+    - name: Generate Release Notes
+      run: |
+        # 将 changelog 中 # 开头的行转为 ### markdown 标题
+        $changelog = "${{ steps.meta.outputs.CHANGELOG }}"
+        $notes = ""
+        if ($changelog) {
+          foreach ($line in ($changelog -split "`n")) {
+            $trimmed = $line.TrimStart()
+            if ($trimmed.StartsWith("#")) {
+              $notes += "### " + $trimmed.Substring(1).Trim() + "`n"
+            } else {
+              $notes += $line + "`n"
+            }
+          }
+        }
+        if (-not $notes) { $notes = "Release ${{ steps.meta.outputs.VERSION }}" }
+        Set-Content -Path "release_notes.md" -Value $notes -Encoding UTF8
+        Write-Host "Release notes generated:"
+        Get-Content "release_notes.md"
+      shell: pwsh
+
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        files: Installer/Out/Quotix_Setup_*.exe
+        files: |
+          Installer/Out/Quotix_Setup_*.exe
+          Installer/Out/latest.yml
+        body_path: release_notes.md
         draft: false
         prerelease: false
       env:
