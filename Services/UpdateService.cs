@@ -279,15 +279,21 @@ namespace Quotix.Services
     }
 
     /// <summary>
-    /// 更新信息模型
+    /// 更新信息模型（标准稳定版格式）
     /// </summary>
     public class UpdateInfo
     {
         /// <summary>
-        /// 版本号（如 "1.0.1"）
+        /// 版本号（如 "1.0.25"）
         /// </summary>
         [JsonPropertyName("version")]
         public string Version { get; set; } = "";
+
+        /// <summary>
+        /// 构建号（如 1025）
+        /// </summary>
+        [JsonPropertyName("build")]
+        public int Build { get; set; }
 
         /// <summary>
         /// 发布日期
@@ -296,22 +302,16 @@ namespace Quotix.Services
         public string ReleaseDate { get; set; } = "";
 
         /// <summary>
-        /// 发布说明
-        /// </summary>
-        [JsonPropertyName("releaseNotes")]
-        public string ReleaseNotes { get; set; } = "";
-
-        /// <summary>
         /// 下载链接（GitHub Releases）
         /// </summary>
         [JsonPropertyName("downloadUrl")]
         public string DownloadUrl { get; set; } = "";
 
         /// <summary>
-        /// 文件大小
+        /// 文件大小（字节）
         /// </summary>
         [JsonPropertyName("fileSize")]
-        public string FileSize { get; set; } = "";
+        public long FileSize { get; set; }
 
         /// <summary>
         /// 是否强制更新
@@ -322,7 +322,7 @@ namespace Quotix.Services
         /// <summary>
         /// 更新内容列表
         /// </summary>
-        [JsonPropertyName("whatsNew")]
-        public string[] WhatsNew { get; set; } = Array.Empty<string>();
+        [JsonPropertyName("changelog")]
+        public string[] Changelog { get; set; } = Array.Empty<string>();
     }
 }

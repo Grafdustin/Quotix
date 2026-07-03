@@ -227,11 +227,14 @@ public partial class SettingsViewModel : ObservableObject
             {
                 UpdateStatus = $"发现新版本 v{updateInfo.Version}";
                 
-                var whatsNew = string.Join("\n• ", updateInfo.WhatsNew);
-                var message = $"发现新版本 v{updateInfo.Version}（当前版本：{AppInfo.Version}）\n\n" +
+                var changelog = string.Join("\n• ", updateInfo.Changelog);
+                var fileSizeStr = updateInfo.FileSize >= 1_048_576
+                    ? $"{updateInfo.FileSize / 1_048_576.0:F1} MB"
+                    : $"{updateInfo.FileSize / 1024.0:F1} KB";
+                var message = $"发现新版本 v{updateInfo.Version} (Build {updateInfo.Build})（当前版本：{AppInfo.Version}）\n\n" +
                               $"发布日期：{updateInfo.ReleaseDate}\n" +
-                              $"文件大小：{updateInfo.FileSize}\n\n" +
-                              $"更新内容：\n• {whatsNew}\n\n" +
+                              $"文件大小：{fileSizeStr}\n\n" +
+                              $"更新内容：\n• {changelog}\n\n" +
                               $"是否现在下载并更新？";
 
                 if (_dialog.ShowConfirm(message, "发现新版本"))

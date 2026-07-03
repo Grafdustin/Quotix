@@ -240,15 +240,20 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Release ready!" -ForegroundColor Green
 
-# ========== version.json（只在成功后写） ==========
-$versionInfo = @{
+# ========== version.json（标准稳定版格式，只在成功后写） ==========
+$fileSizeBytes = (Get-Item $installerPath).Length
+
+# 从版本号计算 build 值（如 1.0.25 → 1025）
+$buildNumber = [int]($Version -replace '\.', '').Substring(0, [Math]::Min(4, ($Version -replace '\.', '').Length))
+
+$versionInfo = [Ordered]@{
     version      = $Version
+    build        = $buildNumber
     releaseDate  = Get-Date -Format "yyyy-MM-dd"
-    releaseNotes = $CommitMessage
     downloadUrl  = "https://github.com/$repoName/releases/download/v$Version/Quotix_Setup_$Version.exe"
-    fileSize     = "$([math]::Round((Get-Item $installerPath).Length / 1MB, 2))MB"
+    fileSize     = $fileSizeBytes
     mandatory    = $false
-    whatsNew     = @($CommitMessage)
+    changelog    = @($CommitMessage)
 }
 
 $versionJsonPath = Join-Path $ProjectDir "Resources\version.json"
