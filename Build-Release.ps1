@@ -320,6 +320,19 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Release ready!" -ForegroundColor Green
 
+# 把 latest.yml 推送到仓库（供 GitHub Actions 读取 changelog）
+Write-Host ""
+Write-Host "Pushing latest.yml to repo..." -ForegroundColor Cyan
+git -C $ProjectDir add -f "Installer/Out/latest.yml" 2>$null
+$status = git -C $ProjectDir status --porcelain
+if ($status) {
+    git -C $ProjectDir commit -m "Update latest.yml for v$Version"
+    git -C $ProjectDir push origin main 2>&1
+    Write-Host "latest.yml pushed to repo" -ForegroundColor Green
+} else {
+    Write-Host "latest.yml unchanged, skipping push" -ForegroundColor Gray
+}
+
 Write-Host ""
 Write-Host "=== Release process completed ===" -ForegroundColor Green
 if ($installerPath) {

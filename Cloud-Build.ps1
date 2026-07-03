@@ -96,7 +96,9 @@ Write-Host "latest.yml generated: $latestYmlPath" -ForegroundColor Green
 Write-Host "Committing and pushing..." -ForegroundColor Yellow
 Set-Location $ProjectDir
 
+# 强制添加 latest.yml（可能被 .gitignore 排除）
 git add -A
+git add -f "Installer/Out/latest.yml" 2>$null
 
 # 检查是否有文件变动
 git diff --cached --quiet 2>&1

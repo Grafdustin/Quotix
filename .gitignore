@@ -41,6 +41,8 @@ _ReSharper*/
 # 构建产物
 Installer/Staging/
 Installer/Out/
+# 但保留 latest.yml（更新元数据）
+!Installer/Out/latest.yml
 
 # 日志
 *.log
