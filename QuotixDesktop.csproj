@@ -6,11 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>Quotix</AssemblyName>
-    <Version>1.0.35</Version>
-    <!-- AssemblyVersion: 濞ｅ洦绻冪€垫梻绮欓崘鑼毎闁挎稑濂旂粭澶愭⒕韫囨梻妲ㄦ繛鍡忊偓鍐茬岛閻㈩垰鍟撮埀顒佸笒椤ゅ啴鏁嶉崼锝庡殧濞戞柨顦€垫煡鎮ч崼鐔告嫳闁哄牃鍋撳ù锝呭暱閻ゅ嫮鎹勭喊澶岀 -->
+    <Version>1.0.36</Version>
+    <!-- AssemblyVersion: 婵烇絽娲︾换鍐偓鍨⒒缁瑩宕橀懠顒佹瘞闂佹寧绋戞總鏃傜箔婢舵劖鈷曢煫鍥ㄦ⒒濡层劍绻涢崱蹇婂亾閸愯尙宀涢柣銏╁灠閸熸挳鍩€椤掍礁绗掓い銈呭暣閺佸秹宕奸敐搴℃婵炴垶鏌ㄩˇ顖溾偓鍨叀閹囧醇閻斿憡瀚抽梺鍝勭墐閸嬫挸霉閿濆懎鏆遍柣銈呭閹瑰嫮鍠婃径宀€顦?-->
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.35.0</FileVersion>
-    <InformationalVersion>1.0.35</InformationalVersion>
+    <FileVersion>1.0.36.0</FileVersion>
+    <InformationalVersion>1.0.36</InformationalVersion>
     <Company>NISYO</Company>
     <Copyright>Copyright (C) 2026 NISYO</Copyright>
     <PublishSingleFile>false</PublishSingleFile>
