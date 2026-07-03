@@ -74,3 +74,6 @@ Desktop.ini
 
 # 更新包缓存
 Updates/
+
+# Cloud Build EXE（从 CloudBuildExe 项目发布）
+QuotixCloudBuild.exe
