@@ -34,7 +34,6 @@ public partial class SettingsViewModel : ObservableObject
 
     /// <summary>是否有可用更新</summary>
     public bool HasUpdate => _updatePipeline.State.Stage == UpdateStage.UpdateAvailable
-        || _updatePipeline.State.Stage == UpdateStage.Downloading
         || _updatePipeline.State.Stage == UpdateStage.ReadyToInstall;
 
     public SettingsViewModel(
@@ -83,6 +82,26 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand] private void About()
     {
         WeakReferenceMessenger.Default.Send(new AboutRequestedMessage());
+    }
+
+    /// <summary>点击检查更新按钮：已有更新直接弹窗，否则先检查再弹窗</summary>
+    [RelayCommand]
+    private async Task CheckUpdate()
+    {
+        if (_updatePipeline.State.Stage == UpdateStage.UpdateAvailable
+            || _updatePipeline.State.Stage == UpdateStage.ReadyToInstall)
+        {
+            // 已有更新，直接请求显示弹窗
+            WeakReferenceMessenger.Default.Send(new ShowUpdateOverlayMessage());
+            return;
+        }
+
+        // 先检查更新
+        var updateInfo = await _updatePipeline.CheckAsync();
+        if (updateInfo != null)
+        {
+            WeakReferenceMessenger.Default.Send(new ShowUpdateOverlayMessage());
+        }
     }
 
     // —— 产品列表选择 ——

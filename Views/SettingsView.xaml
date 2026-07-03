@@ -278,14 +278,14 @@
         <StackPanel Margin="0,0,0,24">
 
             <StackPanel Margin="0,0,0,12">
-                <ui:TextBlock Text="更新" FontSize="12" FontWeight="SemiBold"
+                <ui:TextBlock Text="检查更新" FontSize="12" FontWeight="SemiBold"
                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                               Margin="0,0,0,4"/>
-                <ui:TextBlock Text="应用版本检查" FontSize="11"
+                <ui:TextBlock Text="检查 Quotix 是否有新版本可用" FontSize="11"
                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
             </StackPanel>
 
-            <!-- 简洁状态卡片：只显示文字，不交互 -->
+            <!-- 简洁状态卡片：显示状态 + 检查更新按钮 -->
             <Border CornerRadius="10"
                     Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -294,6 +294,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- 图标 -->
@@ -306,12 +307,18 @@
 
                     <!-- 状态文字 -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
-                        <ui:TextBlock Text="应用更新" FontSize="14" FontWeight="Medium"
+                        <ui:TextBlock Text="检查更新" FontSize="14" FontWeight="Medium"
                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                         <ui:TextBlock Text="{Binding UpdateStatusText}" FontSize="12"
                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                       Margin="0,2,0,0"/>
                     </StackPanel>
+
+                    <!-- 检查更新按钮 -->
+                    <ui:Button Grid.Column="2" Content="检查更新"
+                               Appearance="Primary"
+                               Height="34" FontSize="12"
+                               Command="{Binding CheckUpdateCommand}"/>
                 </Grid>
             </Border>
 

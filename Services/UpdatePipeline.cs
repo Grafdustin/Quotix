@@ -71,6 +71,7 @@ namespace Quotix.Services
                 if (updateInfo != null)
                 {
                     State.Stage = UpdateStage.UpdateAvailable;
+                    State.CurrentVersion = AppInfo.Version;
                     State.NewVersion = updateInfo.Version;
                     State.FileSize = updateInfo.FileSize;
                     State.ReleaseDate = updateInfo.ReleaseDate;

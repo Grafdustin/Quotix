@@ -72,6 +72,9 @@ public partial class UpdateState : ObservableObject
     /// <summary>检测到的新版本号</summary>
     [ObservableProperty] private string _newVersion = "";
 
+    /// <summary>当前版本号</summary>
+    [ObservableProperty] private string _currentVersion = "";
+
     /// <summary>更新包文件大小（字节）</summary>
     [ObservableProperty] private long _fileSize;
 
@@ -89,6 +92,9 @@ public partial class UpdateState : ObservableObject
 
     /// <summary>是否显示下载详情（网速/大小/时间）</summary>
     public bool ShowDownloadDetail => Stage == UpdateStage.Downloading;
+
+    /// <summary>左边按钮文本（稍后 / 后台下载）</summary>
+    public string LeftButtonText => Stage == UpdateStage.Downloading ? "后台下载" : "稍后";
 
     /// <summary>按钮文本</summary>
     public string ActionButtonText => Stage switch
@@ -133,6 +139,7 @@ public partial class UpdateState : ObservableObject
         OnPropertyChanged(nameof(ShowProgressBar));
         OnPropertyChanged(nameof(ShowDownloadDetail));
         OnPropertyChanged(nameof(ActionButtonText));
+        OnPropertyChanged(nameof(LeftButtonText));
     }
 
     partial void OnSpeedBytesPerSecChanged(double value)

@@ -64,13 +64,6 @@ public sealed class ProgressMessage : ValueChangedMessage<ProgressState>
 }
 
 /// <summary>
-/// 更新可用消息，携带是否有新版本的信息。
+/// 显示更新弹窗请求消息。
 /// </summary>
-public sealed class UpdateAvailableMessage : ValueChangedMessage<bool>
-{
-    /// <summary>
-    /// 初始化 UpdateAvailableMessage 实例。
-    /// </summary>
-    /// <param name="hasUpdate">是否有新版本可用</param>
-    public UpdateAvailableMessage(bool hasUpdate) : base(hasUpdate) { }
-}
+public sealed class ShowUpdateOverlayMessage : RequestMessage<bool> { }

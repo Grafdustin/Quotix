@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -9,6 +8,8 @@ using Quotix.Services;
 using Wpf.Ui.Controls;
 using Quotix.ViewModels;
 using Quotix.Models;
+using CommunityToolkit.Mvvm.Messaging;
+using Quotix.Messages;
 
 namespace Quotix;
 
@@ -43,6 +44,13 @@ public partial class MainWindow : FluentWindow
 
         // 更新弹窗绑定到 Pipeline 的 State 对象
         UpdateOverlay.DataContext = _updatePipeline.State;
+
+        // 订阅显示更新弹窗消息
+        WeakReferenceMessenger.Default.Register<ShowUpdateOverlayMessage>(this, (r, m) =>
+        {
+            m.Reply(true);
+            Dispatcher.Invoke(() => ShowUpdateOverlay());
+        });
     }
 
     /// <summary>
@@ -94,10 +102,10 @@ public partial class MainWindow : FluentWindow
 
             if (updateInfo != null)
             {
-                // 有新版本：显示红色箭头 + 弹窗提醒
+                // 有新版本：显示更新导航项 + 弹窗提醒
                 Dispatcher.Invoke(() =>
                 {
-                    UpdateArrow.Visibility = Visibility.Visible;
+                    UpdateNavItem.Visibility = Visibility.Visible;
                     ShowUpdateOverlay();
                 });
             }
@@ -126,11 +134,10 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
-    /// 更新箭头点击事件 — 弹出更新通知卡片。
+    /// 更新导航项点击事件 — 弹出更新通知卡片。
     /// </summary>
-    private void UpdateArrow_Click(object sender, MouseButtonEventArgs e)
+    private void OnUpdateItemClick(object sender, RoutedEventArgs e)
     {
-        e.Handled = true; // 阻止事件冒泡到 NavigationViewItem
         ShowUpdateOverlay();
     }
 
@@ -138,6 +145,14 @@ public partial class MainWindow : FluentWindow
     /// 关闭更新弹窗。
     /// </summary>
     private void UpdateOverlay_Close(object sender, RoutedEventArgs e)
+    {
+        UpdateOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// 更新弹窗左边按钮点击 — 稍后或后台下载。
+    /// </summary>
+    private void UpdateOverlay_LeftButtonClick(object sender, RoutedEventArgs e)
     {
         UpdateOverlay.Visibility = Visibility.Collapsed;
     }
@@ -152,7 +167,7 @@ public partial class MainWindow : FluentWindow
             case UpdateStage.UpdateAvailable:
             case UpdateStage.Failed:
                 // 开始下载
-                UpdateArrow.Visibility = Visibility.Visible;
+                UpdateNavItem.Visibility = Visibility.Visible;
                 await _updatePipeline.DownloadAsync();
 
                 // 下载完成后，弹窗仍然打开，用户可点击「安装更新」
@@ -178,6 +193,9 @@ public partial class MainWindow : FluentWindow
         {
             var tag = nvi.Tag?.ToString();
             if (tag == null) return;
+
+            // 更新项有自己独立的处理，不在这里处理
+            if (tag == "update") return;
 
             // 切换内容
             switch (tag)
@@ -234,6 +252,12 @@ public partial class MainWindow : FluentWindow
         {
             if (item is Wpf.Ui.Controls.NavigationViewItem nvi)
             {
+                // 更新项不参与导航激活状态
+                if (nvi.Tag?.ToString() == "update")
+                {
+                    nvi.IsActive = false;
+                    continue;
+                }
                 nvi.IsActive = nvi.Tag?.ToString() == tag;
             }
         }
