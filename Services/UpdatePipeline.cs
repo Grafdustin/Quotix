@@ -62,6 +62,8 @@ namespace Quotix.Services
                     state.Stage = UpdateStage.UpdateAvailable;
                     state.NewVersion = updateInfo.Version;
                     state.FileSize = updateInfo.FileSize;
+                    state.ReleaseDate = updateInfo.ReleaseDate;
+                    state.Changelog = updateInfo.Changelog;
                     state.Message = $"发现新版本 v{updateInfo.Version}（{state.FileSizeDisplay}）";
                     return updateInfo;
                 }
@@ -84,10 +86,10 @@ namespace Quotix.Services
         /// <summary>
         /// [Download 阶段] 下载更新包，实时更新 <paramref name="state"/> 的进度/网速/ETA。
         /// </summary>
-        /// <param name="downloadUrl">下载链接</param>
+        /// <param name="updateInfo">版本信息（含下载链接和校验用的文件大小）</param>
         /// <param name="state">共享更新状态对象</param>
         /// <returns>下载成功时返回 true</returns>
-        public async Task<bool> DownloadAsync(string downloadUrl, UpdateState state)
+        public async Task<bool> DownloadAsync(UpdateInfo updateInfo, UpdateState state)
         {
             state.Stage = UpdateStage.Downloading;
             state.Message = "正在下载更新包...";
@@ -95,6 +97,9 @@ namespace Quotix.Services
             state.ReceivedBytes = 0;
             state.SpeedBytesPerSec = 0;
             state.Eta = null;
+
+            var downloadUrl = updateInfo.DownloadUrl;
+            var expectedSize = updateInfo.FileSize;
 
             var downloadStartTime = DateTime.Now;
             var lastReportTime = downloadStartTime;
@@ -117,7 +122,7 @@ namespace Quotix.Services
                 response.EnsureSuccessStatusCode();
 
                 var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                state.TotalBytes = totalBytes > 0 ? totalBytes : 0;
+                state.TotalBytes = totalBytes > 0 ? totalBytes : (expectedSize > 0 ? expectedSize : 0);
 
                 using var contentStream = await response.Content.ReadAsStreamAsync();
                 using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
@@ -135,8 +140,9 @@ namespace Quotix.Services
                     state.ReceivedBytes = totalRead;
 
                     // 计算进度
-                    if (totalBytes > 0)
-                        state.Progress = totalRead * 100.0 / totalBytes;
+                    var progressDenominator = totalBytes > 0 ? totalBytes : expectedSize;
+                    if (progressDenominator > 0)
+                        state.Progress = totalRead * 100.0 / progressDenominator;
 
                     // 每 0.5 秒更新一次网速（避免闪烁）
                     var now = DateTime.Now;
@@ -151,18 +157,18 @@ namespace Quotix.Services
 
                     // 预估剩余时间（基于整体平均速度）
                     var totalElapsed = (now - downloadStartTime).TotalSeconds;
-                    if (totalElapsed > 0 && totalRead > 0 && totalBytes > 0)
+                    if (totalElapsed > 0 && totalRead > 0 && progressDenominator > 0)
                     {
                         var avgSpeed = totalRead / totalElapsed;
                         if (avgSpeed > 0)
                         {
-                            var remainingBytes = totalBytes - totalRead;
+                            var remainingBytes = progressDenominator - totalRead;
                             state.Eta = TimeSpan.FromSeconds(remainingBytes / avgSpeed);
                         }
                     }
                 }
 
-                // [Verify 阶段] 校验文件大小
+                // [Verify 阶段] 校验文件大小（使用 version.json 中声明的大小，而非 HTTP Content-Length）
                 state.Stage = UpdateStage.Verifying;
                 state.Message = "正在校验安装包...";
                 state.SpeedBytesPerSec = 0;
@@ -171,11 +177,11 @@ namespace Quotix.Services
                 await Task.Delay(300); // 给 UI 一点时间渲染
 
                 var actualSize = new FileInfo(filePath).Length;
-                if (totalBytes > 0 && actualSize != totalBytes)
+                if (expectedSize > 0 && actualSize != expectedSize)
                 {
                     state.Stage = UpdateStage.Failed;
                     state.Message = "安装包校验失败（文件大小不匹配）";
-                    state.Error = $"Expected {totalBytes}, got {actualSize}";
+                    state.Error = $"期望 {expectedSize} 字节，实际 {actualSize} 字节";
                     return false;
                 }
 

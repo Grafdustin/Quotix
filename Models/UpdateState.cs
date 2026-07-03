@@ -78,7 +78,16 @@ public partial class UpdateState : ObservableObject
     /// <summary>更新包文件大小（字节）</summary>
     [ObservableProperty] private long _fileSize;
 
+    /// <summary>发布日期</summary>
+    [ObservableProperty] private string _releaseDate = "";
+
+    /// <summary>更新日志条目</summary>
+    [ObservableProperty] private string[] _changelog = System.Array.Empty<string>();
+
     // ─── UI 计算属性 ───
+
+    /// <summary>是否显示更新详情（版本号、更新日志等）</summary>
+    public bool ShowUpdateDetails => Stage == UpdateStage.UpdateAvailable;
 
     /// <summary>是否显示操作按钮（非进行中状态）</summary>
     public bool ShowActionButton =>
@@ -146,6 +155,7 @@ public partial class UpdateState : ObservableObject
         OnPropertyChanged(nameof(ShowInstallButton));
         OnPropertyChanged(nameof(ShowProgressBar));
         OnPropertyChanged(nameof(ShowDownloadDetail));
+        OnPropertyChanged(nameof(ShowUpdateDetails));
         OnPropertyChanged(nameof(ActionButtonText));
     }
 

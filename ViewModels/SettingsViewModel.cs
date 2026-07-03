@@ -278,15 +278,7 @@ public partial class SettingsViewModel : ObservableObject
             return;
         }
 
-        var success = await _updatePipeline.DownloadAsync(_pendingUpdate.DownloadUrl, UpdateState);
-
-        if (!success && UpdateState.Stage == UpdateStage.Failed)
-        {
-            if (_dialog.ShowConfirm("自动下载失败，是否打开浏览器手动下载？", "下载失败"))
-            {
-                _updatePipeline.OpenDownloadPage(_pendingUpdate.DownloadUrl);
-            }
-        }
+        await _updatePipeline.DownloadAsync(_pendingUpdate, UpdateState);
     }
 
     /// <summary>[Install 阶段] 安装更新</summary>
