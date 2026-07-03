@@ -77,3 +77,4 @@ Updates/
 
 # Cloud Build EXE（从 CloudBuildExe 项目发布）
 QuotixCloudBuild.exe
+publish_fd/
