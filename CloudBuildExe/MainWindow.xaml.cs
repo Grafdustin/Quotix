@@ -98,10 +98,11 @@ public partial class MainWindow : Window
         {
             var csprojPath = Path.Combine(_projectDir, "QuotixDesktop.csproj");
             var content = File.ReadAllText(csprojPath);
+            // 使用简单的字符串替换，避免正则替换字符串中的 $1/$2 歧义
             content = System.Text.RegularExpressions.Regex.Replace(content,
-                @"(<Version>)[^<]+(</Version>)", $"$1{version}$2");
+                @"<Version>[^<]+</Version>", $"<Version>{version}</Version>");
             content = System.Text.RegularExpressions.Regex.Replace(content,
-                @"(<InformationalVersion>)[^<]+(</InformationalVersion>)", $"$1{version}$2");
+                @"<InformationalVersion>[^<]+</InformationalVersion>", $"<InformationalVersion>{version}</InformationalVersion>");
             File.WriteAllText(csprojPath, content, Encoding.UTF8);
         }, ct);
 
