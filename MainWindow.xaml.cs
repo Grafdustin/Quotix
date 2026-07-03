@@ -96,8 +96,8 @@ public partial class MainWindow : FluentWindow
             };
             _arrowText = new System.Windows.Controls.TextBlock
             {
-                FontSize = 10,
-                FontWeight = FontWeights.SemiBold,
+                FontSize = 14,
+                FontWeight = FontWeights.Normal,
                 Foreground = Brushes.Red,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
