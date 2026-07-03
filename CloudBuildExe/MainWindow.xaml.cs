@@ -174,53 +174,80 @@ public partial class MainWindow : Window
         var repo = "Grafdustin/Quotix";
         var maxWait = TimeSpan.FromMinutes(10);
         var startTime = DateTime.Now;
+        var lastStatus = "";
 
         while (DateTime.Now - startTime < maxWait)
         {
             ct.ThrowIfCancellationRequested();
 
+            // gh run list 返回 JSON 数组，需要取第一个
             var runJson = await RunCmdAsync("gh", $"run list --repo {repo} --workflow build-and-release.yml --limit 1 --json status,conclusion", ct);
-            if (!string.IsNullOrWhiteSpace(runJson))
+            
+            if (!string.IsNullOrWhiteSpace(runJson) && runJson.TrimStart().StartsWith("["))
             {
                 try
                 {
                     using var doc = JsonDocument.Parse(runJson);
-                    var root = doc.RootElement;
-                    var status = root.GetProperty("status").GetString();
-                    var conclusion = root.TryGetProperty("conclusion", out var c) ? c.GetString() : null;
-
-                    BuildStatusText.Text = status switch
+                    var array = doc.RootElement;
+                    
+                    if (array.GetArrayLength() > 0)
                     {
-                        "queued" => "⏳ 队列中...",
-                        "in_progress" => "🔄 构建中...",
-                        "completed" when conclusion == "success" => "✅ 构建成功！",
-                        "completed" => $"❌ 构建失败：{conclusion}",
-                        _ => status ?? ""
-                    };
+                        var run = array[0];
+                        var status = run.GetProperty("status").GetString();
+                        var conclusion = run.TryGetProperty("conclusion", out var c) ? c.GetString() : null;
 
-                    if (status == "completed")
+                        // 只在状态变化时更新日志
+                        if (status != lastStatus)
+                        {
+                            lastStatus = status ?? "";
+                            AppendLog($"构建状态：{status}");
+                        }
+
+                        BuildStatusText.Text = status switch
+                        {
+                            "queued" => "⏳ 队列中...",
+                            "in_progress" => "🔄 构建中...",
+                            "completed" when conclusion == "success" => "✅ 构建成功！",
+                            "completed" => $"❌ 构建失败：{conclusion}",
+                            _ => status ?? "未知"
+                        };
+
+                        if (status == "completed")
+                        {
+                            if (conclusion == "success")
+                            {
+                                ProgressText.Text = "构建完成！";
+                                AppendLog("✅ 构建成功！");
+                                AppendLog($"下载：https://github.com/{repo}/releases/tag/v{version}");
+                                MessageBox.Show(
+                                    $"构建成功！\n\n下载地址：\nhttps://github.com/{repo}/releases/tag/v{version}",
+                                    "完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                            }
+                            else
+                            {
+                                ProgressText.Text = "构建失败";
+                                AppendLog($"❌ 构建失败：{conclusion}");
+                            }
+                            return;
+                        }
+                    }
+                    else
                     {
-                        if (conclusion == "success")
-                        {
-                            ProgressText.Text = "构建完成！";
-                            AppendLog("✅ 构建成功！");
-                            AppendLog($"下载：https://github.com/{repo}/releases/tag/v{version}");
-                            MessageBox.Show(
-                                $"构建成功！\n\n下载地址：\nhttps://github.com/{repo}/releases/tag/v{version}",
-                                "完成", MessageBoxButton.OK, MessageBoxImage.Information);
-                        }
-                        else
-                        {
-                            ProgressText.Text = "构建失败";
-                            AppendLog($"❌ 构建失败：{conclusion}");
-                        }
-                        return;
+                        AppendLog("等待 GitHub Actions 启动...");
                     }
                 }
-                catch { }
+                catch (JsonException ex)
+                {
+                    AppendLog($"解析 JSON 失败：{ex.Message}");
+                    AppendLog($"原始输出：{runJson}");
+                }
+            }
+            else
+            {
+                AppendLog("等待 GitHub Actions 启动...");
             }
 
-            await Task.Delay(15000, ct);
+            await Task.Delay(10000, ct);  // 改为 10 秒检查一次
         }
 
         AppendLog("超时，请手动查看：https://github.com/Grafdustin/Quotix/actions");
