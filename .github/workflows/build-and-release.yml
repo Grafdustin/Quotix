@@ -71,6 +71,24 @@ jobs:
         Start-Process -FilePath $out -Args "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait
       shell: pwsh
 
+    - name: Ensure Chinese language file
+      run: |
+        $langFile = "C:\Program Files (x86)\Inno Setup 6\Languages\ChineseSimplified.isl"
+        if (-not (Test-Path $langFile)) {
+          $langFile64 = "C:\Program Files\Inno Setup 6\Languages\ChineseSimplified.isl"
+          if (-not (Test-Path $langFile64)) {
+            Write-Host "ChineseSimplified.isl not found, downloading..."
+            $url = "https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/ChineseSimplified.isl"
+            $dir = Split-Path $langFile -Parent
+            if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+            Invoke-WebRequest -Uri $url -OutFile $langFile
+            Write-Host "Downloaded ChineseSimplified.isl"
+          }
+        } else {
+          Write-Host "ChineseSimplified.isl already exists"
+        }
+      shell: pwsh
+
     - name: Build Installer
       run: |
         $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"

@@ -27,6 +27,26 @@
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
 
+    <!-- ===== 卡片标题图标徽章：圆角强调底 + 主题强调色图标 ===== -->
+    <!-- 用于各区块标题左侧的装饰图标，与系统弹窗图标处理方式一致 -->
+    <Style x:Key="CardTitleIcon" TargetType="Border">
+        <Setter Property="Width" Value="32"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- ===== 字段标签徽章：用于表单字段的统一标签 ===== -->
+    <!-- 小圆角底色块，弱化标签视觉权重，突出输入内容 -->
+    <Style x:Key="FieldLabel" TargetType="ui:TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,6"/>
+    </Style>
+
     <!-- ===== 标签徽章 (用于表单字段标签) ===== -->
     <Style x:Key="LabelBadge" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
