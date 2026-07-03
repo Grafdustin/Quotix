@@ -1,11 +1,11 @@
 ﻿{
-    "build":  1036,
-    "version":  "1.0.36",
+    "build":  1037,
+    "version":  "1.0.37",
     "changelog":  [
-                      "“debug”,”测试安装功能”,”查找bug”"
+                      "修复下载启动异常"
                   ],
-    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.36/Quotix_Setup_1.0.36.exe",
+    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.37/Quotix_Setup_1.0.37.exe",
     "mandatory":  false,
     "releaseDate":  "2026-07-03",
-    "fileSize":  57997844
+    "fileSize":  58013420
 }
