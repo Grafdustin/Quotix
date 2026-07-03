@@ -99,24 +99,7 @@ if ($Version) {
         }
     }
     
-    Write-Host "Updating version: $currentVersion -> $Version" -ForegroundColor Green
-    
-    $csprojContent = Get-Content $csprojPath -Encoding UTF8
-    $csprojContent = $csprojContent -replace '(?<=<Version>)[^<]+', $Version
-    $csprojContent = $csprojContent -replace '(?<=<AssemblyVersion>)[^<]+', "$Version.0"
-    $csprojContent = $csprojContent -replace '(?<=<FileVersion>)[^<]+', "$Version.0"
-    $csprojContent = $csprojContent -replace '(?<=<InformationalVersion>)[^<]+', $Version
-    Set-Content -Path $csprojPath -Value $csprojContent -Encoding UTF8
-    
-    if (-not $SkipGit) {
-        git -C $ProjectDir add "$csprojPath"
-        git -C $ProjectDir commit -m "Update version to $Version"
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Warning: Version change commit failed (no changes?)" -ForegroundColor Yellow
-        }
-    }
-    
-    Write-Host "Version updated to: $Version" -ForegroundColor Green
+    Write-Host "Release version: $Version (csproj 不再修改，通过 -p:Version 传参)" -ForegroundColor Green
 } else {
     Write-Host "Keeping current version: $currentVersion" -ForegroundColor Gray
     $Version = $currentVersion
@@ -127,7 +110,7 @@ if (-not $SkipBuild) {
     Write-Host ""
     Write-Host "Step 3/5: Building project..." -ForegroundColor Yellow
     
-    dotnet publish "$ProjectDir\QuotixDesktop.csproj" -c $Configuration -r win-x64 --self-contained true
+    dotnet publish "$ProjectDir\QuotixDesktop.csproj" -c $Configuration -r win-x64 --self-contained true -p:Version=$Version
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Error: Build failed" -ForegroundColor Red

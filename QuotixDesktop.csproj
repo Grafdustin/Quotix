@@ -7,10 +7,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>Quotix</AssemblyName>
+    <!-- Version: 默认值，CI 构建时通过 -p:Version=X.Y.Z 覆盖 -->
     <Version>1.0.26</Version>
-    <AssemblyVersion>1.0.26.0</AssemblyVersion>
-    <FileVersion>1.0.26.0</FileVersion>
-    <InformationalVersion>1.0.26</InformationalVersion>
+    <!-- AssemblyVersion: 保持稳定，不随每次发布递增（语义化版本最佳实践） -->
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>$(Version).0</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
     <Company>NISYO</Company>
     <Copyright>Copyright (C) 2026 NISYO</Copyright>
     <PublishSingleFile>false</PublishSingleFile>
