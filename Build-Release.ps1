@@ -7,7 +7,6 @@
 #   5. version.json (commit + push)
 
 param(
-    [Parameter(Mandatory=$true)]
     [string]$CommitMessage,
     
     [string]$Version,
@@ -23,10 +22,19 @@ param(
     [string]$Configuration = "Release"
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $ProjectDir = Resolve-Path "$PSScriptRoot"
 $InstallerDir = Join-Path $ProjectDir "Installer"
 $CsprojPath = Join-Path $ProjectDir "QuotixDesktop.csproj"
+
+try {
+# 交互式输入 CommitMessage（右键运行时没有参数）
+if (-not $CommitMessage) {
+    $CommitMessage = Read-Host "请输入提交信息"
+}
+if (-not $CommitMessage) {
+    throw "提交信息不能为空"
+}
 
 Write-Host "=== Quotix Release Process ===" -ForegroundColor Cyan
 Write-Host "Commit message: $CommitMessage" -ForegroundColor Gray
@@ -48,8 +56,7 @@ if (-not $SkipGit) {
             git -C $ProjectDir add -A
             git -C $ProjectDir commit -m "$CommitMessage"
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "Error: Git commit failed" -ForegroundColor Red
-                exit 1
+                throw "Git commit failed"
             }
             Write-Host "Git commit successful" -ForegroundColor Green
         } else {
@@ -84,8 +91,7 @@ if (-not $Version -and -not $NoAutoIncrement) {
 
 if ($Version) {
     if ($Version -notmatch '^\d+\.\d+\.\d+$') {
-        Write-Host "Error: Invalid version format, should be x.y.z (e.g. 1.0.1)" -ForegroundColor Red
-        exit 1
+        throw "Invalid version format, should be x.y.z (e.g. 1.0.1)"
     }
     
     if ($Version -eq $currentVersion) {
@@ -97,7 +103,7 @@ if ($Version) {
                 $confirm = Read-Host "Continue and overwrite? (y/N)"
                 if ($confirm -ne "y" -and $confirm -ne "Y") {
                     Write-Host "Cancelled" -ForegroundColor Gray
-                    exit 0
+                    return
                 }
             }
         }
@@ -135,8 +141,7 @@ if (-not $SkipBuild) {
     dotnet publish "$CsprojPath" -c $Configuration -r win-x64 --self-contained true -p:Version=$Version
     
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "Error: Build failed" -ForegroundColor Red
-        exit 1
+        throw "Build failed"
     }
     Write-Host "Build successful" -ForegroundColor Green
 } else {
@@ -154,8 +159,7 @@ if (Test-Path $buildInstallerScript) {
     & "$buildInstallerScript" -Configuration $Configuration -SkipBuild -Version $Version
     
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "Error: Installer build failed" -ForegroundColor Red
-        exit 1
+        throw "Installer build failed"
     }
     
     $outputDir = Join-Path $InstallerDir "Out"
@@ -196,21 +200,18 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
 
 # 检查 gh
 if (-not (Get-Command $ghPath -ErrorAction SilentlyContinue)) {
-    Write-Host "Error: GitHub CLI not found" -ForegroundColor Red
-    exit 1
+    throw "GitHub CLI not found"
 }
 
 # 登录检查
 & $ghPath auth status 2>$null
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Error: GitHub CLI not authenticated" -ForegroundColor Red
-    exit 1
+    throw "GitHub CLI not authenticated"
 }
 
 # 安装包检查
 if (-not $installerPath -or -not (Test-Path $installerPath)) {
-    Write-Host "Error: Installer not found" -ForegroundColor Red
-    exit 1
+    throw "Installer not found"
 }
 
 Write-Host "Ensuring release exists: $tag" -ForegroundColor Cyan
@@ -226,8 +227,7 @@ if ($LASTEXITCODE -ne 0) {
         --repo $repoName
 
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "Error: Failed to create release" -ForegroundColor Red
-        exit 1
+        throw "Failed to create release"
     }
 }
 
@@ -239,8 +239,7 @@ Write-Host "Uploading installer..." -ForegroundColor Cyan
     --clobber
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Error: Failed to upload asset" -ForegroundColor Red
-    exit 1
+    throw "Failed to upload asset"
 }
 
 Write-Host "Release ready!" -ForegroundColor Green
@@ -288,4 +287,13 @@ Write-Host ""
 Write-Host "=== Release process completed ===" -ForegroundColor Green
 if ($installerPath) {
     Write-Host "Installer: $installerPath" -ForegroundColor Cyan
+}
+} catch {
+    Write-Host ""
+    Write-Host "=== 发布失败 ===" -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
+} finally {
+    Write-Host ""
+    Read-Host "按 Enter 退出"
 }
