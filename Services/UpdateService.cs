@@ -168,7 +168,7 @@ namespace Quotix.Services
                 {
                     "@echo off",
                     "chcp 65001 > nul",
-                    "title Quotix Updater",
+                    "title Quotix Update",
                     "",
                     "REM 等待当前应用关闭（最多等待 5 秒）",
                     "timeout /t 5 /nobreak > nul",
