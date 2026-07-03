@@ -19,17 +19,17 @@ jobs:
         dotnet-version: '10.0.x'
     
     - name: Restore dependencies
-      run: dotnet restore Quotix/QuotixDesktop.csproj
+      run: dotnet restore QuotixDesktop.csproj
     
     - name: Build and Publish
       run: |
-        dotnet publish Quotix/QuotixDesktop.csproj -c Release -r win-x64 --self-contained true -o publish
+        dotnet publish QuotixDesktop.csproj -c Release -r win-x64 --self-contained true -o publish
       shell: pwsh
     
     - name: Prepare Staging
       run: |
-        New-Item -ItemType Directory -Force -Path Quotix/Installer/Staging/Launcher
-        Copy-Item -Path publish/* -Destination Quotix/Installer/Staging/Launcher/ -Recurse
+        New-Item -ItemType Directory -Force -Path Installer/Staging/Launcher
+        Copy-Item -Path publish/* -Destination Installer/Staging/Launcher/ -Recurse
       shell: pwsh
     
     - name: Install Inno Setup
@@ -46,7 +46,7 @@ jobs:
         if (-not (Test-Path $iscc)) {
           $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
         }
-        & "$iscc" /DMyAppVersion=${{ github.ref_name }} Quotix/Installer/QuotixInstaller.iss
+        & "$iscc" /DMyAppVersion=${{ github.ref_name }} Installer/QuotixInstaller.iss
       shell: pwsh
     
     - name: Get version from tag
@@ -57,7 +57,7 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        files: Quotix/Installer/Out/Quotix_Setup_*.exe
+        files: Installer/Out/Quotix_Setup_*.exe
         draft: false
         prerelease: false
       env:
