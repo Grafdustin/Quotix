@@ -58,9 +58,21 @@ if (-not $SkipGit) {
 Write-Host ""
 Write-Host "Step 2/5: Checking version..." -ForegroundColor Yellow
 
-$csprojPath = Join-Path $ProjectDir "QuotixDesktop.csproj"
-[xml]$csproj = Get-Content $csprojPath
-$currentVersion = $csproj.Project.PropertyGroup.Version
+# 拉取远程标签以确保最新
+& git -C $ProjectDir fetch --tags 2>$null
+
+# 从最新 git tag 获取当前版本（格式：v1.0.27），不再依赖 csproj
+$latestTag = & git -C $ProjectDir tag --sort=-v:refname 2>$null | Select-Object -First 1
+if ($latestTag -match '^v(\d+\.\d+\.\d+)$') {
+    $currentVersion = $Matches[1]
+    Write-Host "Latest git tag: $latestTag -> version $currentVersion" -ForegroundColor Cyan
+} else {
+    # 回退：从 csproj 读取
+    $csprojPath = Join-Path $ProjectDir "QuotixDesktop.csproj"
+    [xml]$csprojXml = Get-Content $csprojPath
+    $currentVersion = $csprojXml.Project.PropertyGroup.Version
+    Write-Host "No git tag found, using csproj version: $currentVersion" -ForegroundColor Yellow
+}
 
 if (-not $Version -and -not $NoAutoIncrement) {
     if ($currentVersion -match '^(\d+)\.(\d+)\.(\d+)$') {
@@ -99,7 +111,7 @@ if ($Version) {
         }
     }
     
-    Write-Host "Release version: $Version (csproj 不再修改，通过 -p:Version 传参)" -ForegroundColor Green
+    Write-Host "Release version: $Version (git tag 驱动，通过 -p:Version 传参)" -ForegroundColor Green
 } else {
     Write-Host "Keeping current version: $currentVersion" -ForegroundColor Gray
     $Version = $currentVersion
