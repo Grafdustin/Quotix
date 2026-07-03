@@ -1,14 +1,14 @@
 ﻿{
-    "build":  1052,
-    "version":  "1.0.52",
+    "build":  1053,
+    "version":  "1.0.53",
     "changelog":  [
                       "优化",
                       "1.下载按钮更新",
                       "2.检查链接更新",
                       "3.还没吃晚饭"
                   ],
-    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.52/Quotix_Setup_1.0.52.exe",
+    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.53/Quotix_Setup_1.0.53.exe",
     "mandatory":  false,
     "releaseDate":  "2026-07-03",
-    "fileSize":  58003818
+    "fileSize":  58005179
 }
