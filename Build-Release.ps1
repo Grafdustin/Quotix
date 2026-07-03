@@ -129,7 +129,7 @@ Write-Host "Step 4/5: Building installer..." -ForegroundColor Yellow
 $installerPath = $null
 $buildInstallerScript = Join-Path $InstallerDir "Build-Installer.ps1"
 if (Test-Path $buildInstallerScript) {
-    & "$buildInstallerScript" -Configuration $Configuration -SkipBuild
+    & "$buildInstallerScript" -Configuration $Configuration -SkipBuild -Version $Version
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Error: Installer build failed" -ForegroundColor Red
@@ -245,8 +245,11 @@ $versionInfo | ConvertTo-Json -Depth 10 | Set-Content $versionJsonPath -Encoding
 if (-not $SkipGit) {
     git -C $ProjectDir add "$versionJsonPath"
     git -C $ProjectDir commit -m "Update version.json (v$Version)"
-    # git push 使用 2>&1 避免 stderr 触发 Stop 错误
-    $pushResult = & git -C $ProjectDir push origin main 2>&1
+    # 临时降低错误级别避免 git push stderr 触发 Stop
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    git -C $ProjectDir push origin main 2>&1
+    $ErrorActionPreference = $prevEAP
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Warning: git push failed, please push manually" -ForegroundColor Yellow
     } else {
