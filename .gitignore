@@ -60,9 +60,8 @@ Desktop.ini
 *.suo
 *.user
 
-# 忽略 WorkBuddy 内部文件（项目级）
-.workbuddy/artifacts/
-.workbuddy/memory/
+# 忽略 WorkBuddy 
+.workbuddy
 
 # 忽略安装包输出（可选）
 # Installer/Out/
