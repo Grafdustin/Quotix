@@ -1,11 +1,11 @@
 ﻿{
-    "build":  1043,
-    "version":  "1.0.43",
+    "build":  1044,
+    "version":  "1.0.44",
     "changelog":  [
-                      "debug"
+                      "修复bug"
                   ],
-    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.43/Quotix_Setup_1.0.43.exe",
+    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.44/Quotix_Setup_1.0.44.exe",
     "mandatory":  false,
     "releaseDate":  "2026-07-03",
-    "fileSize":  58019776
+    "fileSize":  58018255
 }
