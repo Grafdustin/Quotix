@@ -63,7 +63,8 @@ if (-not (Test-Path $publishDir)) {
     exit 1
 }
 # 归一化路径（去掉 ..），确保 Substring 计算正确
-$publishDir = (Resolve-Path $publishDir).Path
+# 使用 .NET 方法替代 Resolve-Path（Windows 上更可靠）
+$publishDir = [System.IO.Path]::GetFullPath($publishDir)
 Write-Host "Publish source: $publishDir" -ForegroundColor Gray
 
 # === 修复3：过滤式复制（排除 Updater / debug 文件 / 构建残留） ===
