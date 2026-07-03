@@ -1,11 +1,11 @@
 {
-  "version": "1.0.29",
-  "build": 1029,
+  "version": "1.0.30",
+  "build": 1030,
   "releaseDate": "2026-07-03",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.29/Quotix_Setup_1.0.29.exe",
-  "fileSize": 58112639,
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.30/Quotix_Setup_1.0.30.exe",
+  "fileSize": 58005523,
   "mandatory": false,
   "changelog": [
-    "v1.0.28 方案3验证：Git Tag 控制版本，自动打 tag 并推送"
+    "v1.0.30 GBK修复 + 安装包过滤 + GitTag + 路径归一化"
   ]
 }
