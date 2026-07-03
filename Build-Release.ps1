@@ -290,10 +290,10 @@ if ($installerPath) {
 }
 } catch {
     Write-Host ""
-    Write-Host "=== 发布失败 ===" -ForegroundColor Red
+    Write-Host "❌ 脚本执行失败：" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
     Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
 } finally {
     Write-Host ""
-    Read-Host "按 Enter 退出"
+    Read-Host "按回车退出"
 }
