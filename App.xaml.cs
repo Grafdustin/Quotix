@@ -69,6 +69,30 @@ public partial class App : Application
             return;
         }
 
+        try
+        {
+            await StartApplicationAsync();
+        }
+        catch (Exception ex)
+        {
+            // 最外层兜底：确保任何启动阶段的异常都被记录并反馈给用户
+            LogException(ex);
+            try
+            {
+                System.Windows.MessageBox.Show(
+                    $"Quotix 启动失败：\n\n{GetInnerMostMessage(ex)}\n\n详细信息已写入：\n{AppPaths.ErrorLogPath}",
+                    "Quotix 启动错误",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+            }
+            catch { }
+            Shutdown();
+        }
+    }
+
+    /// <summary>执行应用程序主启动流程</summary>
+    private async Task StartApplicationAsync()
+    {
         // 构建 DI 容器
         _serviceProvider = DiConfig.Build();
 
@@ -112,8 +136,17 @@ public partial class App : Application
         var dbInitTask = InitializeDatabaseAsync();
         _ = MonitorDatabaseInit(dbInitTask, splash);
 
-        // 等待闪屏动画完成
-        await splash.WaitForReadyAsync();
+        // 等待闪屏动画完成（最长 15 秒超时保护，防止动画卡死导致永远不显示主窗口）
+        var readyTask = splash.WaitForReadyAsync();
+        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(15));
+        var completedTask = await Task.WhenAny(readyTask, timeoutTask);
+
+        if (completedTask != readyTask)
+        {
+            // 超时：强制快进闪屏
+            splash.FastForward();
+            await readyTask;
+        }
 
         // 确保数据库初始化完成
         await dbInitTask;
@@ -125,21 +158,15 @@ public partial class App : Application
         var cacheTask = Task.Run(() => _serviceProvider.GetRequiredService<Services.CacheService>().WarmUp());
 
         // 进入主窗口
-        try
-        {
-            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-            mainWindow.Show();
-            await splash.FadeOutAsync();
+        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+        mainWindow.Show();
+        await splash.FadeOutAsync();
 
-            // 显式指定 MainWindow（SplashWindow 关闭后 WPF 可能不会自动提升）
-            Application.Current.MainWindow = mainWindow;
-        }
-        catch (Exception ex)
-        {
-            splash.Close();
-            LogException(ex);
-            throw;
-        }
+        // 显式指定 MainWindow（SplashWindow 关闭后 WPF 可能不会自动提升）
+        Application.Current.MainWindow = mainWindow;
+
+        // 主窗口关闭时退出应用
+        mainWindow.Closed += (_, _) => Shutdown();
     }
 
     /// <summary>应用程序退出时释放资源</summary>

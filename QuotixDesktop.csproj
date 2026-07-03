@@ -7,8 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>Quotix</AssemblyName>
-    <!-- Version: 默认值，CI 构建时通过 -p:Version=X.Y.Z 覆盖 -->
-    <Version>1.0.26</Version>
+    <Version>1.0.32</Version>
     <!-- AssemblyVersion: 保持稳定，不随每次发布递增（语义化版本最佳实践） -->
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>$(Version).0</FileVersion>

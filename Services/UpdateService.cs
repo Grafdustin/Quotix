@@ -146,7 +146,7 @@ namespace Quotix.Services
 
         /// <summary>
         /// 安装更新包
-        /// 创建批处理脚本，负责：安装 → 删除安装包 → 重启应用
+        /// 创建批处理脚本，负责：等待旧进程退出 → 静默安装 → 删除安装包 → 重启应用
         /// </summary>
         /// <param name="installerPath">安装程序路径</param>
         public void InstallUpdate(string installerPath)
@@ -155,6 +155,7 @@ namespace Quotix.Services
             {
                 // 获取应用路径（用于重启）
                 var currentExePath = GetCurrentExecutablePath();
+                var exeDir = Path.GetDirectoryName(currentExePath) ?? "";
 
                 // 创建批处理脚本
                 var batchScriptPath = Path.Combine(
@@ -162,12 +163,12 @@ namespace Quotix.Services
                     "install_and_restart.bat"
                 );
 
-                // 构建批处理内容
+                // 构建批处理内容（使用 start /d 指定工作目录，确保新程序能找到资源文件）
                 var batchLines = new List<string>
                 {
                     "@echo off",
                     "chcp 65001 > nul",
-                    "echo Updating Quotix...",
+                    "title Quotix Updater",
                     "",
                     "REM 等待当前应用关闭（最多等待 5 秒）",
                     "timeout /t 5 /nobreak > nul",
@@ -176,34 +177,44 @@ namespace Quotix.Services
                     "echo Installing update...",
                     $"\"{installerPath}\" /SILENT",
                     "",
-                    "REM 等待安装完成（最多等待 60 秒）",
-                    "timeout /t 10 /nobreak > nul",
+                    "REM 等待安装完成并验证新 exe 存在",
+                    "echo Waiting for installation to complete...",
+                    ":wait_loop",
+                    $"if exist \"{currentExePath}\" goto start_app",
+                    "timeout /t 2 /nobreak > nul",
+                    "goto wait_loop",
+                    "",
+                    ":start_app",
+                    "REM 确保新文件完全写入后再启动",
+                    "timeout /t 3 /nobreak > nul",
                     "",
                     "REM 删除安装包",
-                    "echo Deleting installer...",
-                    $"del \"{installerPath}\" /Q",
+                    "echo Cleaning up...",
+                    $"del \"{installerPath}\" /Q 2>nul",
                     "",
-                    "REM 删除此批处理脚本",
-                    "del \"%~f0\" /Q",
+                    "REM 删除此批处理脚本（延迟删除，等自身执行完毕）",
+                    $"(goto) 2>nul & del \"%~f0\"",
                     "",
-                    "REM 启动新版本的应用",
+                    "REM 启动新版本的应用（指定工作目录）",
                     "echo Starting Quotix...",
-                    $"start \"\" \"{currentExePath}\"",
+                    $"start \"\" /d \"{exeDir}\" \"{currentExePath}\"",
                     "",
                     "exit"
                 };
 
                 var batchContent = string.Join(Environment.NewLine, batchLines);
 
-                // 保存批处理脚本（使用 UTF-8 编码，现代 Windows 完全支持）
+                // 保存批处理脚本（使用 UTF-8 编码）
                 File.WriteAllText(batchScriptPath, batchContent, Encoding.UTF8);
 
-                // 启动批处理脚本（不等待，让它在后台运行）
+                // 启动批处理脚本（隐藏 CMD 窗口）
                 var processStartInfo = new ProcessStartInfo
                 {
-                    FileName = batchScriptPath,
+                    FileName = "cmd.exe",
+                    Arguments = $"/c \"\"{batchScriptPath}\"\"",
                     UseShellExecute = true,
-                    CreateNoWindow = false  // 显示命令行窗口，方便调试
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
                 };
 
                 Process.Start(processStartInfo);

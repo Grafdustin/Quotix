@@ -1,6 +1,6 @@
 # Build-Installer.ps1
 # Automated installer build script
-# Read version from .csproj and pass to Inno Setup compiler
+# Read version from parameter (preferred) or .csproj, then compile Inno Setup
 
 param(
     [string]$Configuration = "Release",
@@ -14,14 +14,14 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "=== Quotix Installer Build Script ===" -ForegroundColor Cyan
 
-# 1. Determine version (parameter > csproj)
+# 1. Determine version
 Write-Host "Reading version..." -ForegroundColor Yellow
 $csprojPath = Join-Path $PSScriptRoot "..\QuotixDesktop.csproj"
 if ($Version) {
     Write-Host "Version (from parameter): $Version" -ForegroundColor Green
 } else {
-    [xml]$csproj = Get-Content $csprojPath
-    $Version = $csproj.Project.PropertyGroup.Version
+    [xml]$csprojXml = Get-Content $csprojPath
+    $Version = $csprojXml.Project.PropertyGroup.Version
     if (-not $Version) {
         $Version = "1.0.0"
         Write-Host "Warning: Version not found in .csproj, using default: $Version" -ForegroundColor Yellow
@@ -33,7 +33,6 @@ if ($Version) {
 # 2. Build project (unless skipped)
 if (-not $SkipBuild) {
     Write-Host "Building project..." -ForegroundColor Yellow
-    $publishDir = Join-Path $PSScriptRoot "..\bin\$Configuration\$TargetFramework\$Runtime\publish"
     dotnet publish "$csprojPath" -c $Configuration -r $Runtime --self-contained true -p:Version=$Version
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Error: Build failed" -ForegroundColor Red
@@ -49,56 +48,38 @@ Write-Host "Preparing Staging directory..." -ForegroundColor Yellow
 $stagingDir = Join-Path $PSScriptRoot "Staging"
 $launcherDir = Join-Path $stagingDir "Launcher"
 
-# === 修复1：安全清理（用 cmd rmdir 绕过 sandbox 批量删除限制） ===
+# 安全清理 staging（使用 cmd rmdir 绕过 sandbox 批量删除限制）
 if (Test-Path $stagingDir) {
     cmd /c "rmdir /s /q `"$stagingDir`"" 2>$null
     Start-Sleep -Milliseconds 500
 }
 New-Item -ItemType Directory -Path $launcherDir -Force | Out-Null
 
-# === 修复2：验证并归一化 publish 目录路径（避免 .. 导致 Substring 崩溃） ===
-$publishDir = Join-Path $PSScriptRoot "..\bin\$Configuration\$TargetFramework\$Runtime\publish"
+# 验证 publish 目录
+$publishDir = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\bin\$Configuration\$TargetFramework\$Runtime\publish"))
 if (-not (Test-Path $publishDir)) {
     Write-Host "Error: Publish directory not found: $publishDir" -ForegroundColor Red
     exit 1
 }
-# 归一化路径（去掉 ..），确保 Substring 计算正确
-# 使用 .NET 方法替代 Resolve-Path（Windows 上更可靠）
-$publishDir = [System.IO.Path]::GetFullPath($publishDir)
 Write-Host "Publish source: $publishDir" -ForegroundColor Gray
 
-# === 修复3：过滤式复制（排除 Updater / debug 文件 / 构建残留） ===
-# 只排除"污染源"文件，不排除运行时 DLL（self-contained 需要它们）
-$excludedPatterns = @(
-    "Updater",          # Updater.exe 及其依赖（独立发布，不进入主程序安装包）
-    "\.pdb$",           # 调试符号文件（生产环境不需要）
-    "\.xml$"            # XML 文档注释（生产环境不需要）
-)
-
+# 复制文件到 staging（过滤 .pdb 和 .xml 开发文件）
 $copiedCount = 0
 $skippedCount = 0
 
 Get-ChildItem $publishDir -Recurse | ForEach-Object {
-    # 跳过目录（会在文件复制时自动创建）
+    # 跳过目录
     if ($_.PSIsContainer) { return }
+    
+    # 跳过调试文件
+    if ($_.Extension -eq ".pdb" -or $_.Extension -eq ".xml") {
+        $skippedCount++
+        return
+    }
     
     # 计算相对路径和目标路径
     $relativePath = $_.FullName.Substring($publishDir.Length).TrimStart('\', '/')
     $destPath = Join-Path $launcherDir $relativePath
-    
-    # 检查是否命中排除规则
-    $shouldSkip = $false
-    foreach ($pattern in $excludedPatterns) {
-        if ($_.Name -match $pattern) {
-            $shouldSkip = $true
-            break
-        }
-    }
-    
-    if ($shouldSkip) {
-        $skippedCount++
-        return
-    }
     
     # 创建目标目录并复制
     $destDir = Split-Path $destPath -Parent
@@ -110,11 +91,6 @@ Get-ChildItem $publishDir -Recurse | ForEach-Object {
 }
 
 Write-Host "Staging: $copiedCount files copied, $skippedCount files filtered" -ForegroundColor Green
-
-# Create Data directory (empty, created at runtime)
-New-Item -ItemType Directory -Path (Join-Path $stagingDir "..\Data") -Force | Out-Null
-
-Write-Host "Staging directory ready" -ForegroundColor Green
 
 # 4. Compile Inno Setup script
 Write-Host "Compiling installer..." -ForegroundColor Yellow
