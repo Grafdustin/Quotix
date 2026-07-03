@@ -76,7 +76,7 @@
                         Visibility="Collapsed">
                     <StackPanel>
                         <TextBlock Text="构建进度" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="#333"/>
-                        <ProgressBar x:Name="ProgressBar" Height="6" IsIndeterminate="True" Margin="0,0,0,6"/>
+                        <ProgressBar x:Name="ProgressBar" Height="6" Minimum="0" Maximum="100" Value="0" Margin="0,0,0,6"/>
                         <TextBlock x:Name="ProgressText" FontSize="12" Foreground="#666"/>
                         <TextBlock x:Name="BuildStatusText" FontSize="12" Margin="0,4,0,0" Foreground="#0066CC"/>
                     </StackPanel>

@@ -64,6 +64,7 @@ public partial class MainWindow : Window
         CancelButton.IsEnabled = true;
         ProgressBorder.Visibility = Visibility.Visible;
         ProgressText.Text = "正在准备...";
+        ProgressBar.Value = 0;
         BuildStatusText.Text = "";
         LogBox.Text = "";
 
@@ -91,9 +92,14 @@ public partial class MainWindow : Window
 
     private async Task RunBuildAsync(string version, string changelog, CancellationToken ct)
     {
-        // Step 1: 更新 csproj
+        // 清理 changelog：移除可能的代码注释或乱码
+        var cleanChangelog = CleanChangelog(changelog);
+
+        // Step 1: 更新 csproj (20%)
         AppendLog($"更新版本号到 {version}...");
         ProgressText.Text = "更新版本号...";
+        UpdateProgress(20);
+
         await Task.Run(() =>
         {
             var csprojPath = Path.Combine(_projectDir, "QuotixDesktop.csproj");
@@ -106,28 +112,34 @@ public partial class MainWindow : Window
             File.WriteAllText(csprojPath, content, Encoding.UTF8);
         }, ct);
 
-        // Step 2: 生成 latest.yml
+        // Step 2: 生成 latest.yml (40%)
         AppendLog("生成 latest.yml...");
         ProgressText.Text = "生成 latest.yml...";
+        UpdateProgress(40);
+
         await Task.Run(() =>
         {
             var outDir = Path.Combine(_projectDir, "Installer", "Out");
             Directory.CreateDirectory(outDir);
             var ymlPath = Path.Combine(outDir, "latest.yml");
-            var lines = changelog.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+
+            // 清理并过滤 changelog 行
+            var lines = cleanChangelog.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .Select(l => l.Trim())
-                .Where(l => !string.IsNullOrEmpty(l));
+                .Where(l => !string.IsNullOrEmpty(l) && !l.StartsWith("<!--") && !l.Contains("AssemblyVersion"));
             var ymlContent = $"version: {version}\nchangelog: |\n";
             foreach (var line in lines)
             {
                 ymlContent += $"  {line}\n";
             }
             File.WriteAllText(ymlPath, ymlContent, Encoding.UTF8);
+            AppendLog($"latest.yml 内容：\n{ymlContent}");
         }, ct);
 
-        // Step 3: Git commit & push
+        // Step 3: Git commit & push (60%)
         AppendLog("提交代码...");
         ProgressText.Text = "提交代码...";
+        UpdateProgress(60);
 
         // git add
         var addResult = await RunCmdAsync("git", $"add -A", ct);
@@ -155,9 +167,10 @@ public partial class MainWindow : Window
         var pushOutput = await RunCmdAsync("git", "push origin main", ct);
         AppendLog($"git push: {pushOutput}");
 
-        // Step 4: 创建并推送 tag
+        // Step 4: 创建并推送 tag (80%)
         AppendLog($"创建 tag v{version}...");
         ProgressText.Text = "创建 tag...";
+        UpdateProgress(80);
 
         await RunCmdAsync("git", $"tag -d v{version}", ct);
         await RunCmdAsync("git", $"push origin --delete v{version}", ct);
@@ -166,9 +179,10 @@ public partial class MainWindow : Window
         var tagPushOutput = await RunCmdAsync("git", $"push origin v{version}", ct);
         AppendLog($"tag push: {tagPushOutput}");
 
-        // Step 5: 监控 GitHub Actions
+        // Step 5: 监控 GitHub Actions (90-100%)
         AppendLog("监控构建进度...");
         ProgressText.Text = "等待构建开始...";
+        UpdateProgress(90);
         BuildStatusText.Text = "⏳ 队列中...";
 
         var repo = "Grafdustin/Quotix";
@@ -182,14 +196,14 @@ public partial class MainWindow : Window
 
             // gh run list 返回 JSON 数组，需要取第一个
             var runJson = await RunCmdAsync("gh", $"run list --repo {repo} --workflow build-and-release.yml --limit 1 --json status,conclusion", ct);
-            
+
             if (!string.IsNullOrWhiteSpace(runJson) && runJson.TrimStart().StartsWith("["))
             {
                 try
                 {
                     using var doc = JsonDocument.Parse(runJson);
                     var array = doc.RootElement;
-                    
+
                     if (array.GetArrayLength() > 0)
                     {
                         var run = array[0];
@@ -214,6 +228,7 @@ public partial class MainWindow : Window
 
                         if (status == "completed")
                         {
+                            UpdateProgress(100);
                             if (conclusion == "success")
                             {
                                 ProgressText.Text = "构建完成！";
@@ -251,6 +266,31 @@ public partial class MainWindow : Window
         }
 
         AppendLog("超时，请手动查看：https://github.com/Grafdustin/Quotix/actions");
+    }
+
+    private void UpdateProgress(int value)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            ProgressBar.Value = value;
+        });
+    }
+
+    private string CleanChangelog(string changelog)
+    {
+        // 移除可能的 XML 注释、乱码或代码内容
+        var lines = changelog.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(l => l.Trim())
+            .Where(l =>
+                !string.IsNullOrEmpty(l) &&
+                !l.StartsWith("<!--") &&
+                !l.StartsWith("-->") &&
+                !l.Contains("AssemblyVersion") &&
+                !l.Contains("FileVersion") &&
+                !l.Contains("InformationalVersion"))
+            .ToList();
+
+        return string.Join("\n", lines);
     }
 
     private async Task<string> RunCmdAsync(string fileName, string args, CancellationToken ct)
