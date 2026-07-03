@@ -1,11 +1,11 @@
 {
-  "version": "1.0.27",
-  "build": 1027,
+  "version": "1.0.28",
+  "build": 1028,
   "releaseDate": "2026-07-03",
-  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.27/Quotix_Setup_1.0.27.exe",
-  "fileSize": 58102729,
+  "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.28/Quotix_Setup_1.0.28.exe",
+  "fileSize": 58115240,
   "mandatory": false,
   "changelog": [
-    "v1.0.28 修复安装包版本号传递和 git push 错误处理"
+    "v1.0.28 版本递增修复：git tag 驱动版本号"
   ]
 }
