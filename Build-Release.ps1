@@ -1,5 +1,5 @@
 # Build-Release.ps1
-# Standard release process: Git commit -> Compile -> Build installer -> Create GitHub Release
+# Standard release process: Version increment -> Git commit -> Compile -> Build installer -> Create GitHub Release
 
 param(
     [Parameter(Mandatory=$true)]
@@ -29,34 +29,8 @@ if ($Version) {
 }
 Write-Host ""
 
-# ========== Step 1: Git Commit ==========
-if (-not $SkipGit) {
-    Write-Host "Step 1/5: Git commit..." -ForegroundColor Yellow
-    
-    $isGitRepo = Test-Path (Join-Path $ProjectDir ".git")
-    if (-not $isGitRepo) {
-        Write-Host "Warning: Not a Git repository, skipping Git operations" -ForegroundColor Yellow
-    } else {
-        $gitStatus = git -C $ProjectDir status --porcelain
-        if ($gitStatus) {
-            git -C $ProjectDir add -A
-            git -C $ProjectDir commit -m "$CommitMessage"
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "Error: Git commit failed" -ForegroundColor Red
-                exit 1
-            }
-            Write-Host "Git commit successful" -ForegroundColor Green
-        } else {
-            Write-Host "No changes to commit" -ForegroundColor Gray
-        }
-    }
-} else {
-    Write-Host "Step 1/5: Skipping Git commit" -ForegroundColor Gray
-}
-
-# ========== Step 2: Update Version ==========
-Write-Host ""
-Write-Host "Step 2/5: Checking version..." -ForegroundColor Yellow
+# ========== Step 1: Update Version（必须在 Git 提交之前，因为可能会修改文件） ==========
+Write-Host "Step 1/5: Checking version..." -ForegroundColor Yellow
 
 # 拉取远程标签以确保最新
 & git -C $ProjectDir fetch --tags 2>$null
@@ -115,6 +89,32 @@ if ($Version) {
 } else {
     Write-Host "Keeping current version: $currentVersion" -ForegroundColor Gray
     $Version = $currentVersion
+}
+
+# ========== Step 2: Git Commit（版本递增后提交，因为递增可能修改了 csproj/version.json 等文件） ==========
+Write-Host ""
+if (-not $SkipGit) {
+    Write-Host "Step 2/5: Git commit..." -ForegroundColor Yellow
+    
+    $isGitRepo = Test-Path (Join-Path $ProjectDir ".git")
+    if (-not $isGitRepo) {
+        Write-Host "Warning: Not a Git repository, skipping Git operations" -ForegroundColor Yellow
+    } else {
+        $gitStatus = git -C $ProjectDir status --porcelain
+        if ($gitStatus) {
+            git -C $ProjectDir add -A
+            git -C $ProjectDir commit -m "$CommitMessage"
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "Error: Git commit failed" -ForegroundColor Red
+                exit 1
+            }
+            Write-Host "Git commit successful" -ForegroundColor Green
+        } else {
+            Write-Host "No changes to commit" -ForegroundColor Gray
+        }
+    }
+} else {
+    Write-Host "Step 2/5: Skipping Git commit" -ForegroundColor Gray
 }
 
 # ========== Step 3: Build Project ==========
