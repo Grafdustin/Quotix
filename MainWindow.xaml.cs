@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -26,11 +27,13 @@ public partial class MainWindow : FluentWindow
     private readonly UpdatePipeline _updatePipeline;
 
     /// <summary>
+    /// 更新弹窗是否处于后台下载模式（弹窗已关闭但下载仍在继续）
+    /// </summary>
+    private bool _isBackgroundDownloading;
+
+    /// <summary>
     /// 初始化 MainWindow 实例。
     /// </summary>
-    /// <param name="viewModel">主视图模型</param>
-    /// <param name="settingsService">应用设置服务</param>
-    /// <param name="updatePipeline">更新流水线</param>
     public MainWindow(MainViewModel viewModel, AppSettingsService settingsService, UpdatePipeline updatePipeline)
     {
         DataContext = viewModel;
@@ -45,6 +48,9 @@ public partial class MainWindow : FluentWindow
         // 更新弹窗绑定到 Pipeline 的 State 对象
         UpdateOverlay.DataContext = _updatePipeline.State;
 
+        // 订阅 State 属性变化 → 更新箭头按钮进度
+        _updatePipeline.State.PropertyChanged += OnUpdateStateChanged;
+
         // 订阅显示更新弹窗消息
         WeakReferenceMessenger.Default.Register<ShowUpdateOverlayMessage>(this, (r, m) =>
         {
@@ -58,7 +64,78 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void OnClosed(object? sender, EventArgs e)
     {
+        _updatePipeline.State.PropertyChanged -= OnUpdateStateChanged;
+        _updatePipeline.Dispose();
     }
+
+    /// <summary>
+    /// 更新 State 属性变化处理：驱动箭头按钮进度显示。
+    /// </summary>
+    private void OnUpdateStateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(UpdateState.Stage) ||
+            e.PropertyName == nameof(UpdateState.ProgressInt))
+        {
+            Dispatcher.Invoke(UpdateArrowButton);
+        }
+    }
+
+    /// <summary>
+    /// 更新箭头按钮显示内容：空闲时显示"更新"，下载中显示进度百分比。
+    /// </summary>
+    private void UpdateArrowButton()
+    {
+        if (UpdateNavItem.Content is not StackPanel sp)
+        {
+            // 首次调用：将 Content 从简单 TextBlock 替换为 StackPanel
+            UpdateNavItem.Content = null;
+            sp = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            var arrowIcon = new SymbolIcon { Symbol = SymbolRegular.ArrowUp16, Foreground = Brushes.Red };
+            _arrowText = new System.Windows.Controls.TextBlock
+            {
+                FontSize = 10,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = Brushes.Red,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            sp.Children.Add(arrowIcon);
+            sp.Children.Add(_arrowText);
+            UpdateNavItem.Content = sp;
+        }
+
+        var stage = _updatePipeline.State.Stage;
+        if (stage == UpdateStage.Downloading)
+        {
+            // 下载中：显示进度百分比
+            _arrowText!.Text = $"{_updatePipeline.State.ProgressInt}%";
+            UpdateNavItem.Visibility = Visibility.Visible;
+        }
+        else if (stage == UpdateStage.ReadyToInstall)
+        {
+            // 下载完成：显示"安装"
+            _arrowText!.Text = "安装";
+            UpdateNavItem.Visibility = Visibility.Visible;
+        }
+        else if (stage == UpdateStage.UpdateAvailable)
+        {
+            // 有新版本：显示"更新"
+            _arrowText!.Text = "更新";
+            UpdateNavItem.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            // 其他状态：如果没在后台下载就隐藏
+            if (!_isBackgroundDownloading)
+            {
+                UpdateNavItem.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+    private System.Windows.Controls.TextBlock? _arrowText;
 
     /// <summary>
     /// 窗口加载时调用，初始化导航状态、主题和异步检查更新。
@@ -87,9 +164,9 @@ public partial class MainWindow : FluentWindow
         _ = AutoCheckUpdateAsync();
     }
 
-    // ════════════════════════════════════════
+    // ══════════════════════════════════════
     //  更新弹窗
-    // ════════════════════════════════════════
+    // ══════════════════════════════════════
 
     /// <summary>
     /// 启动时自动检查更新：异步检测，有更新则弹窗提醒。
@@ -105,7 +182,7 @@ public partial class MainWindow : FluentWindow
                 // 有新版本：显示更新导航项 + 弹窗提醒
                 Dispatcher.Invoke(() =>
                 {
-                    UpdateNavItem.Visibility = Visibility.Visible;
+                    UpdateArrowButton();
                     ShowUpdateOverlay();
                 });
             }
@@ -122,6 +199,8 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void ShowUpdateOverlay()
     {
+        _isBackgroundDownloading = false;
+
         // 如果已下载安装包，直接设为 ReadyToInstall
         if (_updatePipeline.IsInstallerDownloaded &&
             _updatePipeline.State.Stage != UpdateStage.Downloading)
@@ -134,10 +213,34 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
+    /// 点击遮罩层：将下载放入后台（关闭弹窗但继续下载）
+    /// </summary>
+    private void UpdateOverlay_BackgroundClick(object sender, MouseButtonEventArgs e)
+    {
+        if (_updatePipeline.State.Stage == UpdateStage.Downloading)
+        {
+            // 下载中点击遮罩：放入后台
+            _isBackgroundDownloading = true;
+            UpdateOverlay.Visibility = Visibility.Collapsed;
+            UpdateArrowButton();
+        }
+    }
+
+    /// <summary>
+    /// 点击弹窗卡片：阻止事件冒泡到遮罩层。
+    /// </summary>
+    private void UpdateOverlay_CardClick(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+    }
+
+    /// <summary>
     /// 更新导航项点击事件 — 弹出更新通知卡片。
     /// </summary>
     private void OnUpdateItemClick(object sender, RoutedEventArgs e)
     {
+        // 如果正在后台下载，先停止后台状态
+        _isBackgroundDownloading = false;
         ShowUpdateOverlay();
     }
 
@@ -150,11 +253,20 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
-    /// 更新弹窗左边按钮点击 — 稍后或后台下载。
+    /// 更新弹窗左边按钮点击 — 取消下载 / 稍后。
     /// </summary>
     private void UpdateOverlay_LeftButtonClick(object sender, RoutedEventArgs e)
     {
-        UpdateOverlay.Visibility = Visibility.Collapsed;
+        if (_updatePipeline.State.Stage == UpdateStage.Downloading)
+        {
+            // 下载中：取消下载
+            _updatePipeline.CancelDownload();
+        }
+        else
+        {
+            // 其他状态：关闭弹窗
+            UpdateOverlay.Visibility = Visibility.Collapsed;
+        }
     }
 
     /// <summary>
@@ -173,6 +285,13 @@ public partial class MainWindow : FluentWindow
                 // 下载完成后，弹窗仍然打开，用户可点击「安装更新」
                 break;
 
+            case UpdateStage.Downloading:
+                // 下载中点击主按钮：放入后台
+                _isBackgroundDownloading = true;
+                UpdateOverlay.Visibility = Visibility.Collapsed;
+                UpdateArrowButton();
+                break;
+
             case UpdateStage.ReadyToInstall:
                 // 安装更新（会关闭应用）
                 _updatePipeline.Install();
@@ -180,9 +299,9 @@ public partial class MainWindow : FluentWindow
         }
     }
 
-    // ════════════════════════════════════════
+    // ══════════════════════════════════════
     //  导航与设置
-    // ════════════════════════════════════════
+    // ══════════════════════════════════════
 
     /// <summary>
     /// NavigationViewItem 点击事件（Click 代替 SelectionChanged，避开 TargetPageType 约束）。
@@ -244,8 +363,6 @@ public partial class MainWindow : FluentWindow
     /// <summary>
     /// 设置导航项的活动状态。
     /// </summary>
-    /// <param name="items">导航项列表</param>
-    /// <param name="tag">目标 Tag</param>
     private static void SetNavItemActive(System.Collections.IList items, string tag)
     {
         foreach (var item in items)

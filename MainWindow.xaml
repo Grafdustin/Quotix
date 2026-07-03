@@ -348,15 +348,20 @@
             </Grid>
 
             <!-- 更新弹窗覆盖层 — 居中卡片，展示更新详情和下载进度 -->
+            <!-- 点击遮罩层将下载放入后台 -->
             <Grid x:Name="UpdateOverlay" Visibility="Collapsed"
                   Grid.ColumnSpan="2"
-                  Background="#88000000" Panel.ZIndex="1003">
-                <Border HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Width="440"
-                        Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-                        CornerRadius="16"
-                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
-                        BorderThickness="1">
+                  Background="#88000000" Panel.ZIndex="1003"
+                  MouseLeftButtonDown="UpdateOverlay_BackgroundClick">
+                    <!-- 弹窗卡片（点击卡片内部不关闭弹窗） -->
+                    <Border x:Name="UpdateOverlayCard"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Width="440"
+                            Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                            CornerRadius="16"
+                            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            MouseLeftButtonDown="UpdateOverlay_CardClick">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="40" ShadowDepth="6"
                                           Opacity="0.30" Color="Black"/>

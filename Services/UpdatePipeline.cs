@@ -2,10 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using Quotix.Models;
 
@@ -16,10 +19,11 @@ namespace Quotix.Services
     /// 将更新过程封装为串行流水线：Check → Download → Install。
     /// 内部维护 <see cref="State"/> 对象，UI 只需绑定该对象。
     /// </summary>
-    public class UpdatePipeline
+    public class UpdatePipeline : IDisposable
     {
         private readonly HttpClient _httpClient;
-        private readonly string _versionManifestUrl;
+        private readonly string _repoOwner = "Grafdustin";
+        private readonly string _repoName   = "Quotix";
 
         /// <summary>上次检查缓存的更新信息（5 分钟内有效，避免重复请求）</summary>
         private UpdateInfo? _cachedUpdateInfo;
@@ -27,6 +31,9 @@ namespace Quotix.Services
 
         /// <summary>已下载的安装包路径</summary>
         private string? _downloadedInstallerPath;
+
+        /// <summary>当前下载的取消令牌</summary>
+        private CancellationTokenSource? _downloadCts;
 
         /// <summary>
         /// 统一更新状态对象（UI 绑定的唯一数据源）。
@@ -40,29 +47,34 @@ namespace Quotix.Services
         public bool IsInstallerDownloaded =>
             !string.IsNullOrEmpty(_downloadedInstallerPath) && File.Exists(_downloadedInstallerPath);
 
+        /// <summary>是否正在下载（用于 UI 判断是否显示取消按钮）</summary>
+        public bool IsDownloading => State.Stage == UpdateStage.Downloading;
+
         /// <summary>
         /// 初始化更新流水线。
         /// </summary>
-        /// <param name="versionManifestUrl">版本 manifest 的 GitHub Raw URL</param>
-        public UpdatePipeline(string versionManifestUrl = "https://raw.githubusercontent.com/Grafdustin/Quotix/main/Resources/version.json")
+        public UpdatePipeline()
         {
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Quotix-Update-Checker");
-            _versionManifestUrl = versionManifestUrl;
+            // 接受 GitHub API v3 JSON 响应
+            _httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github.v3+json");
         }
 
-        // ════════════════════════════════════════
+        // ═══════════════════════════════════════
         //  Pipeline 阶段
-        // ════════════════════════════════════════
+        // ═══════════════════════════════════════
 
         /// <summary>
         /// [Check 阶段] 检查是否有新版本可用，更新 <see cref="State"/>。
+        /// 使用 GitHub API（无 CDN 缓存，永远返回最新）。
         /// </summary>
         /// <returns>检测到的更新信息，无更新时为 null</returns>
         public async Task<UpdateInfo?> CheckAsync()
         {
-            State.Stage = UpdateStage.Checking;
-            State.Message = "正在检查更新...";
+            State.Stage    = UpdateStage.Checking;
+            State.Message  = "正在检查更新...";
+            State.IsCancelVisible = false;
 
             try
             {
@@ -70,27 +82,30 @@ namespace Quotix.Services
 
                 if (updateInfo != null)
                 {
-                    State.Stage = UpdateStage.UpdateAvailable;
+                    State.Stage         = UpdateStage.UpdateAvailable;
                     State.CurrentVersion = AppInfo.Version;
-                    State.NewVersion = updateInfo.Version;
-                    State.FileSize = updateInfo.FileSize;
-                    State.ReleaseDate = updateInfo.ReleaseDate;
-                    State.Changelog = updateInfo.Changelog;
-                    State.Message = $"发现新版本 v{updateInfo.Version}";
+                    State.NewVersion    = updateInfo.Version;
+                    State.FileSize      = updateInfo.FileSize;
+                    State.ReleaseDate  = updateInfo.ReleaseDate;
+                    State.Changelog    = updateInfo.Changelog;
+                    State.Message       = $"发现新版本 v{updateInfo.Version}";
+                    State.IsCancelVisible = false;
                     return updateInfo;
                 }
                 else
                 {
-                    State.Stage = UpdateStage.UpToDate;
-                    State.Message = "已经是最新版本";
+                    State.Stage   = UpdateStage.UpToDate;
+                    State.Message  = "已经是最新版本";
+                    State.IsCancelVisible = false;
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                State.Stage = UpdateStage.Failed;
-                State.Message = "检查更新失败";
-                State.Error = ex.Message;
+                State.Stage   = UpdateStage.Failed;
+                State.Message  = "检查更新失败";
+                State.Error   = ex.Message;
+                State.IsCancelVisible = false;
                 return null;
             }
         }
@@ -98,6 +113,7 @@ namespace Quotix.Services
         /// <summary>
         /// [Download 阶段] 下载更新包，实时更新 <see cref="State"/> 的进度/网速/ETA。
         /// 使用缓存的 UpdateInfo，无需外部传参。
+        /// 支持取消：调用 <see cref="CancelDownload"/> 可中断下载。
         /// </summary>
         /// <returns>下载成功时返回 true</returns>
         public async Task<bool> DownloadAsync()
@@ -105,27 +121,32 @@ namespace Quotix.Services
             var updateInfo = _cachedUpdateInfo;
             if (updateInfo == null)
             {
-                State.Stage = UpdateStage.Failed;
-                State.Message = "未检测到更新信息，请重新检查";
-                State.Error = "No cached UpdateInfo";
+                State.Stage   = UpdateStage.Failed;
+                State.Message  = "未检测到更新信息，请重新检查";
+                State.Error   = "No cached UpdateInfo";
+                State.IsCancelVisible = false;
                 return false;
             }
 
-            State.Stage = UpdateStage.Downloading;
-            State.Message = "正在下载更新包...";
-            State.Progress = 0;
-            State.ReceivedBytes = 0;
+            State.Stage           = UpdateStage.Downloading;
+            State.Message          = "正在下载更新包...";
+            State.Progress         = 0;
+            State.ReceivedBytes    = 0;
             State.SpeedBytesPerSec = 0;
-            State.Eta = null;
+            State.Eta              = null;
+            State.IsCancelVisible  = true;   // 下载中显示"取消下载"
+
+            _downloadCts = new CancellationTokenSource();
+            var token = _downloadCts.Token;
 
             var downloadStartTime = DateTime.Now;
-            var lastReportTime = downloadStartTime;
+            var lastReportTime   = downloadStartTime;
             long lastReportedBytes = 0;
 
             try
             {
                 var mirroredUrl = AccelerateGitHubUrl(updateInfo.DownloadUrl);
-                var appDir = AppContext.BaseDirectory;
+                var appDir    = AppContext.BaseDirectory;
                 var updateDir = Path.Combine(appDir, "Updates");
                 Directory.CreateDirectory(updateDir);
 
@@ -135,25 +156,29 @@ namespace Quotix.Services
 
                 var filePath = Path.Combine(updateDir, fileName);
 
-                using var response = await _httpClient.GetAsync(mirroredUrl, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await _httpClient.GetAsync(
+                    mirroredUrl, HttpCompletionOption.ResponseHeadersRead, token);
                 response.EnsureSuccessStatusCode();
 
                 var totalBytes = response.Content.Headers.ContentLength ?? updateInfo.FileSize;
                 if (totalBytes <= 0) totalBytes = updateInfo.FileSize;
                 State.TotalBytes = totalBytes > 0 ? totalBytes : 0;
 
-                using var contentStream = await response.Content.ReadAsStreamAsync();
-                using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+                using var contentStream = await response.Content.ReadAsStreamAsync(token);
+                using var fileStream = new FileStream(
+                    filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
                 var totalRead = 0L;
-                var buffer = new byte[8192];
+                var buffer    = new byte[8192];
 
                 while (true)
                 {
-                    var read = await contentStream.ReadAsync(buffer, 0, buffer.Length);
+                    token.ThrowIfCancellationRequested();
+
+                    var read = await contentStream.ReadAsync(buffer, 0, buffer.Length, token);
                     if (read == 0) break;
 
-                    await fileStream.WriteAsync(buffer, 0, read);
+                    await fileStream.WriteAsync(buffer, 0, read, token);
                     totalRead += read;
                     State.ReceivedBytes = totalRead;
 
@@ -162,14 +187,14 @@ namespace Quotix.Services
                         State.Progress = totalRead * 100.0 / totalBytes;
 
                     // 每 0.5 秒更新一次网速（避免闪烁）
-                    var now = DateTime.Now;
+                    var now     = DateTime.Now;
                     var elapsed = (now - lastReportTime).TotalSeconds;
                     if (elapsed >= 0.5)
                     {
                         var bytesInInterval = totalRead - lastReportedBytes;
                         State.SpeedBytesPerSec = elapsed > 0 ? bytesInInterval / elapsed : 0;
-                        lastReportTime = now;
-                        lastReportedBytes = totalRead;
+                        lastReportTime      = now;
+                        lastReportedBytes   = totalRead;
                     }
 
                     // 预估剩余时间（基于整体平均速度）
@@ -186,16 +211,52 @@ namespace Quotix.Services
                 }
 
                 _downloadedInstallerPath = filePath;
-                State.Stage = UpdateStage.ReadyToInstall;
+                State.Stage  = UpdateStage.ReadyToInstall;
                 State.Message = "下载完成，点击安装即可更新";
+                State.IsCancelVisible = false;
                 return true;
+            }
+            catch (OperationCanceledException)
+            {
+                // 用户取消下载
+                State.Stage  = UpdateStage.UpdateAvailable;
+                State.Message = "下载已取消";
+                State.Progress         = 0;
+                State.ReceivedBytes    = 0;
+                State.SpeedBytesPerSec = 0;
+                State.Eta              = null;
+                State.IsCancelVisible  = false;
+
+                // 删除不完整文件
+                try { if (File.Exists(_downloadedInstallerPath)) File.Delete(_downloadedInstallerPath); }
+                catch { }
+                _downloadedInstallerPath = null;
+                return false;
             }
             catch (Exception ex)
             {
-                State.Stage = UpdateStage.Failed;
+                State.Stage  = UpdateStage.Failed;
                 State.Message = "下载失败，点击重试";
-                State.Error = ex.Message;
+                State.Error  = ex.Message;
+                State.IsCancelVisible = false;
                 return false;
+            }
+            finally
+            {
+                _downloadCts?.Dispose();
+                _downloadCts = null;
+            }
+        }
+
+        /// <summary>
+        /// 取消当前正在进行的下载。
+        /// </summary>
+        public void CancelDownload()
+        {
+            if (_downloadCts != null)
+            {
+                try { _downloadCts.Cancel(); }
+                catch { }
             }
         }
 
@@ -206,14 +267,16 @@ namespace Quotix.Services
         {
             if (string.IsNullOrEmpty(_downloadedInstallerPath) || !File.Exists(_downloadedInstallerPath))
             {
-                State.Stage = UpdateStage.Failed;
-                State.Message = "未找到安装包，请重新下载";
-                State.Error = "Installer path is null or file does not exist";
+                State.Stage   = UpdateStage.Failed;
+                State.Message  = "未找到安装包，请重新下载";
+                State.Error   = "Installer path is null or file does not exist";
+                State.IsCancelVisible = false;
                 return;
             }
 
-            State.Stage = UpdateStage.Installing;
+            State.Stage  = UpdateStage.Installing;
             State.Message = "正在安装更新，应用即将重启...";
+            State.IsCancelVisible = false;
 
             try
             {
@@ -221,18 +284,20 @@ namespace Quotix.Services
             }
             catch (Exception ex)
             {
-                State.Stage = UpdateStage.Failed;
+                State.Stage  = UpdateStage.Failed;
                 State.Message = "安装失败";
-                State.Error = ex.Message;
+                State.Error   = ex.Message;
+                State.IsCancelVisible = false;
             }
         }
 
-        // ════════════════════════════════════════
+        // ═══════════════════════════════════════
         //  底层方法
-        // ════════════════════════════════════════
+        // ═══════════════════════════════════════
 
         /// <summary>
         /// 检查是否有新版本可用（带 5 分钟缓存）。
+        /// 使用 GitHub API（https://api.github.com），无 CDN 缓存。
         /// </summary>
         /// <returns>更新信息，无更新则返回 null</returns>
         public async Task<UpdateInfo?> CheckForUpdatesAsync()
@@ -245,27 +310,71 @@ namespace Quotix.Services
 
             try
             {
-                var json = await _httpClient.GetStringAsync(_versionManifestUrl);
-                var remoteVersion = JsonSerializer.Deserialize<UpdateInfo>(json, new JsonSerializerOptions
+                // 调用 GitHub API 获取最新 Release（无 CDN 缓存）
+                var apiUrl = $"https://api.github.com/repos/{_repoOwner}/{_repoName}/releases/latest";
+                var response = await _httpClient.GetAsync(apiUrl);
+                response.EnsureSuccessStatusCode();
+
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var doc    = await JsonDocument.ParseAsync(stream);
+                var           root  = doc.RootElement;
+
+                // 解析版本号
+                var tagName = root.GetProperty("tag_name").GetString() ?? "";
+                var version  = tagName.TrimStart('v');
+
+                // 找安装包资产
+                string? downloadUrl = null;
+                long    fileSize    = 0;
+                if (root.TryGetProperty("assets", out var assets))
                 {
-                    PropertyNameCaseInsensitive = true
-                });
+                    foreach (var asset in assets.EnumerateArray())
+                    {
+                        var name = asset.GetProperty("name").GetString() ?? "";
+                        if (name.StartsWith("Quotix_Setup_", StringComparison.OrdinalIgnoreCase))
+                        {
+                            downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                            fileSize    = asset.GetProperty("size").GetInt64();
+                            break;
+                        }
+                    }
+                }
 
-                _lastCheckTime = DateTime.Now;
-
-                if (remoteVersion == null)
+                if (string.IsNullOrEmpty(downloadUrl))
                 {
                     _cachedUpdateInfo = null;
                     return null;
                 }
 
+                // 解析发布日期
+                var publishedAt = root.GetProperty("published_at").GetString() ?? "";
+                var releaseDate = DateTime.TryParse(publishedAt, out var dt)
+                    ? dt.ToString("yyyy-MM-dd")
+                    : DateTime.Now.ToString("yyyy-MM-dd");
+
+                // 解析更新日志（从 Release Body 提取）
+                var body      = root.GetProperty("body").GetString() ?? "";
+                var changelog = ParseChangelog(body);
+
+                var updateInfo = new UpdateInfo
+                {
+                    Version     = version,
+                    Build       = int.Parse(version.Replace(".", "")),
+                    ReleaseDate = releaseDate,
+                    DownloadUrl = downloadUrl,
+                    FileSize    = fileSize,
+                    Mandatory   = false,
+                    Changelog   = changelog
+                };
+
+                _lastCheckTime     = DateTime.Now;
                 var currentVersion = new Version(AppInfo.Version);
-                var latestVersion = new Version(remoteVersion.Version);
+                var latestVersion  = new Version(version);
 
                 if (latestVersion > currentVersion)
                 {
-                    _cachedUpdateInfo = remoteVersion;
-                    return remoteVersion;
+                    _cachedUpdateInfo = updateInfo;
+                    return updateInfo;
                 }
 
                 _cachedUpdateInfo = null;
@@ -278,13 +387,34 @@ namespace Quotix.Services
         }
 
         /// <summary>
+        /// 从 Release Body 解析更新日志列表。
+        /// 支持 "- 内容" 和 "• 内容" 格式，也支持纯文本每行一条。
+        /// </summary>
+        private static string[] ParseChangelog(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return Array.Empty<string>();
+
+            return body.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => l.Trim())
+                .Where(l => !string.IsNullOrEmpty(l))
+                .Select(l =>
+                {
+                    // 去掉常见的列表标记
+                    var s = l.TrimStart('-', '•', '*', ' ', '\t', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ')');
+                    return s;
+                })
+                .Where(l => !string.IsNullOrEmpty(l) && l.Length > 1)
+                .ToArray();
+        }
+
+        /// <summary>
         /// 安装更新包：创建批处理脚本负责等待旧进程退出 → 静默安装 → 重启应用。
         /// </summary>
-        /// <param name="installerPath">安装程序路径</param>
         private void InstallUpdate(string installerPath)
         {
             var currentExePath = GetCurrentExecutablePath();
-            var exeDir = Path.GetDirectoryName(currentExePath) ?? "";
+            var exeDir        = Path.GetDirectoryName(currentExePath) ?? "";
 
             var batchScriptPath = Path.Combine(
                 Path.GetDirectoryName(installerPath)!,
@@ -334,11 +464,11 @@ namespace Quotix.Services
 
             var processStartInfo = new ProcessStartInfo
             {
-                FileName = "cmd.exe",
-                Arguments = $"/c \"\"{batchScriptPath}\"\"",
+                FileName      = "cmd.exe",
+                Arguments      = $"/c \"{batchScriptPath}\"",
                 UseShellExecute = true,
                 CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden
+                WindowStyle    = ProcessWindowStyle.Hidden
             };
 
             Process.Start(processStartInfo);
@@ -374,10 +504,17 @@ namespace Quotix.Services
 
             return url;
         }
+
+        public void Dispose()
+        {
+            _downloadCts?.Cancel();
+            _downloadCts?.Dispose();
+            _httpClient.Dispose();
+        }
     }
 
     /// <summary>
-    /// 更新信息模型（version.json 格式）。
+    /// 更新信息模型（从 GitHub API 解析）。
     /// </summary>
     public class UpdateInfo
     {

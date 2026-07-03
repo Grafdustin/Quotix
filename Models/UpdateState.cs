@@ -82,7 +82,10 @@ public partial class UpdateState : ObservableObject
     [ObservableProperty] private string _releaseDate = "";
 
     /// <summary>更新日志条目</summary>
-    [ObservableProperty] private string[] _changelog = System.Array.Empty<string>();
+    [ObservableProperty] private string[] _changelog = Array.Empty<string>();
+
+    /// <summary>是否显示取消按钮（下载中显示，点击取消下载）</summary>
+    [ObservableProperty] private bool _isCancelVisible;
 
     // ─── UI 计算属性 ───
 
@@ -93,18 +96,21 @@ public partial class UpdateState : ObservableObject
     /// <summary>是否显示下载详情（网速/大小/时间）</summary>
     public bool ShowDownloadDetail => Stage == UpdateStage.Downloading;
 
-    /// <summary>左边按钮文本（稍后 / 后台下载）</summary>
-    public string LeftButtonText => Stage == UpdateStage.Downloading ? "后台下载" : "稍后";
+    /// <summary>左边按钮文本（取消下载 / 稍后）</summary>
+    public string LeftButtonText => Stage == UpdateStage.Downloading ? "取消下载" : "稍后";
 
     /// <summary>按钮文本</summary>
     public string ActionButtonText => Stage switch
     {
         UpdateStage.UpdateAvailable => "下载更新",
-        UpdateStage.Downloading => "下载中...",
+        UpdateStage.Downloading     => "后台下载",
         UpdateStage.ReadyToInstall => "安装更新",
-        UpdateStage.Failed => "重试",
-        _ => "下载更新"
+        UpdateStage.Failed          => "重试",
+        _                           => "检查更新"
     };
+
+    /// <summary>进度整数（0-100，便于绑定）</summary>
+    public int ProgressInt => (int)Math.Round(Progress);
 
     /// <summary>网速显示文本</summary>
     public string SpeedDisplay =>
@@ -140,6 +146,7 @@ public partial class UpdateState : ObservableObject
         OnPropertyChanged(nameof(ShowDownloadDetail));
         OnPropertyChanged(nameof(ActionButtonText));
         OnPropertyChanged(nameof(LeftButtonText));
+        OnPropertyChanged(nameof(ProgressInt));
     }
 
     partial void OnSpeedBytesPerSecChanged(double value)
@@ -155,10 +162,16 @@ public partial class UpdateState : ObservableObject
         => OnPropertyChanged(nameof(EtaDisplay));
 
     partial void OnProgressChanged(double value)
-        => OnPropertyChanged(nameof(ProgressDisplay));
+    {
+        OnPropertyChanged(nameof(ProgressDisplay));
+        OnPropertyChanged(nameof(ProgressInt));
+    }
 
     partial void OnFileSizeChanged(long value)
         => OnPropertyChanged(nameof(FileSizeDisplay));
+
+    partial void OnIsCancelVisibleChanged(bool value)
+        => OnPropertyChanged(nameof(IsCancelVisible));
 
     // ─── 格式化工具 ───
 
