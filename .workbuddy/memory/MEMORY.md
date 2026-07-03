@@ -1,31 +1,27 @@
 # Quotix 项目长期记忆
 
+## 开发与发布分工
+
+**我（WorkBuddy）负责：**
+- 编写和修改源代码
+- 每次改动后自动 `git commit`
+- 编译验证（`dotnet build`），确保无错误
+- 测试功能正确性
+
+**用户负责：**
+- 运行 `Build-Release.ps1` 发布安装包
+- 推送到 GitHub Release
+- 上线审核
+
+## 编译规范（重要！）
+- **每次编译前，必须先删除 `bin/` 和 `obj/` 文件夹**，确保输出干净无缓存残留
+- 命令：`rm -r -Force bin/ obj/` 然后 `dotnet build`
+- 编译仅用于验证，不生成安装包
+
 ## Git 规范
 - 每次代码改动后自动 `git commit`，提交信息用中文简述改动内容
 - 分支：`main`
 - 排除：数据库文件（`*.db`/`*.sqlite`）、编译产物（`bin/`/`obj/`）、IDE 缓存（`.vs/`）
-
-## 发布流程（重要！）
-**每次修改完源代码后，必须执行以下标准流程：**
-1. **Git 提交**：`git add -A` + `git commit -m "描述"`
-2. **编译项目**：`dotnet publish -c Release -r win-x64 --self-contained true`
-3. **发布安装包**：运行 `Installer/Build-Installer.ps1` 或使用 `Build-Release.ps1`
-
-### ISCC.exe 路径（已确认）
-- 位置：`C:\Users\Evans\AppData\Local\Programs\Inno Setup 6\ISCC.exe`
-- 已写入 `Installer/Build-Installer.ps1`，无需每次查找
-
-### 快速发布命令
-```powershell
-# 完整流程（推荐）
-.\Build-Release.ps1 -CommitMessage "描述本次更改"
-
-# 仅构建安装包（已编译好的情况下）
-.\Installer\Build-Installer.ps1 -SkipBuild
-
-# 更新版本号并发布
-.\Build-Release.ps1 -CommitMessage "发布新版本" -Version "1.0.1"
-```
 
 ## 项目结构
 - **Quotix/**：主项目目录
