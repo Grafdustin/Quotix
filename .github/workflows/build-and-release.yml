@@ -34,7 +34,12 @@ jobs:
     
     - name: Install Inno Setup
       run: |
-        $url = "https://jrsoftware.org/download/is.exe"
+        $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+        if (Test-Path $iscc) {
+          Write-Host "Inno Setup already installed"
+          exit 0
+        }
+        $url = "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe"
         $out = "innosetup.exe"
         Invoke-WebRequest -Uri $url -OutFile $out
         Start-Process -FilePath $out -Args "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait
