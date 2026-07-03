@@ -278,9 +278,16 @@ if (-not $SkipGit) {
     # 推送到远程
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
-    git -C $ProjectDir push origin main 2>&1
+    $pushResult = & git -C $ProjectDir push origin main 2>&1
     $ErrorActionPreference = $prevEAP
-    Write-Host "version.json pushed to remote" -ForegroundColor Green
+    if ($pushResult) {
+        $pushResult | ForEach-Object { Write-Host $_ }
+    }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "version.json push failed (exit code $LASTEXITCODE)" -ForegroundColor Red
+    } else {
+        Write-Host "version.json pushed to remote" -ForegroundColor Green
+    }
 }
 
 Write-Host ""
