@@ -195,8 +195,8 @@ namespace Quotix.Services
 
                 var batchContent = string.Join(Environment.NewLine, batchLines);
 
-                // 保存批处理脚本（使用 GBK 编码，确保批处理能正确运行）
-                File.WriteAllText(batchScriptPath, batchContent, System.Text.Encoding.GetEncoding("GBK"));
+                // 保存批处理脚本（使用 UTF-8 编码，现代 Windows 完全支持）
+                File.WriteAllText(batchScriptPath, batchContent, Encoding.UTF8);
 
                 // 启动批处理脚本（不等待，让它在后台运行）
                 var processStartInfo = new ProcessStartInfo
