@@ -3,9 +3,9 @@
   "build": 1027,
   "releaseDate": "2026-07-03",
   "downloadUrl": "https://github.com/Grafdustin/Quotix/releases/download/v1.0.27/Quotix_Setup_1.0.27.exe",
-  "fileSize": 58111728,
+  "fileSize": 58102729,
   "mandatory": false,
   "changelog": [
-    "v1.0.28 测试修复：安装包版本号通过参数传递"
+    "v1.0.28 修复安装包版本号传递和 git push 错误处理"
   ]
 }
