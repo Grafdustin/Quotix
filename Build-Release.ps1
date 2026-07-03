@@ -1,5 +1,12 @@
 # Build-Release.ps1
-# Standard release process: Version increment -> Git commit -> Compile -> Build installer -> Create GitHub Release
+# Standard release process:
+#   1. Version increment (git tag driven)
+#   2. Git commit (source changes)
+#   3. Build + Installer
+#   4. Generate version.json + commit + push to main  ← 关键：在 Tag 之前
+#   4.5. Git tag (on commit WITH version.json) + push
+#   5. GitHub Release (based on tag)
+# Key: version.json is committed BEFORE tag and release, ensuring synchronization
 
 param(
     [Parameter(Mandatory=$true)]
@@ -129,28 +136,14 @@ if (-not $SkipBuild) {
         exit 1
     }
     Write-Host "Build successful" -ForegroundColor Green
-    
-    # 方案3：编译成功后自动打 Git tag（版本完全由 Git 控制）
-    if (-not $SkipGit) {
-        # 检查 tag 是否已存在
-        $existingTag = & git -C $ProjectDir tag -l "v$Version" 2>$null
-        if ($existingTag) {
-            Write-Host "Warning: Tag v$Version already exists, deleting and re-creating..." -ForegroundColor Yellow
-            git -C $ProjectDir tag -d "v$Version" 2>$null
-        }
-        git -C $ProjectDir tag -a "v$Version" -m "Release v$Version"
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "Git tag v$Version created" -ForegroundColor Green
-        }
-    }
 } else {
     Write-Host ""
     Write-Host "Step 3/5: Skipping build" -ForegroundColor Gray
 }
 
-# ========== Step 4: Build Installer ==========
+# ========== Step 3: Build + Installer ==========
 Write-Host ""
-Write-Host "Step 4/5: Building installer..." -ForegroundColor Yellow
+Write-Host "Building installer..." -ForegroundColor Yellow
 
 $installerPath = $null
 $buildInstallerScript = Join-Path $InstallerDir "Build-Installer.ps1"
@@ -173,11 +166,95 @@ if (Test-Path $buildInstallerScript) {
     Write-Host "Warning: Cannot find Build-Installer.ps1, skipping installer build" -ForegroundColor Yellow
 }
 
-# ========== Step 5: Create GitHub Release ==========
+# ========== Step 4: Generate version.json + Push（必须在 Tag 和 Release 之前） ==========
+Write-Host ""
+Write-Host "Step 4/5: Generating version.json..." -ForegroundColor Yellow
+
+$repoName = "Grafdustin/Quotix"
+$fileSizeBytes = (Get-Item $installerPath).Length
+
+# 从版本号计算 build 值（如 1.0.25 → 1025）
+$buildNumber = [int]($Version -replace '\.', '').Substring(0, [Math]::Min(4, ($Version -replace '\.', '').Length))
+
+$versionInfo = [Ordered]@{
+    version      = $Version
+    build        = $buildNumber
+    releaseDate  = Get-Date -Format "yyyy-MM-dd"
+    downloadUrl  = "https://github.com/$repoName/releases/download/v$Version/Quotix_Setup_$Version.exe"
+    fileSize     = $fileSizeBytes
+    mandatory    = $false
+    changelog    = @($CommitMessage)
+}
+
+$versionJsonPath = Join-Path $ProjectDir "Resources\version.json"
+$versionInfo | ConvertTo-Json -Depth 10 | Set-Content $versionJsonPath -Encoding UTF8
+Write-Host "version.json written: v$Version (build $buildNumber, $fileSizeBytes bytes)" -ForegroundColor Green
+
+# 验证 version.json 内容
+$jsonContent = Get-Content $versionJsonPath -Raw | ConvertFrom-Json
+Write-Host "  verified: version=$($jsonContent.version), changelog=$($jsonContent.changelog -join '; ')" -ForegroundColor Gray
+
+if (-not $SkipGit) {
+    # 提交 version.json
+    git -C $ProjectDir add "$versionJsonPath"
+    git -C $ProjectDir commit -m "Update version.json (v$Version)"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Warning: version.json commit failed (no changes?)" -ForegroundColor Yellow
+    } else {
+        Write-Host "version.json committed" -ForegroundColor Green
+    }
+    
+    # 推送 version.json 到远程（确保 raw.githubusercontent.com 能读到）
+    Write-Host "Pushing version.json to remote..." -ForegroundColor Cyan
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    git -C $ProjectDir push origin main 2>&1
+    $ErrorActionPreference = $prevEAP
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Error: Failed to push version.json, aborting release" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "version.json pushed to remote" -ForegroundColor Green
+    
+    # 验证远程 HEAD 确认推送成功
+    $remoteHead = & git -C $ProjectDir rev-parse HEAD 2>$null
+    Write-Host "  remote HEAD: $($remoteHead.Substring(0, 7))" -ForegroundColor Gray
+}
+
+# ========== Step 4.5: Create Git Tag（在 version.json 的 commit 上打 tag） ==========
+Write-Host ""
+Write-Host "Step 4.5/5: Creating Git tag..." -ForegroundColor Yellow
+
+if (-not $SkipGit) {
+    $existingTag = & git -C $ProjectDir tag -l "v$Version" 2>$null
+    if ($existingTag) {
+        Write-Host "Warning: Tag v$Version already exists, deleting and re-creating..." -ForegroundColor Yellow
+        git -C $ProjectDir tag -d "v$Version" 2>$null
+        git -C $ProjectDir push origin --delete "refs/tags/v$Version" 2>$null
+    }
+    git -C $ProjectDir tag -a "v$Version" -m "Release v$Version"
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Git tag v$Version created (on commit with version.json)" -ForegroundColor Green
+    }
+    
+    # 推送 tag
+    Write-Host "Pushing tag v$Version..." -ForegroundColor Cyan
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    git -C $ProjectDir push origin "refs/tags/v$Version" 2>&1
+    $ErrorActionPreference = $prevEAP
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Tag v$Version pushed to remote" -ForegroundColor Green
+    } else {
+        Write-Host "Error: Tag push failed, aborting release" -ForegroundColor Red
+        exit 1
+    }
+}
+
+# ========== Step 5: Create GitHub Release（此时 Tag 已指向含 version.json 的 commit） ==========
 Write-Host ""
 Write-Host "Step 5/5: Creating GitHub Release..." -ForegroundColor Yellow
 
-$repoName = "Grafdustin/Quotix"
 $tag = "v$Version"
 
 # GitHub CLI 路径检测
@@ -217,9 +294,9 @@ if (-not $installerPath -or -not (Test-Path $installerPath)) {
     exit 1
 }
 
-Write-Host "Ensuring release exists: $tag" -ForegroundColor Cyan
+Write-Host "Tag: $tag (points to commit with version.json)" -ForegroundColor Cyan
 
-# ✔ 关键优化：先确保 release 存在（不存在就创建）
+# 创建 Release（如果不存在）
 & $ghPath release view $tag --repo $repoName 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Release not found, creating..." -ForegroundColor Yellow
@@ -235,7 +312,7 @@ if ($LASTEXITCODE -ne 0) {
     }
 }
 
-# ✔ 永远走 upload（核心稳定点）
+# 上传安装包
 Write-Host "Uploading installer..." -ForegroundColor Cyan
 
 & $ghPath release upload $tag $installerPath `
@@ -249,54 +326,9 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Release ready!" -ForegroundColor Green
 
-# ========== version.json（标准稳定版格式，只在成功后写） ==========
-$fileSizeBytes = (Get-Item $installerPath).Length
-
-# 从版本号计算 build 值（如 1.0.25 → 1025）
-$buildNumber = [int]($Version -replace '\.', '').Substring(0, [Math]::Min(4, ($Version -replace '\.', '').Length))
-
-$versionInfo = [Ordered]@{
-    version      = $Version
-    build        = $buildNumber
-    releaseDate  = Get-Date -Format "yyyy-MM-dd"
-    downloadUrl  = "https://github.com/$repoName/releases/download/v$Version/Quotix_Setup_$Version.exe"
-    fileSize     = $fileSizeBytes
-    mandatory    = $false
-    changelog    = @($CommitMessage)
-}
-
-$versionJsonPath = Join-Path $ProjectDir "Resources\version.json"
-$versionInfo | ConvertTo-Json -Depth 10 | Set-Content $versionJsonPath -Encoding UTF8
-
-if (-not $SkipGit) {
-    git -C $ProjectDir add "$versionJsonPath"
-    git -C $ProjectDir commit -m "Update version.json (v$Version)"
-    # 临时降低错误级别避免 git push stderr 触发 Stop
-    $prevEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    git -C $ProjectDir push origin main 2>&1
-    $ErrorActionPreference = $prevEAP
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Warning: git push failed, please push manually" -ForegroundColor Yellow
-    } else {
-        Write-Host "Pushed version.json to remote" -ForegroundColor Green
-    }
-    
-    # 推送 Git tag（方案3：版本由 Git 控制）
-    Write-Host "Pushing tag v$Version..." -ForegroundColor Cyan
-    $prevEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    git -C $ProjectDir push origin "refs/tags/v$Version" 2>&1
-    $ErrorActionPreference = $prevEAP
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "Tag v$Version pushed to remote" -ForegroundColor Green
-    } else {
-        Write-Host "Warning: Tag push failed, please push manually: git push origin v$Version" -ForegroundColor Yellow
-    }
-}
-
 Write-Host ""
 Write-Host "=== Release process completed ===" -ForegroundColor Green
+Write-Host "version.json: v$Version (pushed to main before release)" -ForegroundColor Cyan
 if ($installerPath) {
     Write-Host "Installer: $installerPath" -ForegroundColor Cyan
 }
