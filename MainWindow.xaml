@@ -160,7 +160,18 @@
                                 Tag="settings"
                                 Click="OnNavItemClick">
                                 <ui:NavigationViewItem.Icon>
-                                    <ui:SymbolIcon Symbol="Settings24"/>
+                                    <Grid>
+                                        <ui:SymbolIcon Symbol="Settings24"/>
+                                        <!-- 更新提示红点：有可用更新时显示 -->
+                                        <Border x:Name="UpdateRedDot"
+                                                Width="8" Height="8"
+                                                Background="#FF3B30"
+                                                CornerRadius="4"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Top"
+                                                Margin="0,-4,-4,0"
+                                                Visibility="Collapsed"/>
+                                    </Grid>
                                 </ui:NavigationViewItem.Icon>
                             </ui:NavigationViewItem>
                         </ui:NavigationView.FooterMenuItems>

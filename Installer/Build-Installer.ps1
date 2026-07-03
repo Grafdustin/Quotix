@@ -34,7 +34,7 @@ if ($Version) {
 if (-not $SkipBuild) {
     Write-Host "Building project..." -ForegroundColor Yellow
     $publishDir = Join-Path $PSScriptRoot "..\bin\$Configuration\$TargetFramework\$Runtime\publish"
-    dotnet publish "$csprojPath" -c $Configuration -r $Runtime --self-contained true
+    dotnet publish "$csprojPath" -c $Configuration -r $Runtime --self-contained true -p:Version=$Version
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Error: Build failed" -ForegroundColor Red
         exit 1

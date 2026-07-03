@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Threading.Tasks;
 using Quotix.Services;
 using Wpf.Ui.Controls;
 using Quotix.ViewModels;
@@ -20,16 +21,19 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private MainViewModel VM => (MainViewModel)DataContext;
     private readonly AppSettingsService _settingsService;
+    private readonly UpdateService _updateService;
 
     /// <summary>
     /// 初始化 MainWindow 实例。
     /// </summary>
     /// <param name="viewModel">主视图模型</param>
     /// <param name="settingsService">应用设置服务</param>
-    public MainWindow(MainViewModel viewModel, AppSettingsService settingsService)
+    /// <param name="updateService">更新检查服务</param>
+    public MainWindow(MainViewModel viewModel, AppSettingsService settingsService, UpdateService updateService)
     {
         DataContext = viewModel;
         _settingsService = settingsService;
+        _updateService = updateService;
         InitializeComponent();
         LoadIcon();
         LoadTitleBarIcon();
@@ -66,6 +70,29 @@ public partial class MainWindow : FluentWindow
 
         // 给设置弹窗注入 SettingsViewModel（它不在 ContentControl 的 DataTemplate 体系中）
         SettingsViewControl.DataContext = VM.SettingsViewModel;
+
+        // 异步检查更新（不阻塞 UI 加载）
+        _ = CheckForUpdatesAsync();
+    }
+
+    /// <summary>
+    /// 异步检查是否有新版本可用，有更新时显示红色圆点提示。
+    /// </summary>
+    private async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            var updateInfo = await _updateService.CheckForUpdatesAsync();
+            if (updateInfo != null)
+            {
+                // 有新版本，显示红点（需要在 UI 线程）
+                Dispatcher.Invoke(() => UpdateRedDot.Visibility = Visibility.Visible);
+            }
+        }
+        catch
+        {
+            // 网络错误等，静默处理
+        }
     }
 
     /// <summary>
