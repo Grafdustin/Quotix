@@ -25,9 +25,8 @@ namespace Quotix.Services
         private readonly string _repoOwner = "Grafdustin";
         private readonly string _repoName   = "Quotix";
 
-        /// <summary>上次检查缓存的更新信息（5 分钟内有效，避免重复请求）</summary>
-        private UpdateInfo? _cachedUpdateInfo;
-        private DateTime _lastCheckTime;
+        /// <summary>当前检测到的更新信息（供 DownloadAsync 使用，不做时间缓存）</summary>
+        private UpdateInfo? _currentUpdateInfo;
 
         /// <summary>已下载的安装包路径</summary>
         private string? _downloadedInstallerPath;
@@ -40,8 +39,8 @@ namespace Quotix.Services
         /// </summary>
         public UpdateState State { get; } = new();
 
-        /// <summary>是否有可用更新（检查完成后读取）</summary>
-        public bool HasUpdate => _cachedUpdateInfo != null;
+        /// <summary>是否有可用更新</summary>
+        public bool HasUpdate => _currentUpdateInfo != null;
 
         /// <summary>安装包是否已下载</summary>
         public bool IsInstallerDownloaded =>
@@ -118,7 +117,7 @@ namespace Quotix.Services
         /// <returns>下载成功时返回 true</returns>
         public async Task<bool> DownloadAsync()
         {
-            var updateInfo = _cachedUpdateInfo;
+            var updateInfo = _currentUpdateInfo;
             if (updateInfo == null)
             {
                 State.Stage   = UpdateStage.Failed;
@@ -296,18 +295,13 @@ namespace Quotix.Services
         // ═══════════════════════════════════════
 
         /// <summary>
-        /// 检查是否有新版本可用（带 5 分钟缓存）。
+        /// 检查是否有新版本可用。
         /// 通过 GitHub API 获取最新 Release，下载 latest.yml 解析版本号和更新日志。
+        /// 不做缓存，每次调用都实时请求最新信息。
         /// </summary>
         /// <returns>更新信息，无更新则返回 null</returns>
         public async Task<UpdateInfo?> CheckForUpdatesAsync()
         {
-            // 5 分钟内使用缓存
-            if (_cachedUpdateInfo != null && (DateTime.Now - _lastCheckTime).TotalMinutes < 5)
-                return _cachedUpdateInfo;
-            if (_cachedUpdateInfo == null && _lastCheckTime != default && (DateTime.Now - _lastCheckTime).TotalMinutes < 1)
-                return null; // 1 分钟内已检查过且无更新
-
             try
             {
                 // 调用 GitHub API 获取最新 Release（无 CDN 缓存）
@@ -348,7 +342,7 @@ namespace Quotix.Services
 
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
-                    _cachedUpdateInfo = null;
+                    _currentUpdateInfo = null;
                     return null;
                 }
 
@@ -397,17 +391,16 @@ namespace Quotix.Services
                     Changelog   = changelog
                 };
 
-                _lastCheckTime     = DateTime.Now;
+                _currentUpdateInfo = updateInfo;
                 var currentVersion = new Version(AppInfo.Version);
                 var latestVersion  = new Version(version);
 
                 if (latestVersion > currentVersion)
                 {
-                    _cachedUpdateInfo = updateInfo;
                     return updateInfo;
                 }
 
-                _cachedUpdateInfo = null;
+                _currentUpdateInfo = null;
                 return null;
             }
             catch
