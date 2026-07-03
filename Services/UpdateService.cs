@@ -78,9 +78,14 @@ namespace Quotix.Services
         /// </summary>
         /// <param name="downloadUrl">下载链接</param>
         /// <param name="progress">进度回调（0-100）</param>
+        /// <param name="detailProgress">详细进度回调（已下载字节、总字节、百分比）</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>下载的文件路径，如果失败则返回 null</returns>
-        public async Task<string?> DownloadUpdateAsync(string downloadUrl, IProgress<int>? progress = null, CancellationToken cancellationToken = default)
+        public async Task<string?> DownloadUpdateAsync(
+            string downloadUrl,
+            IProgress<int>? progress = null,
+            IProgress<DownloadProgressReport>? detailProgress = null,
+            CancellationToken cancellationToken = default)
         {
             try
             {
@@ -131,6 +136,12 @@ namespace Quotix.Services
                         {
                             var percent = (int)((double)totalRead / totalBytes * 100);
                             progress?.Report(percent);
+                            detailProgress?.Report(new DownloadProgressReport
+                            {
+                                BytesDownloaded = totalRead,
+                                TotalBytes = totalBytes,
+                                Percent = percent
+                            });
                         }
                     }
                 } while (isMoreToRead);
@@ -335,5 +346,20 @@ namespace Quotix.Services
         /// </summary>
         [JsonPropertyName("changelog")]
         public string[] Changelog { get; set; } = Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// 下载进度报告，包含字节级详情用于计算网速和预估剩余时间。
+    /// </summary>
+    public class DownloadProgressReport
+    {
+        /// <summary>已下载字节数</summary>
+        public long BytesDownloaded { get; set; }
+
+        /// <summary>总字节数</summary>
+        public long TotalBytes { get; set; }
+
+        /// <summary>下载百分比（0-100）</summary>
+        public int Percent { get; set; }
     }
 }
