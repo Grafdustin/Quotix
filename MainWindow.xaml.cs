@@ -8,11 +8,12 @@ using System.Threading.Tasks;
 using Quotix.Services;
 using Wpf.Ui.Controls;
 using Quotix.ViewModels;
+using Quotix.Models;
 
 namespace Quotix;
 
 /// <summary>
-/// 主窗口，负责导航、主题切换、设置面板和内嵌对话框功能。
+/// 主窗口，负责导航、主题切换、设置面板、更新弹窗和内嵌对话框功能。
 /// </summary>
 public partial class MainWindow : FluentWindow
 {
@@ -39,6 +40,9 @@ public partial class MainWindow : FluentWindow
         LoadTitleBarIcon();
         Loaded += OnLoaded;
         Closed += OnClosed;
+
+        // 更新弹窗绑定到 Pipeline 的 State 对象
+        UpdateOverlay.DataContext = _updatePipeline.State;
     }
 
     /// <summary>
@@ -49,7 +53,7 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
-    /// 窗口加载时调用，初始化导航状态和主题。
+    /// 窗口加载时调用，初始化导航状态、主题和异步检查更新。
     /// </summary>
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -72,21 +76,30 @@ public partial class MainWindow : FluentWindow
         SettingsViewControl.DataContext = VM.SettingsViewModel;
 
         // 异步检查更新（不阻塞 UI 加载）
-        _ = CheckForUpdatesAsync();
+        _ = AutoCheckUpdateAsync();
     }
 
+    // ════════════════════════════════════════
+    //  更新弹窗
+    // ════════════════════════════════════════
+
     /// <summary>
-    /// 异步检查是否有新版本可用，有更新时显示红色圆点提示。
+    /// 启动时自动检查更新：异步检测，有更新则弹窗提醒。
     /// </summary>
-    private async Task CheckForUpdatesAsync()
+    private async Task AutoCheckUpdateAsync()
     {
         try
         {
-            var updateInfo = await _updatePipeline.CheckForUpdatesAsync();
+            var updateInfo = await _updatePipeline.CheckAsync();
+
             if (updateInfo != null)
             {
-                // 有新版本，显示红点（需要在 UI 线程）
-                Dispatcher.Invoke(() => UpdateRedDot.Visibility = Visibility.Visible);
+                // 有新版本：显示红色箭头 + 弹窗提醒
+                Dispatcher.Invoke(() =>
+                {
+                    UpdateArrow.Visibility = Visibility.Visible;
+                    ShowUpdateOverlay();
+                });
             }
         }
         catch
@@ -94,6 +107,67 @@ public partial class MainWindow : FluentWindow
             // 网络错误等，静默处理
         }
     }
+
+    /// <summary>
+    /// 显示更新弹窗。
+    /// 如果安装包已下载，直接跳到 ReadyToInstall 状态。
+    /// </summary>
+    private void ShowUpdateOverlay()
+    {
+        // 如果已下载安装包，直接设为 ReadyToInstall
+        if (_updatePipeline.IsInstallerDownloaded &&
+            _updatePipeline.State.Stage != UpdateStage.Downloading)
+        {
+            _updatePipeline.State.Stage = UpdateStage.ReadyToInstall;
+            _updatePipeline.State.Message = "下载完成，点击安装即可更新";
+        }
+
+        UpdateOverlay.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// 更新箭头点击事件 — 弹出更新通知卡片。
+    /// </summary>
+    private void UpdateArrow_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true; // 阻止事件冒泡到 NavigationViewItem
+        ShowUpdateOverlay();
+    }
+
+    /// <summary>
+    /// 关闭更新弹窗。
+    /// </summary>
+    private void UpdateOverlay_Close(object sender, RoutedEventArgs e)
+    {
+        UpdateOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// 更新弹窗主按钮点击 — 根据 Stage 执行对应操作。
+    /// </summary>
+    private async void UpdateOverlay_PrimaryClick(object sender, RoutedEventArgs e)
+    {
+        switch (_updatePipeline.State.Stage)
+        {
+            case UpdateStage.UpdateAvailable:
+            case UpdateStage.Failed:
+                // 开始下载
+                UpdateArrow.Visibility = Visibility.Visible;
+                await _updatePipeline.DownloadAsync();
+
+                // 下载完成后，弹窗仍然打开，用户可点击「安装更新」
+                break;
+
+            case UpdateStage.ReadyToInstall:
+                // 安装更新（会关闭应用）
+                _updatePipeline.Install();
+                break;
+        }
+    }
+
+    // ════════════════════════════════════════
+    //  导航与设置
+    // ════════════════════════════════════════
 
     /// <summary>
     /// NavigationViewItem 点击事件（Click 代替 SelectionChanged，避开 TargetPageType 约束）。

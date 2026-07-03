@@ -8,13 +8,13 @@ namespace Quotix.Models;
 /// </summary>
 public enum UpdateStage
 {
-    /// <summary>初始空闲 — 显示「检查更新」</summary>
+    /// <summary>初始空闲</summary>
     Idle,
 
     /// <summary>正在检查更新</summary>
     Checking,
 
-    /// <summary>发现新版本 — 显示「下载」</summary>
+    /// <summary>发现新版本 — 弹窗显示详情</summary>
     UpdateAvailable,
 
     /// <summary>已是最新版本</summary>
@@ -22,9 +22,6 @@ public enum UpdateStage
 
     /// <summary>正在下载</summary>
     Downloading,
-
-    /// <summary>正在校验安装包</summary>
-    Verifying,
 
     /// <summary>下载完成 — 显示「安装」</summary>
     ReadyToInstall,
@@ -67,7 +64,7 @@ public partial class UpdateState : ObservableObject
     // ─── 信息字段 ───
 
     /// <summary>当前状态提示文本</summary>
-    [ObservableProperty] private string _message = "点击检查更新";
+    [ObservableProperty] private string _message = "正在检查更新...";
 
     /// <summary>错误信息</summary>
     [ObservableProperty] private string _error = "";
@@ -86,25 +83,9 @@ public partial class UpdateState : ObservableObject
 
     // ─── UI 计算属性 ───
 
-    /// <summary>是否显示更新详情（版本号、更新日志等）</summary>
-    public bool ShowUpdateDetails => Stage == UpdateStage.UpdateAvailable;
-
-    /// <summary>是否显示操作按钮（非进行中状态）</summary>
-    public bool ShowActionButton =>
-        Stage is UpdateStage.Idle or UpdateStage.UpdateAvailable
-            or UpdateStage.ReadyToInstall or UpdateStage.Failed or UpdateStage.UpToDate;
-
-    /// <summary>是否显示 Primary 按钮（检查/下载/重试）</summary>
-    public bool ShowPrimaryButton =>
-        Stage is UpdateStage.Idle or UpdateStage.UpdateAvailable
-            or UpdateStage.Failed or UpdateStage.UpToDate;
-
-    /// <summary>是否显示安装按钮（Success 绿色）</summary>
-    public bool ShowInstallButton => Stage == UpdateStage.ReadyToInstall;
-
-    /// <summary>是否显示进度区域</summary>
+    /// <summary>是否显示下载进度区域</summary>
     public bool ShowProgressBar =>
-        Stage is UpdateStage.Downloading or UpdateStage.Verifying;
+        Stage is UpdateStage.Downloading;
 
     /// <summary>是否显示下载详情（网速/大小/时间）</summary>
     public bool ShowDownloadDetail => Stage == UpdateStage.Downloading;
@@ -112,12 +93,11 @@ public partial class UpdateState : ObservableObject
     /// <summary>按钮文本</summary>
     public string ActionButtonText => Stage switch
     {
-        UpdateStage.Idle => "检查更新",
-        UpdateStage.UpdateAvailable => "下载",
-        UpdateStage.ReadyToInstall => "安装",
+        UpdateStage.UpdateAvailable => "下载更新",
+        UpdateStage.Downloading => "下载中...",
+        UpdateStage.ReadyToInstall => "安装更新",
         UpdateStage.Failed => "重试",
-        UpdateStage.UpToDate => "检查更新",
-        _ => ""
+        _ => "下载更新"
     };
 
     /// <summary>网速显示文本</summary>
@@ -150,12 +130,8 @@ public partial class UpdateState : ObservableObject
 
     partial void OnStageChanged(UpdateStage value)
     {
-        OnPropertyChanged(nameof(ShowActionButton));
-        OnPropertyChanged(nameof(ShowPrimaryButton));
-        OnPropertyChanged(nameof(ShowInstallButton));
         OnPropertyChanged(nameof(ShowProgressBar));
         OnPropertyChanged(nameof(ShowDownloadDetail));
-        OnPropertyChanged(nameof(ShowUpdateDetails));
         OnPropertyChanged(nameof(ActionButtonText));
     }
 

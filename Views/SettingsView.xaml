@@ -281,23 +281,20 @@
                 <ui:TextBlock Text="更新" FontSize="12" FontWeight="SemiBold"
                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                               Margin="0,0,0,4"/>
-                <ui:TextBlock Text="检查应用更新，获取最新功能" FontSize="11"
+                <ui:TextBlock Text="应用版本检查" FontSize="11"
                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
             </StackPanel>
 
+            <!-- 简洁状态卡片：只显示文字，不交互 -->
             <Border CornerRadius="10"
                     Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1" Padding="16,14">
-                <StackPanel>
-
-                    <!-- 顶部：图标 + 状态文字 + 操作按钮 -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
                     <!-- 图标 -->
                     <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
@@ -311,133 +308,11 @@
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
                         <ui:TextBlock Text="应用更新" FontSize="14" FontWeight="Medium"
                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ui:TextBlock Text="{Binding UpdateState.Message}" FontSize="12"
+                        <ui:TextBlock Text="{Binding UpdateStatusText}" FontSize="12"
                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                       Margin="0,2,0,0"/>
                     </StackPanel>
-
-                    <!-- 按钮区 -->
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                        <!-- Primary 按钮（检查更新 / 下载 / 重试） -->
-                        <ui:Button Content="{Binding UpdateState.ActionButtonText}"
-                                   Appearance="Primary" Height="34" FontSize="12"
-                                   Command="{Binding ExecuteUpdateActionCommand}"
-                                   Visibility="{Binding UpdateState.ShowPrimaryButton, Converter={StaticResource BoolToVis}}"/>
-
-                        <!-- 安装按钮（Success 绿色） -->
-                        <ui:Button Content="{Binding UpdateState.ActionButtonText}"
-                                   Appearance="Success" Height="34" FontSize="12"
-                                   Command="{Binding ExecuteUpdateActionCommand}"
-                                   Visibility="{Binding UpdateState.ShowInstallButton, Converter={StaticResource BoolToVis}}"/>
-                    </StackPanel>
                 </Grid>
-
-                <!-- 更新详情（仅在发现新版本时显示） -->
-                <StackPanel Visibility="{Binding UpdateState.ShowUpdateDetails, Converter={StaticResource BoolToVis}}"
-                            Margin="52,10,0,0">
-                    <!-- 版本信息行 -->
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <ui:TextBlock Grid.Column="0"
-                                      Text="{Binding UpdateState.NewVersion, StringFormat='v{0}'}"
-                                      FontSize="12" FontWeight="SemiBold"
-                                      Foreground="{DynamicResource AccentFillColorDefaultBrush}"
-                                      VerticalAlignment="Center"/>
-
-                        <ui:TextBlock Grid.Column="1"
-                                      Text="{Binding UpdateState.ReleaseDate, StringFormat='发布于 {0}'}"
-                                      FontSize="11"
-                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                      VerticalAlignment="Center" Margin="10,0,0,0"/>
-
-                        <ui:TextBlock Grid.Column="2"
-                                      Text="{Binding UpdateState.FileSizeDisplay}"
-                                      FontSize="11"
-                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                      VerticalAlignment="Center" Margin="10,0,0,0"/>
-                    </Grid>
-
-                    <!-- 更新日志 -->
-                    <ItemsControl ItemsSource="{Binding UpdateState.Changelog}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Margin="0,2,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Ellipse Grid.Column="0" Width="4" Height="4"
-                                             Fill="{DynamicResource TextFillColorTertiaryBrush}"
-                                             VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <ui:TextBlock Grid.Column="1"
-                                                  Text="{Binding}"
-                                                  FontSize="11"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                  TextWrapping="Wrap"/>
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-
-                <!-- 进度区域（下载中 / 校验中显示） -->
-                    <StackPanel Visibility="{Binding UpdateState.ShowProgressBar, Converter={StaticResource BoolToVis}}"
-                                Margin="0,12,0,0">
-
-                        <!-- 下载详情：网速 + 大小 + 剩余时间（仅下载中显示） -->
-                        <Grid Margin="0,0,0,8"
-                              Visibility="{Binding UpdateState.ShowDownloadDetail, Converter={StaticResource BoolToVis}}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-
-                            <ui:TextBlock Grid.Column="0"
-                                          Text="{Binding UpdateState.SpeedDisplay}"
-                                          FontSize="12" FontWeight="SemiBold"
-                                          Foreground="{DynamicResource AccentFillColorDefaultBrush}"
-                                          VerticalAlignment="Center"/>
-
-                            <ui:TextBlock Grid.Column="1"
-                                          Text="{Binding UpdateState.SizeDisplay}"
-                                          FontSize="12"
-                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                          VerticalAlignment="Center" Margin="12,0,0,0"/>
-
-                            <ui:TextBlock Grid.Column="2"
-                                          Text="{Binding UpdateState.EtaDisplay}"
-                                          FontSize="12"
-                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                          VerticalAlignment="Center"/>
-                        </Grid>
-
-                        <!-- 进度条 -->
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-
-                            <ProgressBar Grid.Column="0"
-                                         Minimum="0" Maximum="100"
-                                         Value="{Binding UpdateState.Progress}"
-                                         Height="6"
-                                         VerticalAlignment="Center"/>
-
-                            <ui:TextBlock Grid.Column="1"
-                                          Text="{Binding UpdateState.ProgressDisplay}"
-                                          FontSize="12"
-                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                          VerticalAlignment="Center" Margin="10,0,0,0"/>
-                        </Grid>
-                    </StackPanel>
-                </StackPanel>
             </Border>
 
         </StackPanel>

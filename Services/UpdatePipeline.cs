@@ -1,11 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
 using System.Threading.Tasks;
 using Quotix.Models;
 
@@ -13,8 +13,8 @@ namespace Quotix.Services
 {
     /// <summary>
     /// 更新流水线 — 状态机引擎。
-    /// 将更新过程封装为串行流水线：Check → Download → Verify → Install。
-    /// 每个阶段直接更新 <see cref="UpdateState"/> 对象，UI 只需绑定该对象。
+    /// 将更新过程封装为串行流水线：Check → Download → Install。
+    /// 内部维护 <see cref="State"/> 对象，UI 只需绑定该对象。
     /// </summary>
     public class UpdatePipeline
     {
@@ -27,6 +27,18 @@ namespace Quotix.Services
 
         /// <summary>已下载的安装包路径</summary>
         private string? _downloadedInstallerPath;
+
+        /// <summary>
+        /// 统一更新状态对象（UI 绑定的唯一数据源）。
+        /// </summary>
+        public UpdateState State { get; } = new();
+
+        /// <summary>是否有可用更新（检查完成后读取）</summary>
+        public bool HasUpdate => _cachedUpdateInfo != null;
+
+        /// <summary>安装包是否已下载</summary>
+        public bool IsInstallerDownloaded =>
+            !string.IsNullOrEmpty(_downloadedInstallerPath) && File.Exists(_downloadedInstallerPath);
 
         /// <summary>
         /// 初始化更新流水线。
@@ -44,14 +56,13 @@ namespace Quotix.Services
         // ════════════════════════════════════════
 
         /// <summary>
-        /// [Check 阶段] 检查是否有新版本可用，更新 <paramref name="state"/>。
+        /// [Check 阶段] 检查是否有新版本可用，更新 <see cref="State"/>。
         /// </summary>
-        /// <param name="state">共享更新状态对象</param>
         /// <returns>检测到的更新信息，无更新时为 null</returns>
-        public async Task<UpdateInfo?> CheckAsync(UpdateState state)
+        public async Task<UpdateInfo?> CheckAsync()
         {
-            state.Stage = UpdateStage.Checking;
-            state.Message = "正在检查更新...";
+            State.Stage = UpdateStage.Checking;
+            State.Message = "正在检查更新...";
 
             try
             {
@@ -59,47 +70,52 @@ namespace Quotix.Services
 
                 if (updateInfo != null)
                 {
-                    state.Stage = UpdateStage.UpdateAvailable;
-                    state.NewVersion = updateInfo.Version;
-                    state.FileSize = updateInfo.FileSize;
-                    state.ReleaseDate = updateInfo.ReleaseDate;
-                    state.Changelog = updateInfo.Changelog;
-                    state.Message = $"发现新版本 v{updateInfo.Version}（{state.FileSizeDisplay}）";
+                    State.Stage = UpdateStage.UpdateAvailable;
+                    State.NewVersion = updateInfo.Version;
+                    State.FileSize = updateInfo.FileSize;
+                    State.ReleaseDate = updateInfo.ReleaseDate;
+                    State.Changelog = updateInfo.Changelog;
+                    State.Message = $"发现新版本 v{updateInfo.Version}";
                     return updateInfo;
                 }
                 else
                 {
-                    state.Stage = UpdateStage.UpToDate;
-                    state.Message = "已经是最新版本";
+                    State.Stage = UpdateStage.UpToDate;
+                    State.Message = "已经是最新版本";
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                state.Stage = UpdateStage.Failed;
-                state.Message = "检查更新失败";
-                state.Error = ex.Message;
+                State.Stage = UpdateStage.Failed;
+                State.Message = "检查更新失败";
+                State.Error = ex.Message;
                 return null;
             }
         }
 
         /// <summary>
-        /// [Download 阶段] 下载更新包，实时更新 <paramref name="state"/> 的进度/网速/ETA。
+        /// [Download 阶段] 下载更新包，实时更新 <see cref="State"/> 的进度/网速/ETA。
+        /// 使用缓存的 UpdateInfo，无需外部传参。
         /// </summary>
-        /// <param name="updateInfo">版本信息（含下载链接和校验用的文件大小）</param>
-        /// <param name="state">共享更新状态对象</param>
         /// <returns>下载成功时返回 true</returns>
-        public async Task<bool> DownloadAsync(UpdateInfo updateInfo, UpdateState state)
+        public async Task<bool> DownloadAsync()
         {
-            state.Stage = UpdateStage.Downloading;
-            state.Message = "正在下载更新包...";
-            state.Progress = 0;
-            state.ReceivedBytes = 0;
-            state.SpeedBytesPerSec = 0;
-            state.Eta = null;
+            var updateInfo = _cachedUpdateInfo;
+            if (updateInfo == null)
+            {
+                State.Stage = UpdateStage.Failed;
+                State.Message = "未检测到更新信息，请重新检查";
+                State.Error = "No cached UpdateInfo";
+                return false;
+            }
 
-            var downloadUrl = updateInfo.DownloadUrl;
-            var expectedSize = updateInfo.FileSize;
+            State.Stage = UpdateStage.Downloading;
+            State.Message = "正在下载更新包...";
+            State.Progress = 0;
+            State.ReceivedBytes = 0;
+            State.SpeedBytesPerSec = 0;
+            State.Eta = null;
 
             var downloadStartTime = DateTime.Now;
             var lastReportTime = downloadStartTime;
@@ -107,7 +123,7 @@ namespace Quotix.Services
 
             try
             {
-                var mirroredUrl = AccelerateGitHubUrl(downloadUrl);
+                var mirroredUrl = AccelerateGitHubUrl(updateInfo.DownloadUrl);
                 var appDir = AppContext.BaseDirectory;
                 var updateDir = Path.Combine(appDir, "Updates");
                 Directory.CreateDirectory(updateDir);
@@ -121,8 +137,9 @@ namespace Quotix.Services
                 using var response = await _httpClient.GetAsync(mirroredUrl, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
 
-                var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                state.TotalBytes = totalBytes > 0 ? totalBytes : (expectedSize > 0 ? expectedSize : 0);
+                var totalBytes = response.Content.Headers.ContentLength ?? updateInfo.FileSize;
+                if (totalBytes <= 0) totalBytes = updateInfo.FileSize;
+                State.TotalBytes = totalBytes > 0 ? totalBytes : 0;
 
                 using var contentStream = await response.Content.ReadAsStreamAsync();
                 using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
@@ -137,12 +154,11 @@ namespace Quotix.Services
 
                     await fileStream.WriteAsync(buffer, 0, read);
                     totalRead += read;
-                    state.ReceivedBytes = totalRead;
+                    State.ReceivedBytes = totalRead;
 
                     // 计算进度
-                    var progressDenominator = totalBytes > 0 ? totalBytes : expectedSize;
-                    if (progressDenominator > 0)
-                        state.Progress = totalRead * 100.0 / progressDenominator;
+                    if (totalBytes > 0)
+                        State.Progress = totalRead * 100.0 / totalBytes;
 
                     // 每 0.5 秒更新一次网速（避免闪烁）
                     var now = DateTime.Now;
@@ -150,51 +166,34 @@ namespace Quotix.Services
                     if (elapsed >= 0.5)
                     {
                         var bytesInInterval = totalRead - lastReportedBytes;
-                        state.SpeedBytesPerSec = elapsed > 0 ? bytesInInterval / elapsed : 0;
+                        State.SpeedBytesPerSec = elapsed > 0 ? bytesInInterval / elapsed : 0;
                         lastReportTime = now;
                         lastReportedBytes = totalRead;
                     }
 
                     // 预估剩余时间（基于整体平均速度）
                     var totalElapsed = (now - downloadStartTime).TotalSeconds;
-                    if (totalElapsed > 0 && totalRead > 0 && progressDenominator > 0)
+                    if (totalElapsed > 0 && totalRead > 0 && totalBytes > 0)
                     {
                         var avgSpeed = totalRead / totalElapsed;
                         if (avgSpeed > 0)
                         {
-                            var remainingBytes = progressDenominator - totalRead;
-                            state.Eta = TimeSpan.FromSeconds(remainingBytes / avgSpeed);
+                            var remainingBytes = totalBytes - totalRead;
+                            State.Eta = TimeSpan.FromSeconds(remainingBytes / avgSpeed);
                         }
                     }
                 }
 
-                // [Verify 阶段] 校验文件大小（使用 version.json 中声明的大小，而非 HTTP Content-Length）
-                state.Stage = UpdateStage.Verifying;
-                state.Message = "正在校验安装包...";
-                state.SpeedBytesPerSec = 0;
-                state.Eta = null;
-
-                await Task.Delay(300); // 给 UI 一点时间渲染
-
-                var actualSize = new FileInfo(filePath).Length;
-                if (expectedSize > 0 && actualSize != expectedSize)
-                {
-                    state.Stage = UpdateStage.Failed;
-                    state.Message = "安装包校验失败（文件大小不匹配）";
-                    state.Error = $"期望 {expectedSize} 字节，实际 {actualSize} 字节";
-                    return false;
-                }
-
                 _downloadedInstallerPath = filePath;
-                state.Stage = UpdateStage.ReadyToInstall;
-                state.Message = "下载完成，点击安装即可更新";
+                State.Stage = UpdateStage.ReadyToInstall;
+                State.Message = "下载完成，点击安装即可更新";
                 return true;
             }
             catch (Exception ex)
             {
-                state.Stage = UpdateStage.Failed;
-                state.Message = "下载失败，点击重试";
-                state.Error = ex.Message;
+                State.Stage = UpdateStage.Failed;
+                State.Message = "下载失败，点击重试";
+                State.Error = ex.Message;
                 return false;
             }
         }
@@ -202,19 +201,18 @@ namespace Quotix.Services
         /// <summary>
         /// [Install 阶段] 启动安装程序并关闭当前应用。
         /// </summary>
-        /// <param name="state">共享更新状态对象</param>
-        public void Install(UpdateState state)
+        public void Install()
         {
             if (string.IsNullOrEmpty(_downloadedInstallerPath) || !File.Exists(_downloadedInstallerPath))
             {
-                state.Stage = UpdateStage.Failed;
-                state.Message = "未找到安装包，请重新下载";
-                state.Error = "Installer path is null or file does not exist";
+                State.Stage = UpdateStage.Failed;
+                State.Message = "未找到安装包，请重新下载";
+                State.Error = "Installer path is null or file does not exist";
                 return;
             }
 
-            state.Stage = UpdateStage.Installing;
-            state.Message = "正在安装更新，应用即将重启...";
+            State.Stage = UpdateStage.Installing;
+            State.Message = "正在安装更新，应用即将重启...";
 
             try
             {
@@ -222,9 +220,9 @@ namespace Quotix.Services
             }
             catch (Exception ex)
             {
-                state.Stage = UpdateStage.Failed;
-                state.Message = "安装失败";
-                state.Error = ex.Message;
+                State.Stage = UpdateStage.Failed;
+                State.Message = "安装失败";
+                State.Error = ex.Message;
             }
         }
 
@@ -241,7 +239,7 @@ namespace Quotix.Services
             // 5 分钟内使用缓存
             if (_cachedUpdateInfo != null && (DateTime.Now - _lastCheckTime).TotalMinutes < 5)
                 return _cachedUpdateInfo;
-            if (_cachedUpdateInfo == null && (DateTime.Now - _lastCheckTime).TotalMinutes < 1)
+            if (_cachedUpdateInfo == null && _lastCheckTime != default && (DateTime.Now - _lastCheckTime).TotalMinutes < 1)
                 return null; // 1 分钟内已检查过且无更新
 
             try
@@ -360,26 +358,6 @@ namespace Quotix.Services
                 );
             }
             return path;
-        }
-
-        /// <summary>
-        /// 打开下载链接（在默认浏览器中，备用方案）。
-        /// </summary>
-        public void OpenDownloadPage(string url)
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show($"无法打开下载链接: {ex.Message}", "错误",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-            }
         }
 
         /// <summary>

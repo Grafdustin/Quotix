@@ -19,12 +19,23 @@ public partial class SettingsViewModel : ObservableObject
     private readonly UpdatePipeline _updatePipeline;
 
     /// <summary>
-    /// 统一更新状态对象（UI 绑定的唯一数据源）。
+    /// 更新状态文字（设置页只读显示，不交互）。
     /// </summary>
-    public UpdateState UpdateState { get; } = new();
+    public string UpdateStatusText => _updatePipeline.State.Stage switch
+    {
+        UpdateStage.UpdateAvailable => $"有新版本可用 v{_updatePipeline.State.NewVersion}",
+        UpdateStage.UpToDate => "已是最新版本",
+        UpdateStage.Downloading => "正在下载更新...",
+        UpdateStage.ReadyToInstall => "下载完成，等待安装",
+        UpdateStage.Failed => "检查更新失败",
+        UpdateStage.Checking => "正在检查更新...",
+        _ => "正在检查更新..."
+    };
 
-    /// <summary>检测到的更新信息（缓存，供下载阶段使用）</summary>
-    private UpdateInfo? _pendingUpdate;
+    /// <summary>是否有可用更新</summary>
+    public bool HasUpdate => _updatePipeline.State.Stage == UpdateStage.UpdateAvailable
+        || _updatePipeline.State.Stage == UpdateStage.Downloading
+        || _updatePipeline.State.Stage == UpdateStage.ReadyToInstall;
 
     public SettingsViewModel(
         ProductImportService productImport,
@@ -47,25 +58,12 @@ public partial class SettingsViewModel : ObservableObject
             new("RVI - OT Code", "products_rvi_ot"),
         };
 
-        // 页面加载时自动检查更新（如果 pipeline 已有缓存则直接使用）
-        _ = AutoCheckAsync();
-    }
-
-    /// <summary>
-    /// 自动检查更新：如果 pipeline 已有缓存结果则直接使用，否则发起检查。
-    /// </summary>
-    private async Task AutoCheckAsync()
-    {
-        // 先尝试用缓存的检查结果（MainWindow 启动时可能已经检查过）
-        var cached = await _updatePipeline.CheckForUpdatesAsync();
-        if (cached != null)
+        // 订阅 State 变化以刷新显示文字
+        _updatePipeline.State.PropertyChanged += (s, args) =>
         {
-            UpdateState.Stage = UpdateStage.UpdateAvailable;
-            UpdateState.NewVersion = cached.Version;
-            UpdateState.FileSize = cached.FileSize;
-            UpdateState.Message = $"发现新版本 v{cached.Version}（{UpdateState.FileSizeDisplay}）";
-            _pendingUpdate = cached;
-        }
+            OnPropertyChanged(nameof(UpdateStatusText));
+            OnPropertyChanged(nameof(HasUpdate));
+        };
     }
 
     [ObservableProperty] private bool _isDarkMode;
@@ -226,65 +224,6 @@ public partial class SettingsViewModel : ObservableObject
             SendProgress(false, 100, "");
             _dialog.ShowError($"清理失败: {ex.Message}");
         }
-    }
-
-    // ════════════════════════════════════════
-    //  更新流水线 — 单一命令，根据 Stage 分发
-    // ════════════════════════════════════════
-
-    /// <summary>
-    /// 统一更新操作命令：根据当前 Stage 自动执行对应操作。
-    /// <list type="bullet">
-    ///   <item>Idle / Failed → 检查更新</item>
-    ///   <item>UpdateAvailable → 下载</item>
-    ///   <item>ReadyToInstall → 安装</item>
-    /// </list>
-    /// </summary>
-    [RelayCommand]
-    private async Task ExecuteUpdateAction()
-    {
-        switch (UpdateState.Stage)
-        {
-            case UpdateStage.Idle:
-            case UpdateStage.Failed:
-            case UpdateStage.UpToDate:
-                await RunCheckAsync();
-                break;
-
-            case UpdateStage.UpdateAvailable:
-                await RunDownloadAsync();
-                break;
-
-            case UpdateStage.ReadyToInstall:
-                RunInstall();
-                break;
-        }
-    }
-
-    /// <summary>[Check 阶段] 检查更新</summary>
-    private async Task RunCheckAsync()
-    {
-        var result = await _updatePipeline.CheckAsync(UpdateState);
-        _pendingUpdate = result;
-    }
-
-    /// <summary>[Download 阶段] 下载更新包</summary>
-    private async Task RunDownloadAsync()
-    {
-        if (_pendingUpdate == null)
-        {
-            // 回退：重新检查
-            await RunCheckAsync();
-            return;
-        }
-
-        await _updatePipeline.DownloadAsync(_pendingUpdate, UpdateState);
-    }
-
-    /// <summary>[Install 阶段] 安装更新</summary>
-    private void RunInstall()
-    {
-        _updatePipeline.Install(UpdateState);
     }
 }
 

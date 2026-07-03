@@ -162,18 +162,29 @@
                                     <ui:SymbolIcon Symbol="Settings24"/>
                                 </ui:NavigationViewItem.Icon>
                                 <ui:NavigationViewItem.Content>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="设置"
-                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                        <!-- 更新提示红点：有可用更新时显示 -->
-                                        <Border x:Name="UpdateRedDot"
-                                                Width="8" Height="8"
-                                                Background="#FF3B30"
-                                                CornerRadius="4"
-                                                Margin="6,0,0,0"
-                                                VerticalAlignment="Center"
-                                                Visibility="Collapsed"/>
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="设置"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <!-- 红色向上更新箭头：有可用更新时显示 -->
+                                        <Border Grid.Column="1" x:Name="UpdateArrow"
+                                                Width="22" Height="22"
+                                                CornerRadius="6"
+                                                Background="#1AFF3B30"
+                                                VerticalAlignment="Center" Margin="8,0,0,0"
+                                                Cursor="Hand"
+                                                Visibility="Collapsed"
+                                                ToolTip="有新版本可用，点击更新"
+                                                MouseLeftButtonUp="UpdateArrow_Click">
+                                            <ui:SymbolIcon Symbol="ArrowUp16" FontSize="12"
+                                                           Foreground="#FF3B30"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
                                 </ui:NavigationViewItem.Content>
                             </ui:NavigationViewItem>
                         </ui:NavigationView.FooterMenuItems>
@@ -341,6 +352,189 @@
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <views:SettingsView x:Name="SettingsViewControl" Margin="28,20,28,28"/>
                         </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- 更新弹窗覆盖层 — 居中卡片，展示更新详情和下载进度 -->
+            <Grid x:Name="UpdateOverlay" Visibility="Collapsed"
+                  Grid.ColumnSpan="2"
+                  Background="#88000000" Panel.ZIndex="1003">
+                <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Width="440"
+                        Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                        CornerRadius="16"
+                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="1">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="40" ShadowDepth="6"
+                                          Opacity="0.30" Color="Black"/>
+                    </Border.Effect>
+                    <Grid Margin="28,24,28,24">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- 标题行：图标 + 标题 + 关闭按钮 -->
+                        <Grid Grid.Row="0" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" CornerRadius="10" Width="40" Height="40"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                <ui:SymbolIcon Symbol="ArrowSync16" FontSize="20"
+                                               Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ui:TextBlock Text="发现新版本" FontSize="16" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <ui:TextBlock Text="{Binding Message}" FontSize="12"
+                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                              Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="2" Width="32" Height="32"
+                                    Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                    Padding="0"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    Click="UpdateOverlay_Close">
+                                <ui:SymbolIcon Symbol="Dismiss20" FontSize="16"/>
+                            </Button>
+                        </Grid>
+
+                        <!-- 版本信息行 -->
+                        <Grid Grid.Row="1" Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" CornerRadius="4" Padding="8,3"
+                                    Background="{DynamicResource AccentFillColorDefaultBrush}">
+                                <ui:TextBlock Text="{Binding NewVersion, StringFormat='v{0}'}" FontSize="12" FontWeight="SemiBold"
+                                              Foreground="White"/>
+                            </Border>
+
+                            <ui:TextBlock Grid.Column="1"
+                                          Text="{Binding ReleaseDate, StringFormat='发布于 {0}'}"
+                                          FontSize="12"
+                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                          VerticalAlignment="Center" Margin="10,0,0,0"/>
+
+                            <ui:TextBlock Grid.Column="2"
+                                          Text="{Binding FileSizeDisplay}"
+                                          FontSize="12"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        </Grid>
+
+                        <!-- 更新日志 -->
+                        <Border Grid.Row="2" CornerRadius="8" Padding="14,10"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                Margin="0,0,0,16"
+                                MaxHeight="200">
+                            <StackPanel>
+                                <ui:TextBlock Text="更新内容" FontSize="11" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              Margin="0,0,0,8"/>
+                                <ItemsControl ItemsSource="{Binding Changelog}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Ellipse Grid.Column="0" Width="4" Height="4"
+                                                         Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                                                         VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <ui:TextBlock Grid.Column="1"
+                                                              Text="{Binding}"
+                                                              FontSize="12"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                              TextWrapping="Wrap"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 下载进度区域 -->
+                        <StackPanel Grid.Row="3"
+                                    Visibility="{Binding ShowProgressBar, Converter={StaticResource BoolToVis}}"
+                                    Margin="0,0,0,16">
+                            <!-- 下载详情：网速 + 大小 + 剩余时间 -->
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ui:TextBlock Grid.Column="0"
+                                              Text="{Binding SpeedDisplay}"
+                                              FontSize="12" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                                              VerticalAlignment="Center"/>
+
+                                <ui:TextBlock Grid.Column="1"
+                                              Text="{Binding SizeDisplay}"
+                                              FontSize="12"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center" Margin="12,0,0,0"/>
+
+                                <ui:TextBlock Grid.Column="2"
+                                              Text="{Binding EtaDisplay}"
+                                              FontSize="12"
+                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                              VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- 进度条 -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ProgressBar Grid.Column="0"
+                                             Minimum="0" Maximum="100"
+                                             Value="{Binding Progress}"
+                                             Height="6"
+                                             VerticalAlignment="Center"/>
+
+                                <ui:TextBlock Grid.Column="1"
+                                              Text="{Binding ProgressDisplay}"
+                                              FontSize="12"
+                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                              VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- 按钮行 -->
+                        <StackPanel Grid.Row="4" Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                            <ui:Button Content="稍后"
+                                       Appearance="Secondary"
+                                       Height="36" MinWidth="90" FontSize="13"
+                                       Margin="0,0,10,0"
+                                       Click="UpdateOverlay_Close"/>
+                            <ui:Button Content="{Binding ActionButtonText}"
+                                       Appearance="Primary"
+                                       Height="36" MinWidth="110" FontSize="13"
+                                       Click="UpdateOverlay_PrimaryClick"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
             </Grid>
