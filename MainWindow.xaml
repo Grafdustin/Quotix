@@ -432,9 +432,6 @@
                                 Margin="0,0,0,16"
                                 MaxHeight="200">
                             <StackPanel>
-                                <ui:TextBlock Text="更新内容" FontSize="11" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              Margin="0,0,0,8"/>
                                 <ItemsControl ItemsSource="{Binding Changelog}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
