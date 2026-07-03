@@ -68,15 +68,16 @@ Write-Host "Committing and pushing..." -ForegroundColor Yellow
 Set-Location $ProjectDir
 
 git add -A
-# 提交信息：第一行标题，后续行作为 body
-$commitLines = $CommitMessage -split "`n" | Where-Object { $_.Trim() -ne "" }
-$commitTitle = $commitLines[0].Trim()
-$commitBody = ($commitLines | Select-Object -Skip 1) -join "`n"
 
-if ($commitBody) {
-    git commit -m "$commitTitle" -m "$commitBody"
+# 解析提交信息：第一行做标题，其余做 body
+$allLines = ($CommitMessage -split "`n") | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ -ne "" }
+$title = if ($allLines.Count -gt 0) { $allLines[0] } else { "Update" }
+$body = if ($allLines.Count -gt 1) { ($allLines | Select-Object -Skip 1) -join "`n" } else { "" }
+
+if ($body) {
+    git commit -m $title -m $body
 } else {
-    git commit -m "$commitTitle"
+    git commit -m $title
 }
 
 if ($LASTEXITCODE -ne 0) {
