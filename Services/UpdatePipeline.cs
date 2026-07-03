@@ -297,7 +297,7 @@ namespace Quotix.Services
 
         /// <summary>
         /// 检查是否有新版本可用（带 5 分钟缓存）。
-        /// 使用 GitHub API（https://api.github.com），无 CDN 缓存。
+        /// 通过 GitHub API 获取最新 Release，下载 latest.yml 解析版本号和更新日志。
         /// </summary>
         /// <returns>更新信息，无更新则返回 null</returns>
         public async Task<UpdateInfo?> CheckForUpdatesAsync()
@@ -319,23 +319,29 @@ namespace Quotix.Services
                 using var doc    = await JsonDocument.ParseAsync(stream);
                 var           root  = doc.RootElement;
 
-                // 解析版本号
+                // 解析 tag_name（作为备用版本号）
                 var tagName = root.GetProperty("tag_name").GetString() ?? "";
-                var version  = tagName.TrimStart('v');
 
-                // 找安装包资产
-                string? downloadUrl = null;
-                long    fileSize    = 0;
+                // 遍历资产：找 latest.yml 和安装包
+                string? latestYmlUrl  = null;
+                string? downloadUrl   = null;
+                long    fileSize      = 0;
+
                 if (root.TryGetProperty("assets", out var assets))
                 {
                     foreach (var asset in assets.EnumerateArray())
                     {
                         var name = asset.GetProperty("name").GetString() ?? "";
-                        if (name.StartsWith("Quotix_Setup_", StringComparison.OrdinalIgnoreCase))
+                        var url  = asset.GetProperty("browser_download_url").GetString();
+
+                        if (name.Equals("latest.yml", StringComparison.OrdinalIgnoreCase))
                         {
-                            downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                            latestYmlUrl = url;
+                        }
+                        else if (name.StartsWith("Quotix_Setup_", StringComparison.OrdinalIgnoreCase))
+                        {
+                            downloadUrl = url;
                             fileSize    = asset.GetProperty("size").GetInt64();
-                            break;
                         }
                     }
                 }
@@ -352,14 +358,38 @@ namespace Quotix.Services
                     ? dt.ToString("yyyy-MM-dd")
                     : DateTime.Now.ToString("yyyy-MM-dd");
 
-                // 解析更新日志（从 Release Body 提取）
-                var body      = root.GetProperty("body").GetString() ?? "";
-                var changelog = ParseChangelog(body);
+                // 优先从 latest.yml 解析版本号和更新日志
+                string        version   = tagName.TrimStart('v');
+                ChangelogEntry[] changelog = Array.Empty<ChangelogEntry>();
+
+                if (!string.IsNullOrEmpty(latestYmlUrl))
+                {
+                    try
+                    {
+                        var ymlContent = await _httpClient.GetStringAsync(latestYmlUrl);
+                        var (ymlVersion, ymlChangelog) = ParseLatestYaml(ymlContent);
+                        if (!string.IsNullOrEmpty(ymlVersion))
+                            version = ymlVersion;
+                        changelog = ParseChangelog(ymlChangelog);
+                    }
+                    catch
+                    {
+                        // latest.yml 下载失败，回退到 Release body
+                        var body = root.GetProperty("body").GetString() ?? "";
+                        changelog = ParseChangelog(body);
+                    }
+                }
+                else
+                {
+                    // 没有 latest.yml，回退到 Release body
+                    var body = root.GetProperty("body").GetString() ?? "";
+                    changelog = ParseChangelog(body);
+                }
 
                 var updateInfo = new UpdateInfo
                 {
                     Version     = version,
-                    Build       = int.Parse(version.Replace(".", "")),
+                    Build       = int.TryParse(version.Replace(".", ""), out var b) ? b : 0,
                     ReleaseDate = releaseDate,
                     DownloadUrl = downloadUrl,
                     FileSize    = fileSize,
@@ -387,24 +417,68 @@ namespace Quotix.Services
         }
 
         /// <summary>
-        /// 从 Release Body 解析更新日志列表。
-        /// 支持 "- 内容" 和 "• 内容" 格式，也支持纯文本每行一条。
+        /// 解析 latest.yml 内容，提取版本号和更新日志文本。
         /// </summary>
-        private static string[] ParseChangelog(string body)
+        private static (string version, string changelog) ParseLatestYaml(string yaml)
         {
-            if (string.IsNullOrWhiteSpace(body))
-                return Array.Empty<string>();
+            string version = "";
+            var changelogBuilder = new StringBuilder();
+            var lines = yaml.Replace("\r\n", "\n").Split('\n');
+            bool inChangelog = false;
 
-            return body.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            foreach (var line in lines)
+            {
+                var trimmed = line.TrimStart();
+
+                if (!inChangelog && trimmed.StartsWith("version:"))
+                {
+                    version = trimmed.Substring(trimmed.IndexOf(':') + 1).Trim();
+                }
+                else if (!inChangelog && trimmed.StartsWith("changelog:"))
+                {
+                    var afterColon = trimmed.Substring(trimmed.IndexOf(':') + 1).Trim();
+                    if (afterColon == "|" || afterColon == "|-" || afterColon == "|+")
+                    {
+                        inChangelog = true;
+                    }
+                    else if (!string.IsNullOrEmpty(afterColon))
+                    {
+                        changelogBuilder.AppendLine(afterColon);
+                    }
+                }
+                else if (inChangelog)
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                        changelogBuilder.AppendLine();
+                    else
+                        changelogBuilder.AppendLine(line.TrimStart());
+                }
+            }
+
+            return (version, changelogBuilder.ToString().TrimEnd());
+        }
+
+        /// <summary>
+        /// 从 changelog 文本解析为 ChangelogEntry 数组。
+        /// # 开头的行作为章节头部，其余非空行作为内容。
+        /// </summary>
+        private static ChangelogEntry[] ParseChangelog(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return Array.Empty<ChangelogEntry>();
+
+            return text.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .Select(l => l.Trim())
                 .Where(l => !string.IsNullOrEmpty(l))
                 .Select(l =>
                 {
+                    if (l.StartsWith("#"))
+                        return new ChangelogEntry { IsHeader = true, Text = l.TrimStart('#').Trim() };
                     // 去掉常见的列表标记
-                    var s = l.TrimStart('-', '•', '*', ' ', '\t', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ')');
-                    return s;
+                    var content = l.TrimStart('-', '•', '*', ' ', '\t');
+                    return new ChangelogEntry { IsHeader = false, Text = content };
                 })
-                .Where(l => !string.IsNullOrEmpty(l) && l.Length > 1)
+                .Where(e => !string.IsNullOrEmpty(e.Text))
                 .ToArray();
         }
 
@@ -537,6 +611,6 @@ namespace Quotix.Services
         public bool Mandatory { get; set; }
 
         [JsonPropertyName("changelog")]
-        public string[] Changelog { get; set; } = Array.Empty<string>();
+        public ChangelogEntry[] Changelog { get; set; } = Array.Empty<ChangelogEntry>();
     }
 }

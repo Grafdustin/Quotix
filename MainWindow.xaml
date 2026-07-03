@@ -438,20 +438,39 @@
                                 <ItemsControl ItemsSource="{Binding Changelog}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid Margin="0,3,0,0">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Ellipse Grid.Column="0" Width="4" Height="4"
+                                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                                <!-- 圆点标记（仅内容行显示，头部行隐藏） -->
+                                                <Ellipse Width="4" Height="4"
                                                          Fill="{DynamicResource AccentFillColorDefaultBrush}"
-                                                         VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                <ui:TextBlock Grid.Column="1"
-                                                              Text="{Binding}"
+                                                         VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <ui:TextBlock Text="{Binding Text}"
                                                               FontSize="12"
-                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                              TextWrapping="Wrap"/>
-                                            </Grid>
+                                                              TextWrapping="Wrap"
+                                                              VerticalAlignment="Center">
+                                                    <ui:TextBlock.Style>
+                                                        <Style TargetType="ui:TextBlock">
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                                    <Setter Property="FontSize" Value="13"/>
+                                                                    <Setter Property="Margin" Value="0,6,0,2"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ui:TextBlock.Style>
+                                                </ui:TextBlock>
+                                            </StackPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

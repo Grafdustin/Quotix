@@ -81,8 +81,8 @@ public partial class UpdateState : ObservableObject
     /// <summary>发布日期</summary>
     [ObservableProperty] private string _releaseDate = "";
 
-    /// <summary>更新日志条目</summary>
-    [ObservableProperty] private string[] _changelog = Array.Empty<string>();
+    /// <summary>更新日志条目（支持章节头部）</summary>
+    [ObservableProperty] private ChangelogEntry[] _changelog = Array.Empty<ChangelogEntry>();
 
     /// <summary>是否显示取消按钮（下载中显示，点击取消下载）</summary>
     [ObservableProperty] private bool _isCancelVisible;
@@ -192,4 +192,16 @@ public partial class UpdateState : ObservableObject
         if (totalSeconds < 60) return $"{totalSeconds} 秒";
         return $"{totalSeconds / 60} 分 {totalSeconds % 60} 秒";
     }
+}
+
+/// <summary>
+/// 更新日志条目 — 支持章节头部（# 开头）和普通内容。
+/// </summary>
+public class ChangelogEntry
+{
+    /// <summary>是否为章节头部（对应 latest.yml 中 # 开头的行）</summary>
+    public bool IsHeader { get; set; }
+
+    /// <summary>条目文本</summary>
+    public string Text { get; set; } = "";
 }

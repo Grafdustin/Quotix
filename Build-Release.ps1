@@ -1,10 +1,10 @@
-﻿# Build-Release.ps1
+# Build-Release.ps1
 # Standard release process:
 #   1. Git commit (source changes)
 #   2. Version increment (in csproj)
 #   3. Build project + installer
-#   4. GitHub Release
-#   5. version.json (commit + push)
+#   4. GitHub Release (installer + latest.yml)
+#   5. latest.yml uploaded as Release asset
 
 param(
     [string]$CommitMessage,
@@ -32,16 +32,17 @@ try {
 if (-not $CommitMessage) {
     $tempFile = Join-Path $env:TEMP "quotix_commitmsg.txt"
     $instructions = @"
-# 请输入提交信息
-# 第一行作为标题，后续行作为更新日志（可多行）
-# 以 # 开头的行会被忽略
-# 保存并关闭记事本后脚本继续
+// 请输入提交信息
+// 第一行作为标题，后续行作为更新日志（可多行）
+// 以 # 开头的行作为章节标题（如：# 新功能）
+// 以 // 开头的行会被忽略
+// 保存并关闭记事本后脚本继续
 "@
     Set-Content $tempFile $instructions -Encoding UTF8
     Write-Host "即将打开记事本输入提交信息..." -ForegroundColor Cyan
     Start-Process notepad.exe $tempFile -Wait
 
-    $lines = Get-Content $tempFile -Encoding UTF8 | Where-Object { $_.Trim() -ne "" -and -not $_.StartsWith("#") }
+    $lines = Get-Content $tempFile -Encoding UTF8 | Where-Object { $_.Trim() -ne "" -and -not $_.StartsWith("//") }
     $CommitMessage = $lines -join "`n"
     Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
 
@@ -200,6 +201,30 @@ if (Test-Path $buildInstallerScript) {
     Write-Host "Warning: Cannot find Build-Installer.ps1, skipping installer build" -ForegroundColor Yellow
 }
 
+# 生成 latest.yml（版本号 + 更新日志）
+Write-Host ""
+Write-Host "Generating latest.yml..." -ForegroundColor Yellow
+
+$ymlContent = "version: $Version`n"
+$ymlContent += "changelog: |`n"
+if ($commitBody) {
+    foreach ($line in ($commitBody -split "`n")) {
+        $trimmedLine = $line.Trim()
+        if ($trimmedLine -ne "") {
+            $ymlContent += "  $trimmedLine`n"
+        }
+    }
+}
+
+$latestYmlPath = Join-Path $InstallerDir "Out\latest.yml"
+$ymlOutputDir = Join-Path $InstallerDir "Out"
+if (-not (Test-Path $ymlOutputDir)) {
+    New-Item -ItemType Directory -Path $ymlOutputDir -Force | Out-Null
+}
+Set-Content $latestYmlPath $ymlContent -Encoding UTF8 -NoNewline
+Write-Host "latest.yml generated: $latestYmlPath" -ForegroundColor Green
+Write-Host $ymlContent -ForegroundColor DarkGray
+
 # ========== Step 5: Create GitHub Release ==========
 Write-Host ""
 Write-Host "Step 5/5: Creating GitHub Release..." -ForegroundColor Yellow
@@ -280,7 +305,18 @@ Write-Host "Uploading installer..." -ForegroundColor Cyan
     --clobber
 
 if ($LASTEXITCODE -ne 0) {
-    throw "Failed to upload asset"
+    throw "Failed to upload installer"
+}
+
+# 上传 latest.yml
+Write-Host "Uploading latest.yml..." -ForegroundColor Cyan
+
+& $ghPath release upload $tag $latestYmlPath `
+    --repo $repoName `
+    --clobber
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to upload latest.yml"
 }
 
 Write-Host "Release ready!" -ForegroundColor Green
@@ -289,6 +325,9 @@ Write-Host ""
 Write-Host "=== Release process completed ===" -ForegroundColor Green
 if ($installerPath) {
     Write-Host "Installer: $installerPath" -ForegroundColor Cyan
+}
+if (Test-Path $latestYmlPath) {
+    Write-Host "latest.yml: $latestYmlPath" -ForegroundColor Cyan
 }
 } catch {
     Write-Host ""
