@@ -129,24 +129,28 @@ public partial class MainWindow : Window
         AppendLog("提交代码...");
         ProgressText.Text = "提交代码...";
 
-        var commitTitle = changelog.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .FirstOrDefault(l => !l.TrimStart().StartsWith("#"))?.Trim() ?? "Update";
-
         // git add
         var addResult = await RunCmdAsync("git", $"add -A", ct);
         AppendLog($"git add: {addResult}");
 
-        // 检查是否有变动
-        var diffResult = await RunCmdAsync("git", "diff --cached --quiet", ct);
-        var hasChanges = !addResult.Contains("error");
+        // 检查是否有变动（使用正确的 git diff --cached --quiet 退出码判断）
+        var (_, exitCode) = await RunGitCommandAsync("diff --cached --quiet", ct);
+        var hasChanges = exitCode != 0;
 
-        // 用文件传递提交信息
-        var msgFile = Path.Combine(Path.GetTempPath(), "quotix_commit_msg.txt");
-        var fullMsg = commitTitle + "\n\n" + changelog;
-        await File.WriteAllTextAsync(msgFile, fullMsg, Encoding.UTF8, ct);
+        if (!hasChanges)
+        {
+            AppendLog("警告：没有文件变动，跳过 commit");
+        }
+        else
+        {
+            // commit message 只用版本号和标题（不包含 changelog）
+            var commitTitle = $"Release v{version}";
+            var msgFile = Path.Combine(Path.GetTempPath(), "quotix_commit_msg.txt");
+            await File.WriteAllTextAsync(msgFile, commitTitle, Encoding.UTF8, ct);
 
-        var commitOutput = await RunCmdAsync("git", $"commit -F \"{msgFile}\"", ct);
-        AppendLog($"git commit: {commitOutput}");
+            var commitOutput = await RunCmdAsync("git", $"commit -F \"{msgFile}\"", ct);
+            AppendLog($"git commit: {commitOutput}");
+        }
 
         var pushOutput = await RunCmdAsync("git", "push origin main", ct);
         AppendLog($"git push: {pushOutput}");
@@ -175,7 +179,7 @@ public partial class MainWindow : Window
         {
             ct.ThrowIfCancellationRequested();
 
-            var runJson = await RunCmdAsync("gh", $"run list --repo {repo} --limit 1 --json status,conclusion", ct);
+            var runJson = await RunCmdAsync("gh", $"run list --repo {repo} --workflow build-and-release.yml --limit 1 --json status,conclusion", ct);
             if (!string.IsNullOrWhiteSpace(runJson))
             {
                 try
@@ -246,6 +250,32 @@ public partial class MainWindow : Window
             var error = proc.StandardError.ReadToEnd();
             proc.WaitForExit();
             return output + error;
+        }, ct);
+    }
+
+    private async Task<(string output, int exitCode)> RunGitCommandAsync(string args, CancellationToken ct)
+    {
+        return await Task.Run(() =>
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = args,
+                WorkingDirectory = _projectDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8
+            };
+
+            using var proc = Process.Start(psi);
+            if (proc == null) return ("无法启动进程", -1);
+            var output = proc.StandardOutput.ReadToEnd();
+            var error = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
+            return (output + error, proc.ExitCode);
         }, ct);
     }
 
