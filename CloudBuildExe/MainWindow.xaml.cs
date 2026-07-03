@@ -16,7 +16,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        _projectDir = Directory.GetCurrentDirectory();
+        // 使用 AppContext.BaseDirectory（单文件应用兼容）
+        _projectDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
         Loaded += OnLoaded;
     }
 
