@@ -83,9 +83,9 @@ public class HeaderService
     // ============ 批量导入（用于备份恢复）============
 
     /// <summary>批量导入负责人和客户数据（事务内执行）</summary>
-    public (int owners, int customers) ImportHeaderData(FullBackupData backup)
+    public (int owners, int customers) ImportHeaderData(List<Owner> owners, List<Customer> customers)
     {
-        var result = ImportOwnersAndCustomers(backup.Owners, backup.Customers);
+        var result = ImportOwnersAndCustomers(owners, customers);
         if (result.owners > 0 || result.customers > 0)
             _cache.InvalidateHeaders();
         return result;

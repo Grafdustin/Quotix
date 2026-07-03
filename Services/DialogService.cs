@@ -26,16 +26,6 @@ public class DialogService
     public bool ShowConfirm(string message, string title = "提示")
         => Show(title, message, SymbolRegular.QuestionCircle16, "确定", "取消") == WpfMessageBoxResult.Primary;
 
-    /// <summary>
-    /// 显示内嵌密码输入弹窗。
-    /// 返回用户输入的密码，用户取消时返回 null。
-    /// </summary>
-    public string? ShowPasswordPrompt(string title, string message, string? errorMessage = null)
-    {
-        var mainWindow = Application.Current?.MainWindow as MainWindow;
-        return mainWindow?.ShowInlinePasswordPrompt(title, message, errorMessage);
-    }
-
     // ============ 私有方法 ============
 
     /// <summary>通过 MainWindow 显示内嵌弹窗</summary>
