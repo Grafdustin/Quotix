@@ -262,7 +262,13 @@ $versionInfo | ConvertTo-Json -Depth 10 | Set-Content $versionJsonPath -Encoding
 if (-not $SkipGit) {
     git -C $ProjectDir add "$versionJsonPath"
     git -C $ProjectDir commit -m "Update version.json (v$Version)"
-    git -C $ProjectDir push origin main
+    # git push 使用 2>&1 避免 stderr 触发 Stop 错误
+    $pushResult = & git -C $ProjectDir push origin main 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Warning: git push failed, please push manually" -ForegroundColor Yellow
+    } else {
+        Write-Host "Pushed version.json to remote" -ForegroundColor Green
+    }
 }
 
 Write-Host ""
