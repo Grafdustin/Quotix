@@ -1,11 +1,11 @@
 ﻿{
-    "build":  1039,
-    "version":  "1.0.39",
+    "build":  1040,
+    "version":  "1.0.40",
     "changelog":  [
-                      "优化更新卡片·测试新功能·debug"
+                      "bebug"
                   ],
-    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.39/Quotix_Setup_1.0.39.exe",
+    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.40/Quotix_Setup_1.0.40.exe",
     "mandatory":  false,
     "releaseDate":  "2026-07-03",
-    "fileSize":  58002208
+    "fileSize":  58010496
 }
