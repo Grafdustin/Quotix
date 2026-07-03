@@ -287,12 +287,14 @@ public partial class MainWindow : Window
 
         // 监控特定的 run ID
         AppendLog($"开始监控 run #{runId}...");
+        AppendLog($"查看详情：https://github.com/{repo}/actions/runs/{runId}");
+
         while (DateTime.Now - startTime < maxWait)
         {
             ct.ThrowIfCancellationRequested();
 
-            // 使用 gh run view 监控特定的 run
-            var runJson = await RunCmdAsync("gh", $"run view {runId} --repo {repo} --json status,conclusion", ct);
+            // 使用 gh run view 监控特定的 run（获取更多详细信息）
+            var runJson = await RunCmdAsync("gh", $"run view {runId} --repo {repo} --json status,conclusion,steps", ct);
 
             if (!string.IsNullOrWhiteSpace(runJson) && runJson.TrimStart().StartsWith("{"))
             {
@@ -302,6 +304,21 @@ public partial class MainWindow : Window
                     var run = doc.RootElement;
                     var status = run.GetProperty("status").GetString();
                     var conclusion = run.TryGetProperty("conclusion", out var c) ? c.GetString() : null;
+
+                    // 解析步骤信息（显示当前正在执行的步骤）
+                    if (run.TryGetProperty("steps", out var steps))
+                    {
+                        foreach (var step in steps.EnumerateArray())
+                        {
+                            var stepStatus = step.GetProperty("status").GetString();
+                            if (stepStatus == "in_progress")
+                            {
+                                var stepName = step.GetProperty("name").GetString();
+                                AppendLog($"当前步骤：{stepName}");
+                                break;
+                            }
+                        }
+                    }
 
                     // 只在状态变化时更新日志
                     if (status != lastStatus)
@@ -327,8 +344,9 @@ public partial class MainWindow : Window
                             ProgressText.Text = "构建完成！";
                             AppendLog("✅ 构建成功！");
                             AppendLog($"下载：https://github.com/{repo}/releases/tag/v{version}");
+                            AppendLog($"查看构建详情：https://github.com/{repo}/actions/runs/{runId}");
                             MessageBox.Show(
-                                $"构建成功！\n\n下载地址：\nhttps://github.com/{repo}/releases/tag/v{version}",
+                                $"构建成功！\n\n下载地址：\nhttps://github.com/{repo}/releases/tag/v{version}\n\n构建详情：\nhttps://github.com/{repo}/actions/runs/{runId}",
                                 "完成", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         else
@@ -336,6 +354,14 @@ public partial class MainWindow : Window
                             ProgressText.Text = "构建失败";
                             AppendLog($"❌ 构建失败：{conclusion}");
                             AppendLog($"查看详情：https://github.com/{repo}/actions/runs/{runId}");
+
+                            // 获取失败日志
+                            AppendLog("正在获取失败日志...");
+                            var logs = await RunCmdAsync("gh", $"run view {runId} --repo {repo} --log-failed", ct);
+                            if (!string.IsNullOrWhiteSpace(logs))
+                            {
+                                AppendLog($"失败日志：\n{logs}");
+                            }
                         }
                         return;
                     }
