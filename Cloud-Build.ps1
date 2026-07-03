@@ -76,6 +76,22 @@ if ($Version -ne $currentVersion) {
     Write-Host "Version unchanged ($Version), skipping csproj update" -ForegroundColor Yellow
 }
 
+# ========== Step 3.5: 生成本地 latest.yml（推送到仓库，供 GitHub Actions 读取）==========
+Write-Host "Generating latest.yml..." -ForegroundColor Yellow
+$installerOutDir = Join-Path $ProjectDir "Installer\Out"
+if (-not (Test-Path $installerOutDir)) {
+    New-Item -ItemType Directory -Path $installerOutDir -Force | Out-Null
+}
+$ymlContent = "version: $Version`n"
+$ymlContent += "changelog: |`n"
+$allLines = ($CommitMessage -split "`n") | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ -ne "" }
+foreach ($line in $allLines) {
+    $ymlContent += "  $line`n"
+}
+$latestYmlPath = Join-Path $installerOutDir "latest.yml"
+Set-Content $latestYmlPath $ymlContent -Encoding UTF8 -NoNewline
+Write-Host "latest.yml generated: $latestYmlPath" -ForegroundColor Green
+
 # ========== Step 4: Git commit & push ==========
 Write-Host "Committing and pushing..." -ForegroundColor Yellow
 Set-Location $ProjectDir

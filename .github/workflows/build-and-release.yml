@@ -29,11 +29,36 @@ jobs:
       run: |
         $version = "${{ github.ref_name }}".TrimStart('v')
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-        # 从 commit message 提取 changelog（跳过第一行标题）
-        $commitBody = git log -1 --format="%b"
+
+        # 优先从仓库里的 latest.yml 读取 changelog
+        $changelog = ""
+        if (Test-Path "Installer/Out/latest.yml") {
+          Write-Host "Found latest.yml in repo, reading changelog..."
+          $ymlContent = Get-Content "Installer/Out/latest.yml" -Encoding UTF8
+          $inChangelog = $false
+          foreach ($line in $ymlContent) {
+            if ($line -match '^changelog:\s*\|') {
+              $inChangelog = $true
+              continue
+            }
+            if ($inChangelog) {
+              # 去掉前面的 2 个空格缩进
+              $cleanLine = $line -replace '^\s{2}', ''
+              if ($cleanLine -ne "") {
+                $changelog += $cleanLine + "`n"
+              }
+            }
+          }
+        } else {
+          # 回退：从 commit message 提取 changelog
+          Write-Host "latest.yml not found, reading from commit message..."
+          $changelog = git log -1 --format="%b"
+        }
+
         echo "CHANGELOG<<EOF" >> $env:GITHUB_OUTPUT
-        echo "$commitBody" >> $env:GITHUB_OUTPUT
+        echo "$changelog" >> $env:GITHUB_OUTPUT
         echo "EOF" >> $env:GITHUB_OUTPUT
+        Write-Host "Changelog extracted: $changelog"
       shell: pwsh
 
     - name: Restore dependencies
