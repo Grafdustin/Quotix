@@ -16,9 +16,26 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        // 使用 AppContext.BaseDirectory（单文件应用兼容）
-        _projectDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+        // 查找项目根目录（包含 QuotixDesktop.csproj 的目录）
+        _projectDir = FindProjectDir(AppContext.BaseDirectory);
         Loaded += OnLoaded;
+    }
+
+    private static string FindProjectDir(string startDir)
+    {
+        var dir = startDir;
+        while (!string.IsNullOrEmpty(dir))
+        {
+            if (File.Exists(Path.Combine(dir, "QuotixDesktop.csproj")))
+            {
+                return dir;
+            }
+            var parent = Directory.GetParent(dir);
+            if (parent == null) break;
+            dir = parent.FullName;
+        }
+        // 如果找不到，返回 EXE 所在目录
+        return startDir;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
