@@ -156,23 +156,25 @@
                         </ui:NavigationView.MenuItems>
 
                         <ui:NavigationView.FooterMenuItems>
-                            <ui:NavigationViewItem Content="设置"
-                                Tag="settings"
+                            <ui:NavigationViewItem Tag="settings"
                                 Click="OnNavItemClick">
                                 <ui:NavigationViewItem.Icon>
-                                    <Grid>
-                                        <ui:SymbolIcon Symbol="Settings24"/>
+                                    <ui:SymbolIcon Symbol="Settings24"/>
+                                </ui:NavigationViewItem.Icon>
+                                <ui:NavigationViewItem.Content>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="设置"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                         <!-- 更新提示红点：有可用更新时显示 -->
                                         <Border x:Name="UpdateRedDot"
                                                 Width="8" Height="8"
                                                 Background="#FF3B30"
                                                 CornerRadius="4"
-                                                HorizontalAlignment="Right"
-                                                VerticalAlignment="Top"
-                                                Margin="0,-4,-4,0"
+                                                Margin="6,0,0,0"
+                                                VerticalAlignment="Center"
                                                 Visibility="Collapsed"/>
-                                    </Grid>
-                                </ui:NavigationViewItem.Icon>
+                                    </StackPanel>
+                                </ui:NavigationViewItem.Content>
                             </ui:NavigationViewItem>
                         </ui:NavigationView.FooterMenuItems>
                     </ui:NavigationView>
