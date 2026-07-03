@@ -192,12 +192,12 @@ namespace Quotix.Services
                     "echo Cleaning up...",
                     $"del \"{installerPath}\" /Q 2>nul",
                     "",
-                    "REM 删除此批处理脚本（延迟删除，等自身执行完毕）",
-                    $"(goto) 2>nul & del \"%~f0\"",
-                    "",
                     "REM 启动新版本的应用（指定工作目录）",
                     "echo Starting Quotix...",
                     $"start \"\" /d \"{exeDir}\" \"{currentExePath}\"",
+                    "",
+                    "REM 延迟删除此批处理脚本自身",
+                    $"(goto) 2>nul & del \"%~f0\"",
                     "",
                     "exit"
                 };
