@@ -1,0 +1,12 @@
+{
+  "version": "1.0.20",
+  "build": "2025070301",
+  "releaseDate": "2026-07-03",
+  "downloadUrl": "https://github.com/Evans406/QuotixDesktop/releases/download/v1.0.20/Quotix_Setup_1.0.20.exe",
+  "fileSize": 58171001,
+  "mandatory": false,
+  "changelog": [
+    "增加自动检测更新功能：设置页开关 + 红色升级箭头提示",
+    "优化 version.json 字段顺序"
+  ]
+}
