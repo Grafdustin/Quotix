@@ -1,11 +1,11 @@
 ﻿{
-    "build":  1047,
-    "version":  "1.0.47",
+    "build":  1048,
+    "version":  "1.0.48",
     "changelog":  [
-                      "debug` 测试新功能"
+                      "debug"
                   ],
-    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.47/Quotix_Setup_1.0.47.exe",
+    "downloadUrl":  "https://github.com/Grafdustin/Quotix/releases/download/v1.0.48/Quotix_Setup_1.0.48.exe",
     "mandatory":  false,
     "releaseDate":  "2026-07-03",
-    "fileSize":  58010783
+    "fileSize":  58011084
 }
