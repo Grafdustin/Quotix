@@ -241,18 +241,21 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Release ready!" -ForegroundColor Green
 
 # ========== version.json（只在成功后写） ==========
-$versionInfo = @{
+# 计算 build 号：1.0.22 -> 1022
+$buildNumber = [int]($Version -replace '\D', '')
+
+$versionInfo = [Ordered]@{
     version      = $Version
+    build        = $buildNumber
     releaseDate  = Get-Date -Format "yyyy-MM-dd"
-    releaseNotes = $CommitMessage
     downloadUrl  = "https://github.com/$repoName/releases/download/v$Version/Quotix_Setup_$Version.exe"
-    fileSize     = "$([math]::Round((Get-Item $installerPath).Length / 1MB, 2))MB"
+    fileSize     = (Get-Item $installerPath).Length
     mandatory    = $false
-    whatsNew     = @($CommitMessage)
+    changelog    = @($CommitMessage)
 }
 
-$versionJsonPath = Join-Path $ProjectDir "Resources\version.json"
-$versionInfo | ConvertTo-Json -Depth 10 | Set-Content $versionJsonPath -Encoding UTF8
+$versionJsonPath = Join-Path $ProjectDir "version.json"
+$versionInfo | ConvertTo-Json -Compress | Set-Content $versionJsonPath -Encoding UTF8
 
 if (-not $SkipGit) {
     git -C $ProjectDir add "$versionJsonPath"
