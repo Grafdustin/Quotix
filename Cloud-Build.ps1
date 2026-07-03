@@ -139,10 +139,51 @@ if ($LASTEXITCODE -ne 0) {
     throw "Failed to push tag v$Version"
 }
 
+# ========== Step 6: 监控 GitHub Actions 进度 ==========
 Write-Host ""
 Write-Host "=== Build triggered! ===" -ForegroundColor Green
-Write-Host "Watch progress:" -ForegroundColor Cyan
-Write-Host "  https://github.com/Grafdustin/Quotix/actions" -ForegroundColor Blue
+Write-Host "Monitoring GitHub Actions progress..." -ForegroundColor Cyan
 Write-Host ""
-Write-Host "When ready, download from:" -ForegroundColor Cyan
+
+$repo = "Grafdustin/Quotix"
+$maxWaitMinutes = 10
+$elapsed = 0
+
+while ($elapsed -lt $maxWaitMinutes) {
+    # 获取最新一次运行的状态
+    $runData = gh run list --repo $repo --limit 1 --json status,conclusion,name 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $run = $runData | ConvertFrom-Json
+        $status = $run.status
+        $conclusion = $run.conclusion
+
+        # 清屏刷新（保留标题）
+        Write-Host ("`r" + " " * 80 + "`r") -NoNewline
+        Write-Host "Status: $status" -NoNewline
+
+        if ($status -eq "completed") {
+            if ($conclusion -eq "success") {
+                Write-Host ""
+                Write-Host "=== Build completed successfully! ===" -ForegroundColor Green
+                Write-Host "Download:" -ForegroundColor Cyan
+                Write-Host "  https://github.com/$repo/releases/tag/v$Version" -ForegroundColor Blue
+                break
+            } else {
+                Write-Host ""
+                Write-Host "=== Build failed: $conclusion ===" -ForegroundColor Red
+                Write-Host "Check logs: https://github.com/$repo/actions" -ForegroundColor Yellow
+                break
+            }
+        }
+    }
+
+    Start-Sleep -Seconds 15
+    $elapsed++
+}
+
+if ($elapsed -ge $maxWaitMinutes) {
+    Write-Host ""
+    Write-Host "Timed out waiting for build. Check manually:" -ForegroundColor Yellow
+    Write-Host "  https://github.com/$repo/actions" -ForegroundColor Blue
+}
 Write-Host "  https://github.com/Grafdustin/Quotix/releases/tag/v$Version" -ForegroundColor Blue
