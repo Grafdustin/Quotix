@@ -160,6 +160,9 @@
                             <ui:NavigationViewItem x:Name="UpdateNavItem" Tag="update"
                                 Click="OnUpdateItemClick"
                                 Visibility="Collapsed">
+                                <ui:NavigationViewItem.Icon>
+                                    <ui:SymbolIcon Symbol="ArrowUp16" Foreground="#FF3B30"/>
+                                </ui:NavigationViewItem.Icon>
                                 <ui:NavigationViewItem.Content>
                                     <ui:TextBlock Text="更新" Foreground="#FF3B30"/>
                                 </ui:NavigationViewItem.Content>

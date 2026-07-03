@@ -81,7 +81,7 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
-    /// 更新箭头按钮显示内容：空闲时显示"更新"，下载中显示进度百分比。
+    /// 更新按钮显示内容：空闲时显示"更新"，下载中显示进度百分比。
     /// </summary>
     private void UpdateArrowButton()
     {
@@ -94,7 +94,6 @@ public partial class MainWindow : FluentWindow
                 Orientation = Orientation.Vertical,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
-            var arrowIcon = new SymbolIcon { Symbol = SymbolRegular.ArrowUp16, Foreground = Brushes.Red };
             _arrowText = new System.Windows.Controls.TextBlock
             {
                 FontSize = 10,
@@ -102,7 +101,6 @@ public partial class MainWindow : FluentWindow
                 Foreground = Brushes.Red,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
-            sp.Children.Add(arrowIcon);
             sp.Children.Add(_arrowText);
             UpdateNavItem.Content = sp;
         }
