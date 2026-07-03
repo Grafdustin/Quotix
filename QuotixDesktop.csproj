@@ -6,11 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>Quotix</AssemblyName>
-    <Version>1.0.38</Version>
-    <!-- AssemblyVersion: 婵犵數鍎戠徊钘壝洪敂鐐床闁告劦浜栭崑鎾诲垂椤愶絺鎷荤紓渚囧枟閻熲晛鐣峰鈧幊鐘活敆娴ｅ湱妲ラ梻鍌欑劍鐎笛呯矙閹寸偟闄勯柡鍐ㄥ€荤粻鏂款熆閼搁潧濮堥柍閿嬫礋閻擃偊宕堕妸锔规嫽濠碘€崇湴閸斿秶鎹㈠☉銏犲耿闊洤锕ゆ禍楣冩煕閹邦垰鐨虹€光偓濞戙垺鐓熼柕蹇婃櫅閻忕娀鏌涢悢鍛婂唉闁糕斁鍋撳銈嗗笂缁€浣虹箔閹烘挶浜滈柕鍫濇噹閺嗭綁鏌℃担鍝バх€规洖銈搁弫鎰償閳╁喚鍚樻繝鐢靛仦閸ㄥ爼寮婚妸鈹у洭顢涘┃鎯т壕闁割煈鍋嗛崣鈧梺璇″暙閸パ囧敹闂佺粯鏌ㄩ幉锛勨偓姘▕濮婃椽宕崟顓烆暤闂佺顑嗛幐鎼佹箒闂佹寧绻傞幊搴ㄥ汲闁秵鐓熼柕鍫濇噹椤忣偊鏌熼悷鏉款伀闁哥姴锕ュ鍕暆閳ь剟藝?-->
+    <Version>1.0.39</Version>
+    <!-- AssemblyVersion: 濠电姷鏁搁崕鎴犲緤閽樺娲晜閻愵剙搴婇梺鍛婂姦娴滄牠宕戦幘璇插瀭妞ゆ劧绲洪幏鑽ょ磽娓氬洤鏋熼柣鐔叉櫅閻ｅ嘲顫滈埀顒勫箠閻樻椿鏁嗗ù锝呮贡濡层儵姊婚崒娆戝妽閻庣瑳鍛煓闁瑰鍋熼梽鍕煛閸愩劌鈧崵绮婚弬娆剧唵闁兼悂娼ф慨鍫ユ煃闁垮绀嬮柣鎿冨亰瀹曞爼濡搁敂瑙勫婵犵鈧磭婀撮柛鏂跨Ф閹广垹鈽夐姀鐘茶€块棅顐㈡搐閿曘倖绂嶆ィ鍐╃厱闁归偊鍨伴惃铏光偓鍏夊亾婵炴垯鍨洪悡鐔兼煏韫囧﹥娅呴柣蹇曞█閺屾盯鎮㈤崨濠傚攭闂佺硶鏂侀崑鎾愁渻閵堝棗绗傜紒鈧担铏圭當闁圭儤鎸舵禍婊堟煏閸繃鍣归柡鍡秮閺屸剝鎷呴崫銉愌呪偓瑙勬礀閵堟悂寮幇顓熷劅闁斥晛鍠氶崥妯荤節閻㈤潧浠﹂柛銊ョ埣瀵濡搁埞褍娲、娑樷攦閹傚闂佸壊鐓堥崑鍡涘矗閳ь剟姊虹拠鈥虫殭闁搞儜鍥ф暪闂備胶绮弻銊╁箟閿涘嫧鍋撳顓炩枙婵﹥妞藉畷顐﹀礋椤撶儐鏆ら梻浣侯焾椤戝棝骞愰幖浣圭畳闂備焦瀵х换鍌炲箠鎼淬劌姹查梺顒€绉甸悡鐔兼煏閸繃鍣规い蹇ｅ亰閺岀喖鎮烽弶娆句紑闂佸摜濮撮敃銉ヮ嚗閸曨偆鏆嗛柍褜鍓熻棟?-->
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.38.0</FileVersion>
-    <InformationalVersion>1.0.38</InformationalVersion>
+    <FileVersion>1.0.39.0</FileVersion>
+    <InformationalVersion>1.0.39</InformationalVersion>
     <Company>NISYO</Company>
     <Copyright>Copyright (C) 2026 NISYO</Copyright>
     <PublishSingleFile>false</PublishSingleFile>
