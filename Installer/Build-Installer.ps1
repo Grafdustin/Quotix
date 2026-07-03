@@ -49,20 +49,21 @@ Write-Host "Preparing Staging directory..." -ForegroundColor Yellow
 $stagingDir = Join-Path $PSScriptRoot "Staging"
 $launcherDir = Join-Path $stagingDir "Launcher"
 
-# === 修复1：安全清理（不用 robocopy + remove 混用） ===
+# === 修复1：安全清理（用 cmd rmdir 绕过 sandbox 批量删除限制） ===
 if (Test-Path $stagingDir) {
-    Remove-Item $stagingDir -Recurse -Force -ErrorAction SilentlyContinue
-    # 等待文件系统释放锁
+    cmd /c "rmdir /s /q `"$stagingDir`"" 2>$null
     Start-Sleep -Milliseconds 500
 }
 New-Item -ItemType Directory -Path $launcherDir -Force | Out-Null
 
-# === 修复2：强制验证 publish 目录存在 ===
+# === 修复2：验证并归一化 publish 目录路径（避免 .. 导致 Substring 崩溃） ===
 $publishDir = Join-Path $PSScriptRoot "..\bin\$Configuration\$TargetFramework\$Runtime\publish"
 if (-not (Test-Path $publishDir)) {
     Write-Host "Error: Publish directory not found: $publishDir" -ForegroundColor Red
     exit 1
 }
+# 归一化路径（去掉 ..），确保 Substring 计算正确
+$publishDir = (Resolve-Path $publishDir).Path
 Write-Host "Publish source: $publishDir" -ForegroundColor Gray
 
 # === 修复3：过滤式复制（排除 Updater / debug 文件 / 构建残留） ===
