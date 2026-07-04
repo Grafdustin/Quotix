@@ -102,23 +102,33 @@ jobs:
         & "$iscc" /DMyAppVersion=${{ steps.meta.outputs.VERSION }} Installer/QuotixInstaller.iss
       shell: pwsh
 
-    - name: Generate latest.yml
+    - name: Prepare latest.yml
       run: |
-        $version = "${{ steps.meta.outputs.VERSION }}"
-        $changelog = "${{ steps.meta.outputs.CHANGELOG }}"
-        $ymlContent = "version: $version`n"
-        $ymlContent += "changelog: |`n"
-        if ($changelog) {
-          foreach ($line in ($changelog -split "`n")) {
-            $trimmed = $line.Trim()
-            if ($trimmed -ne "") {
-              $ymlContent += "  $trimmed`n"
+        # 使用 Cloud-Build.ps1 提交的 latest.yml，复制到 Installer/Out/
+        $outDir = "Installer/Out"
+        if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
+        if (Test-Path "latest.yml") {
+          Copy-Item "latest.yml" "$outDir/latest.yml" -Force
+          Write-Host "latest.yml copied from repo root:"
+          Get-Content "$outDir/latest.yml"
+        } else {
+          Write-Host "Warning: latest.yml not found in repo root, generating from changelog..."
+          $version = "${{ steps.meta.outputs.VERSION }}"
+          $changelog = "${{ steps.meta.outputs.CHANGELOG }}"
+          $ymlContent = "version: $version`n"
+          $ymlContent += "changelog: |`n"
+          if ($changelog) {
+            foreach ($line in ($changelog -split "`n")) {
+              $trimmed = $line.Trim()
+              if ($trimmed -ne "") {
+                $ymlContent += "  $trimmed`n"
+              }
             }
           }
+          Set-Content -Path "$outDir/latest.yml" -Value $ymlContent -Encoding UTF8 -NoNewline
+          Write-Host "latest.yml generated from changelog:"
+          Get-Content "$outDir/latest.yml"
         }
-        Set-Content -Path "Installer/Out/latest.yml" -Value $ymlContent -Encoding UTF8 -NoNewline
-        Write-Host "latest.yml generated:"
-        Get-Content "Installer/Out/latest.yml"
       shell: pwsh
 
     - name: Generate Release Notes

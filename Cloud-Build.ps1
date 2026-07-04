@@ -73,7 +73,25 @@ Write-Host "Title   : $commitTitle" -ForegroundColor Cyan
 Write-Host "Body    : $commitBody" -ForegroundColor Cyan
 Write-Host ""
 
-# ========== Step 3: 更新 csproj 版本号（仅当版本号变化时）==========
+# ========== Step 3: 生成 latest.yml ==========
+Write-Host "Generating latest.yml..." -ForegroundColor Yellow
+
+$latestYmlPath = Join-Path $ProjectDir "latest.yml"
+$ymlContent = "version: $Version`n"
+$ymlContent += "changelog: |`n"
+if ($commitBody) {
+    foreach ($line in ($commitBody -split "`n")) {
+        $trimmedLine = $line.Trim()
+        if ($trimmedLine -ne "") {
+            $ymlContent += "  $trimmedLine`n"
+        }
+    }
+}
+Set-Content $latestYmlPath $ymlContent -Encoding UTF8 -NoNewline
+Write-Host "latest.yml generated: $latestYmlPath" -ForegroundColor Green
+Write-Host $ymlContent -ForegroundColor DarkGray
+
+# ========== Step 4: 更新 csproj 版本号（仅当版本号变化时）==========
 if ($Version -ne $currentVersion) {
     Write-Host "Updating csproj version..." -ForegroundColor Yellow
     $csprojPath = Join-Path $ProjectDir "QuotixDesktop.csproj"
@@ -86,7 +104,7 @@ if ($Version -ne $currentVersion) {
     Write-Host "Version unchanged ($Version), skipping csproj update" -ForegroundColor Yellow
 }
 
-# ========== Step 4: Git commit & push ==========
+# ========== Step 5: Git commit & push ==========
 Write-Host "Committing and pushing..." -ForegroundColor Yellow
 Set-Location $ProjectDir
 
@@ -117,7 +135,7 @@ if ($LASTEXITCODE -ne 0 -and $gitOutput -notmatch "Everything up-to-date") {
 }
 Write-Host "Pushed to main" -ForegroundColor Green
 
-# ========== Step 5: 创建并推送 tag 触发 GitHub Actions ==========
+# ========== Step 6: 创建并推送 tag 触发 GitHub Actions ==========
 Write-Host "Creating tag v$Version to trigger GitHub Actions..." -ForegroundColor Yellow
 
 # 检查 tag 是否已存在，若存在则删除（支持重新触发）
