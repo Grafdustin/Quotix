@@ -50,8 +50,14 @@ if (-not $CommitMessage) {
     Write-Host "Opening notepad for changelog..." -ForegroundColor Cyan
     Start-Process notepad.exe $tempFile -Wait
 
-    $lines = Get-Content $tempFile -Encoding UTF8 | Where-Object { $_.Trim() -ne "" -and -not $_.StartsWith("//") }
-    $CommitMessage = $lines -join "`n"
+    # 读取用户输入（过滤掉空行、注释行、提示行）
+    $lines = Get-Content $tempFile -Encoding UTF8 | Where-Object { 
+        $_.Trim() -ne "" -and 
+        -not $_.StartsWith("//") -and 
+        -not $_.StartsWith("#") 
+    }
+    # 使用环境的默认换行符连接（Windows 用 \r\n，Linux/Mac 用 \n）
+    $CommitMessage = $lines -join [Environment]::NewLine
     Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
 
     if (-not $CommitMessage) {
