@@ -41,20 +41,19 @@ if ($Version -notmatch '^\d+\.\d+\.\d+$') {
 if (-not $CommitMessage) {
     $tempFile = Join-Path $env:TEMP "quotix_changelog.txt"
     $instructions = @"
-# 请输入更新日志
-# 以 # 开头的行作为章节标题（如：# 新功能）
-# 以 // 开头的行会被忽略
-# 保存并关闭记事本后脚本继续
+// 请输入更新日志
+// 以 # 开头的行作为章节标题（如：# 新功能）
+// 以 // 开头的行会被忽略
+// 保存并关闭记事本后脚本继续
 "@
     Set-Content $tempFile $instructions -Encoding UTF8
     Write-Host "Opening notepad for changelog..." -ForegroundColor Cyan
     Start-Process notepad.exe $tempFile -Wait
 
-    # 读取用户输入（过滤掉空行、注释行、提示行）
+    # 读取用户输入（过滤掉空行、以 // 开头的行）
     $lines = Get-Content $tempFile -Encoding UTF8 | Where-Object { 
         $_.Trim() -ne "" -and 
-        -not $_.StartsWith("//") -and 
-        -not $_.StartsWith("#") 
+        -not $_.StartsWith("//") 
     }
     # 使用环境的默认换行符连接（Windows 用 \r\n，Linux/Mac 用 \n）
     $CommitMessage = $lines -join [Environment]::NewLine
