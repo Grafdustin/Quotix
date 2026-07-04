@@ -8,73 +8,41 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="32,28,32,36">
 
-                <!-- ═══════════════ 顶部工具栏 ═══════════════ -->
-                <Border Style="{StaticResource AppCardModern}"
-                        Padding="20,16" Margin="0,0,0,20">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                <!-- ═══════════════ 页面标题区 ═══════════════ -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                        <!-- 左侧：快速输入 + 币种 + 文件名 -->
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- 快速输入 -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
-                                <ui:TextBlock Text="快速输入" FontSize="12" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <ui:Button x:Name="QuickNDTButton" Content="NDT"
-                                           MinWidth="56" Height="34" FontSize="13"
-                                           Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance}, ConverterParameter=NDT}"
-                                           Click="QuickNDTButton_Click"/>
-                                <ui:Button x:Name="QuickRVIButton" Content="RVI"
-                                           MinWidth="56" Height="34" FontSize="13" Margin="6,0,0,0"
-                                           Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance}, ConverterParameter=RVI}"
-                                           Click="QuickRVIButton_Click"/>
-                            </StackPanel>
-
-                            <Border Width="1" Margin="0,6" VerticalAlignment="Stretch"
-                                    Background="{DynamicResource CardStrokeColorDefaultBrush}"/>
-
-                            <!-- 币种 -->
-                            <StackPanel Orientation="Horizontal" Margin="20,0,16,0">
-                                <ui:TextBlock Text="币种" FontSize="12" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <ui:Button Content="¥ RMB" Height="34" MinWidth="72" FontSize="13"
-                                           Command="{Binding SwitchCurrencyCommand}" CommandParameter="RMB"
-                                           Appearance="{Binding Currency, Converter={StaticResource CurrencyBg}, ConverterParameter=RMB}"/>
-                                <ui:Button Content="$ USD" Height="34" MinWidth="72" FontSize="13" Margin="6,0,0,0"
-                                           Command="{Binding SwitchCurrencyCommand}" CommandParameter="USD"
-                                           Appearance="{Binding Currency, Converter={StaticResource CurrencyBg}, ConverterParameter=USD}"/>
-                            </StackPanel>
-
-                            <Border Width="1" Margin="0,6" VerticalAlignment="Stretch"
-                                    Background="{DynamicResource CardStrokeColorDefaultBrush}"/>
-
-                            <!-- 文件名 -->
-                            <StackPanel Orientation="Horizontal" Margin="16,0,0,0">
-                                <ui:TextBlock Text="文件名" FontSize="12" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <ui:TextBox Text="{Binding Filename, UpdateSourceTrigger=PropertyChanged}"
-                                            Width="180" Height="34" VerticalContentAlignment="Center"
-                                            FontSize="13"/>
-                            </StackPanel>
-                        </StackPanel>
-
-                        <!-- 右侧：日期（日历选择） -->
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <ui:TextBlock Text="日期" FontSize="12" FontWeight="SemiBold"
+                    <!-- 左侧：页面标题 -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="40" Height="40" CornerRadius="10"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="DocumentAdd24" FontSize="20"
+                                           Foreground="{DynamicResource AccentFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                            <ui:TextBlock Text="新建报价单" FontSize="20" FontWeight="Bold"
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <ui:TextBlock Text="创建并保存一份新的报价单" FontSize="12"
                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                          VerticalAlignment="Center" Margin="0,0,10,0"/>
-                            <DatePicker x:Name="QuoteDatePicker"
-                                        SelectedDate="{Binding QuoteDateValue}"
-                                        Width="160" Height="34" FontSize="13"
-                                        VerticalContentAlignment="Center"
-                                        Loaded="QuoteDatePicker_Loaded">
+                                          Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- 右侧：日期选择 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:TextBlock Text="日期" FontSize="12" FontWeight="Medium"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <DatePicker x:Name="QuoteDatePicker"
+                                    SelectedDate="{Binding QuoteDateValue}"
+                                    Width="160" Height="34" FontSize="13"
+                                    VerticalContentAlignment="Center"
+                                    Loaded="QuoteDatePicker_Loaded">
                                 <DatePicker.Template>
                                     <ControlTemplate TargetType="DatePicker">
                                         <ControlTemplate.Resources>
@@ -221,6 +189,57 @@
                             </DatePicker>
                         </StackPanel>
                     </Grid>
+                </Grid>
+
+                <!-- ═══════════════ 工具栏：数据源 + 币种 + 文件名 ═══════════════ -->
+                <Border Style="{StaticResource AppCardModern}"
+                        Padding="20,16" Margin="0,0,0,20">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                        <!-- 数据源（快速输入） -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
+                            <ui:TextBlock Text="数据源" FontSize="12" FontWeight="Medium"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <ui:Button x:Name="QuickNDTButton" Content="NDT"
+                                       MinWidth="56" Height="34" FontSize="13"
+                                       Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance}, ConverterParameter=NDT}"
+                                       Click="QuickNDTButton_Click"/>
+                            <ui:Button x:Name="QuickRVIButton" Content="RVI"
+                                       MinWidth="56" Height="34" FontSize="13" Margin="6,0,0,0"
+                                       Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance}, ConverterParameter=RVI}"
+                                       Click="QuickRVIButton_Click"/>
+                        </StackPanel>
+
+                        <Border Width="1" Margin="0,6" VerticalAlignment="Stretch"
+                                Background="{DynamicResource CardStrokeColorDefaultBrush}"/>
+
+                        <!-- 币种 -->
+                        <StackPanel Orientation="Horizontal" Margin="20,0,16,0">
+                            <ui:TextBlock Text="币种" FontSize="12" FontWeight="Medium"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <ui:Button Content="¥ RMB" Height="34" MinWidth="72" FontSize="13"
+                                       Command="{Binding SwitchCurrencyCommand}" CommandParameter="RMB"
+                                       Appearance="{Binding Currency, Converter={StaticResource CurrencyBg}, ConverterParameter=RMB}"/>
+                            <ui:Button Content="$ USD" Height="34" MinWidth="72" FontSize="13" Margin="6,0,0,0"
+                                       Command="{Binding SwitchCurrencyCommand}" CommandParameter="USD"
+                                       Appearance="{Binding Currency, Converter={StaticResource CurrencyBg}, ConverterParameter=USD}"/>
+                        </StackPanel>
+
+                        <Border Width="1" Margin="0,6" VerticalAlignment="Stretch"
+                                Background="{DynamicResource CardStrokeColorDefaultBrush}"/>
+
+                        <!-- 文件名 -->
+                        <StackPanel Orientation="Horizontal" Margin="16,0,0,0">
+                            <ui:TextBlock Text="文件名" FontSize="12" FontWeight="Medium"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <ui:TextBox Text="{Binding Filename, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="180" Height="34" VerticalContentAlignment="Center"
+                                        FontSize="13" PlaceholderText="报价单名称"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Border>
 
                 <!-- ═══════════════ 公司 + 客户 双栏 ═══════════════ -->
@@ -235,11 +254,15 @@
                     <Border Grid.Column="0" Style="{StaticResource AppCardModern}" Padding="24,22">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
-                                <ui:SymbolIcon Symbol="Person24" FontSize="16"
-                                               Foreground="{DynamicResource AccentFillColorPrimaryBrush}"/>
+                                <Border Style="{StaticResource CardTitleIcon}">
+                                    <ui:SymbolIcon Symbol="Person24" FontSize="16"
+                                                   Foreground="{DynamicResource AccentFillColorPrimaryBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
                                 <ui:TextBlock Text="公司信息" FontSize="15" FontWeight="SemiBold"
                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                              Margin="8,0,0,0"/>
+                                              VerticalAlignment="Center"
+                                              Margin="10,0,0,0"/>
                             </StackPanel>
 
                             <Grid>
@@ -297,11 +320,15 @@
                     <Border Grid.Column="2" Style="{StaticResource AppCardModern}" Padding="24,22">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
-                                <ui:SymbolIcon Symbol="People24" FontSize="16"
-                                               Foreground="{DynamicResource AccentFillColorPrimaryBrush}"/>
+                                <Border Style="{StaticResource CardTitleIcon}">
+                                    <ui:SymbolIcon Symbol="People24" FontSize="16"
+                                                   Foreground="{DynamicResource AccentFillColorPrimaryBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
                                 <ui:TextBlock Text="客户信息" FontSize="15" FontWeight="SemiBold"
                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                              Margin="8,0,0,0"/>
+                                              VerticalAlignment="Center"
+                                              Margin="10,0,0,0"/>
                             </StackPanel>
 
                             <Grid>
@@ -360,11 +387,15 @@
                 <Border Style="{StaticResource AppCardModern}" Padding="24,22" Margin="0,0,0,20">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
-                            <ui:SymbolIcon Symbol="DocumentBulletList24" FontSize="16"
-                                           Foreground="{DynamicResource AccentFillColorPrimaryBrush}"/>
+                            <Border Style="{StaticResource CardTitleIcon}">
+                                <ui:SymbolIcon Symbol="DocumentBulletList24" FontSize="16"
+                                               Foreground="{DynamicResource AccentFillColorPrimaryBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
                             <ui:TextBlock Text="报价说明" FontSize="15" FontWeight="SemiBold"
                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                          Margin="8,0,0,0"/>
+                                          VerticalAlignment="Center"
+                                          Margin="10,0,0,0"/>
                         </StackPanel>
 
                         <Grid>

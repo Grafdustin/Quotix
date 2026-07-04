@@ -3,213 +3,171 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="Quotix 云端发布"
-        Width="580" Height="680"
-        MinWidth="480" MinHeight="560"
+        Width="900" Height="640"
+        MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResizeWithGrip"
         ExtendsContentIntoTitleBar="True"
         WindowCornerPreference="Round"
         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
 
-    <Grid>
+    <Grid Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="34"/>
         </Grid.RowDefinitions>
 
-        <!-- 标题栏 -->
-        <ui:TitleBar Grid.Row="0" Height="32"
-                     Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-                     ShowMinimize="True" ShowMaximize="True" ShowClose="True">
-            <ui:TitleBar.Header>
-                <StackPanel Orientation="Horizontal" Margin="8,0,0,0">
-                    <ui:SymbolIcon Symbol="CloudArrowUp24" FontSize="16"
-                                   Foreground="{DynamicResource AccentFillColorPrimaryBrush}"
-                                   VerticalAlignment="Center"/>
-                    <TextBlock Text="Quotix 云端发布" FontSize="13" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               VerticalAlignment="Center" Margin="8,0,0,0"/>
-                </StackPanel>
-            </ui:TitleBar.Header>
-        </ui:TitleBar>
+        <!-- ═══════ 左侧控制面板 ═══════ -->
+        <Border Grid.Column="0" Grid.Row="0"
+                Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="0,0,1,0"
+                Padding="14">
 
-        <!-- 主内容 -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
-                      Padding="24,16,24,12"
-                      Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
             <StackPanel>
 
-                <!-- ═══════ 版本号 ═══════ -->
-                <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
-                        CornerRadius="8" Padding="18,16" Margin="0,0,0,12"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1">
+                <TextBlock Text="QUOTIX BUILD CONSOLE"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Margin="0,0,0,14"/>
+
+                <!-- 状态块 -->
+                <Border CornerRadius="6"
+                        Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                        Padding="10"
+                        Margin="0,0,0,10">
+
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                            <Border CornerRadius="6" Width="28" Height="28"
-                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                    VerticalAlignment="Center">
-                                <ui:SymbolIcon Symbol="NumberSymbol24" FontSize="14"
-                                               Foreground="{DynamicResource AccentFillColorPrimaryBrush}"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="版本信息" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                       VerticalAlignment="Center" Margin="10,0,0,0"/>
-                        </StackPanel>
+                        <TextBlock Text="STATUS"
+                                   FontSize="10"
+                                   Opacity="0.7"/>
 
-                        <Grid Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="当前版本" FontSize="12"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       VerticalAlignment="Center"/>
-                            <ui:TextBox Grid.Column="2" x:Name="CurrentVersionBox"
-                                        IsReadOnly="True" Height="32"
-                                        VerticalContentAlignment="Center" FontSize="13"/>
-                        </Grid>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="新版本" FontSize="12"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       VerticalAlignment="Center"/>
-                            <ui:TextBox Grid.Column="2" x:Name="NewVersionBox"
-                                        Height="32" VerticalContentAlignment="Center" FontSize="13"
-                                        PlaceholderText="例如 1.0.57"/>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-
-                <!-- ═══════ 更新日志 ═══════ -->
-                <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
-                        CornerRadius="8" Padding="18,16" Margin="0,0,0,12"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <Border CornerRadius="6" Width="28" Height="28"
-                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                    VerticalAlignment="Center">
-                                <ui:SymbolIcon Symbol="TextBulletListSquare24" FontSize="14"
-                                               Foreground="{DynamicResource AccentFillColorPrimaryBrush}"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="更新日志" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                       VerticalAlignment="Center" Margin="10,0,0,0"/>
-                        </StackPanel>
-                        <TextBlock Text="以 # 开头的行作为章节标题，其余为内容" FontSize="11"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   Margin="0,0,0,8"/>
-                        <ui:TextBox x:Name="ChangelogBox"
-                                    Height="140" FontSize="13"
-                                    AcceptsReturn="True" TextWrapping="Wrap"
-                                    VerticalScrollBarVisibility="Auto"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- ═══════ 构建进度 ═══════ -->
-                <Border x:Name="ProgressBorder"
-                        Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
-                        CornerRadius="8" Padding="18,16" Margin="0,0,0,12"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        Visibility="Collapsed">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <Border CornerRadius="6" Width="28" Height="28"
-                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                    VerticalAlignment="Center">
-                                <ui:SymbolIcon Symbol="DataBarVertical24" FontSize="14"
-                                               Foreground="{DynamicResource AccentFillColorPrimaryBrush}"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="构建进度" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                       VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            <TextBlock x:Name="ElapsedText" FontSize="11"
-                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                       VerticalAlignment="Center" Margin="8,0,0,0"/>
-                        </StackPanel>
-
-                        <ProgressBar x:Name="ProgressBar" Height="6" Minimum="0" Maximum="100"
-                                     Value="0" Margin="0,0,0,8"
-                                     Foreground="{DynamicResource AccentFillColorPrimaryBrush}"/>
-                        <TextBlock x:Name="ProgressText" FontSize="12"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock x:Name="BuildStatusText" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource AccentFillColorPrimaryBrush}"
+                        <TextBlock x:Name="BuildStatusText"
+                                   Text="IDLE"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
                                    Margin="0,4,0,0"/>
                     </StackPanel>
                 </Border>
 
-                <!-- ═══════ 详细日志 ═══════ -->
-                <Expander Margin="0,0,0,4">
-                    <Expander.Header>
-                        <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Terminal24" FontSize="14"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                            <TextBlock Text="详细日志" FontSize="12" Margin="8,0,0,0"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                    </Expander.Header>
-                    <ui:TextBox x:Name="LogBox"
-                                Height="110" IsReadOnly="True"
-                                AcceptsReturn="True" TextWrapping="Wrap"
-                                VerticalScrollBarVisibility="Auto"
-                                FontFamily="Cascadia Code,Consolas"
-                                FontSize="11"
-                                Padding="12"/>
-                </Expander>
+                <!-- 版本 -->
+                <TextBlock Text="VERSION" FontSize="10" Opacity="0.7"/>
+                <ui:TextBox x:Name="CurrentVersionBox"
+                            IsReadOnly="True"
+                            Height="30"
+                            Margin="0,4,0,10"/>
+
+                <TextBlock Text="NEXT VERSION" FontSize="10" Opacity="0.7"/>
+                <ui:TextBox x:Name="NewVersionBox"
+                            Height="30"
+                            Margin="0,4,0,10"
+                            PlaceholderText="1.0.57"/>
+
+                <!-- 更新日志 -->
+                <TextBlock Text="CHANGELOG" FontSize="10" Opacity="0.7" Margin="0,0,0,4"/>
+                <ui:TextBox x:Name="ChangelogBox"
+                            Height="100"
+                            Margin="0,4,0,10"
+                            AcceptsReturn="True"
+                            TextWrapping="Wrap"
+                            VerticalScrollBarVisibility="Auto"
+                            PlaceholderText="# 新增功能&#x0a;- 优化性能"/>
+
+                <!-- 发布按钮 -->
+                <ui:Button x:Name="StartButton"
+                           Content="▶ RUN BUILD"
+                           Appearance="Primary"
+                           Height="36"
+                           FontSize="12"
+                           Click="StartButton_Click"
+                           Margin="0,0,0,8"/>
+
+                <ui:Button x:Name="CancelButton"
+                           Content="■ STOP"
+                           Appearance="Secondary"
+                           Height="30"
+                           IsEnabled="False"
+                           Click="CancelButton_Click"/>
+
+                <!-- 进度 -->
+                <TextBlock Text="PROGRESS" FontSize="10" Opacity="0.7"
+                           Margin="0,14,0,4"/>
+
+                <ProgressBar x:Name="ProgressBar"
+                             Height="6"
+                             Maximum="100"/>
+
+                <TextBlock x:Name="ProgressText"
+                           FontSize="11"
+                           Margin="0,6,0,0"/>
 
             </StackPanel>
-        </ScrollViewer>
+        </Border>
 
-        <!-- 底部操作栏 -->
-        <Border Grid.Row="2"
-                Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                BorderThickness="0,1,0,0"
-                Padding="16,12">
+        <!-- ═══════ 右侧终端区域 ═══════ -->
+        <Border Grid.Column="1" Grid.Row="0"
+                Background="#0B0F14"
+                Padding="12">
+
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <!-- 左侧状态提示 -->
-                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock x:Name="StatusHintText" FontSize="11"
-                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                               Visibility="Collapsed"/>
+                <!-- 顶部状态行 -->
+                <StackPanel Orientation="Horizontal"
+                            Grid.Row="0"
+                            Margin="0,0,0,8">
+
+                    <TextBlock Text="> build session started"
+                               Foreground="#4CAF50"
+                               FontSize="12"/>
+
+                    <TextBlock x:Name="ElapsedText"
+                               Foreground="#888"
+                               FontSize="11"
+                               Margin="12,0,0,0"/>
                 </StackPanel>
 
-                <!-- 右侧按钮 -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <ui:Button x:Name="CancelButton"
-                               Content="取消"
-                               Appearance="Secondary"
-                               Height="32" MinWidth="80" FontSize="13"
-                               IsEnabled="False"
-                               Click="CancelButton_Click"
-                               Margin="0,0,8,0"/>
-                    <ui:Button x:Name="StartButton"
-                               Content="开始发布"
-                               Icon="{ui:SymbolIcon CloudArrowUp20}"
-                               Appearance="Primary"
-                               Height="32" MinWidth="110" FontSize="13"
-                               Click="StartButton_Click"/>
-                </StackPanel>
+                <!-- 控制台输出 -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              x:Name="LogScroller">
+                    <ui:TextBox x:Name="LogBox"
+                                IsReadOnly="True"
+                                AcceptsReturn="True"
+                                TextWrapping="Wrap"
+                                FontFamily="Cascadia Code,Consolas"
+                                FontSize="12"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#D6DEEB"
+                                Padding="4"/>
+                </ScrollViewer>
+
+            </Grid>
+        </Border>
+
+        <!-- ═══════ 底部状态栏 ═══════ -->
+        <Border Grid.Row="1" Grid.ColumnSpan="2"
+                Background="#11151C"
+                Height="34">
+
+            <Grid Margin="12,0">
+                <TextBlock x:Name="StatusHintText"
+                           VerticalAlignment="Center"
+                           FontSize="11"
+                           Foreground="#888"/>
             </Grid>
         </Border>
 
     </Grid>
+
 </ui:FluentWindow>

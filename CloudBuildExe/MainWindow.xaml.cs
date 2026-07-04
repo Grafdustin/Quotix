@@ -32,9 +32,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private static readonly TimeSpan MaxBuildWait = TimeSpan.FromMinutes(10);
 
     /// <summary>
-    /// GitHub Actions run 监控轮询间隔。
+    /// GitHub Actions run 监控轮询间隔（3 秒，更快响应）。
     /// </summary>
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
 
     /// <summary>
     /// 等待 workflow 启动的最大时间。
@@ -42,6 +42,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private static readonly TimeSpan WorkflowStartWait = TimeSpan.FromMinutes(2);
 
     private readonly Stopwatch _buildTimer = new();
+    private string _lastRunJsonCache = "";   // 缓存上次 run JSON，避免重复解析
+    private string _lastLogTempFile = "";  // 上次日志的临时文件路径（真正增量）
 
     public MainWindow()
     {
@@ -113,7 +115,6 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
         StartButton.IsEnabled = false;
         CancelButton.IsEnabled = true;
-        ProgressBorder.Visibility = Visibility.Visible;
         ProgressText.Text = "正在准备...";
         ProgressBar.Value = 0;
         BuildStatusText.Text = "";
@@ -309,21 +310,33 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     }
 
     /// <summary>
-    /// 监控指定 workflow run 直到完成，实时显示步骤状态。
+    /// 监控指定 workflow run 直到完成，实时显示步骤状态和增量日志。
+    /// 使用 JSON 缓存避免重复解析，使用文件缓存实现真正增量日志。
     /// </summary>
     private async Task MonitorWorkflowRunAsync(string runId, string version, CancellationToken ct)
     {
         var startTime = DateTime.Now;
         var lastStatus = "";
         var lastStepName = "";
-        var startTimeUtc = DateTime.UtcNow; // 用于更可靠地判断 run 是否是我们触发的
+        _lastLogTempFile = Path.GetTempFileName();
+        File.WriteAllText(_lastLogTempFile, "");
 
         while (DateTime.Now - startTime < MaxBuildWait)
         {
             ct.ThrowIfCancellationRequested();
 
+            // ✅ 单次调用获取全部数据（status + conclusion + jobs[].steps）
             var runJson = await RunCmdAsync("gh",
-                $"run view {runId} --repo {Repo} --json status,conclusion,steps", ct);
+                $"run view {runId} --repo {Repo} --json status,conclusion,jobs", ct);
+
+            // ✅ JSON 缓存：内容未变化则跳过解析，只刷新日志
+            if (runJson == _lastRunJsonCache && lastStatus == "in_progress")
+            {
+                await FetchIncrementalLogs(runId, ct);
+                await Task.Delay(PollInterval, ct);
+                continue;
+            }
+            _lastRunJsonCache = runJson;
 
             if (!string.IsNullOrWhiteSpace(runJson) && runJson.TrimStart().StartsWith("{"))
             {
@@ -334,26 +347,31 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                     var status = run.GetProperty("status").GetString();
                     var conclusion = run.TryGetProperty("conclusion", out var c) ? c.GetString() : null;
 
-                    // 解析当前正在执行的步骤
-                    if (run.TryGetProperty("steps", out var steps))
+                    // 解析 jobs 和 steps
+                    if (run.TryGetProperty("jobs", out var jobs))
                     {
                         var currentStep = "";
                         var completedCount = 0;
                         var totalSteps = 0;
 
-                        foreach (var step in steps.EnumerateArray())
+                        foreach (var job in jobs.EnumerateArray())
                         {
-                            totalSteps++;
-                            var stepStatus = step.GetProperty("status").GetString();
-                            var stepName = step.GetProperty("name").GetString();
-
-                            if (stepStatus == "in_progress")
-                                currentStep = stepName ?? "";
-                            if (stepStatus == "completed")
-                                completedCount++;
+                            var jobName = job.GetProperty("name").GetString() ?? "";
+                            if (job.TryGetProperty("steps", out var steps))
+                            {
+                                foreach (var step in steps.EnumerateArray())
+                                {
+                                    totalSteps++;
+                                    var stepStatus = step.GetProperty("status").GetString();
+                                    var stepName = step.GetProperty("name").GetString() ?? "";
+                                    if (stepStatus == "in_progress")
+                                        currentStep = $"[{jobName}] {stepName}";
+                                    if (stepStatus == "completed")
+                                        completedCount++;
+                                }
+                            }
                         }
 
-                        // 更新进度（90-98%区间映射到步骤进度）
                         if (totalSteps > 0 && totalSteps > completedCount)
                         {
                             var stepProgress = 90 + (double)completedCount / totalSteps * 8;
@@ -364,10 +382,10 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                         {
                             lastStepName = currentStep;
                             ProgressText.Text = $"正在执行：{currentStep}";
+                            AppendLog($"▶ {currentStep}");
                         }
                     }
 
-                    // 状态变化时更新
                     if (status != lastStatus)
                     {
                         lastStatus = status ?? "";
@@ -376,49 +394,43 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
                     BuildStatusText.Text = status switch
                     {
-                        "queued" => "队列中，等待执行...",
-                        "in_progress" => "构建进行中...",
+                        "queued"     => "⏳ 队列中，等待执行...",
+                        "in_progress" => "🔄 构建进行中...",
                         "completed" when conclusion == "success" => "✅ 构建成功！",
-                        "completed" => $"❌ 构建失败：{conclusion}",
-                        _ => status ?? "未知"
+                        "completed"  => $"❌ 构建失败：{conclusion}",
+                        _              => status ?? "未知"
                     };
+
+                    if (status == "in_progress")
+                        await FetchIncrementalLogs(runId, ct);
 
                     if (status == "completed")
                     {
+                        AppendLog("正在获取完整日志...");
+                        await FetchIncrementalLogs(runId, ct, forceFull: true);
                         UpdateProgress(100);
                         _buildTimer.Stop();
 
                         if (conclusion == "success")
                         {
                             var releaseUrl = $"https://github.com/{Repo}/releases/tag/v{version}";
-                            var actionsUrl = $"https://github.com/{Repo}/actions/runs/{runId}";
+                            var actionsUrl  = $"https://github.com/{Repo}/actions/runs/{runId}";
                             ProgressText.Text = "构建完成！";
-
                             AppendLog("✅ 构建成功！");
                             AppendLog($"耗时：{_buildTimer.Elapsed.TotalMinutes:F1} 分钟");
                             AppendLog($"下载：{releaseUrl}");
                             AppendLog($"详情：{actionsUrl}");
-
                             StatusHintText.Text = $"✅ 发布完成 · 耗时 {_buildTimer.Elapsed.TotalMinutes:F1} 分钟";
                             StatusHintText.Visibility = Visibility.Visible;
-
                             ShowDialog(
                                 $"发布成功！\n\n版本：v{version}\n耗时：{_buildTimer.Elapsed.TotalMinutes:F1} 分钟\n\n下载地址：\n{releaseUrl}",
                                 "完成");
-
-                            // 自动打开浏览器
-                            try
-                            {
-                                Process.Start(new ProcessStartInfo(releaseUrl) { UseShellExecute = true });
-                            }
-                            catch { }
+                            try { Process.Start(new ProcessStartInfo(releaseUrl) { UseShellExecute = true }); } catch { }
                         }
                         else
                         {
                             ProgressText.Text = "构建失败";
                             AppendLog($"❌ 构建失败：{conclusion}");
-
-                            // 获取失败日志
                             AppendLog("正在获取失败日志...");
                             try
                             {
@@ -427,11 +439,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                                 if (!string.IsNullOrWhiteSpace(logs))
                                     AppendLog($"失败日志：\n{logs}");
                             }
-                            catch (Exception ex)
-                            {
-                                AppendLog($"获取失败日志出错：{ex.Message}");
-                            }
-
+                            catch (Exception ex) { AppendLog($"获取失败日志出错：{ex.Message}"); }
                             AppendLog($"查看详情：https://github.com/{Repo}/actions/runs/{runId}");
                             StatusHintText.Text = "❌ 构建失败";
                             StatusHintText.Visibility = Visibility.Visible;
@@ -439,10 +447,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
                         return;
                     }
                 }
-                catch (JsonException ex)
-                {
-                    AppendLog($"解析 JSON 失败：{ex.Message}");
-                }
+                catch (JsonException ex) { AppendLog($"解析 JSON 失败：{ex.Message}"); }
             }
 
             await Task.Delay(PollInterval, ct);
@@ -452,6 +457,54 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         AppendLog($"Run ID: {runId}");
         StatusHintText.Text = "⚠ 监控超时";
         StatusHintText.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// 获取增量日志（真正增量：保存完整日志到临时文件，下次只显示新增行）。
+    /// </summary>
+    private async Task FetchIncrementalLogs(string runId, CancellationToken ct, bool forceFull = false)
+    {
+        try
+        {
+            // 获取完整日志
+            var logs = await RunCmdAsync("gh", $"run view {runId} --repo {Repo} --log", ct);
+            if (string.IsNullOrWhiteSpace(logs)) return;
+
+            var newLines = logs.Split('\n');
+            var oldLines = File.Exists(_lastLogTempFile)
+                ? File.ReadAllLines(_lastLogTempFile)
+                : Array.Empty<string>();
+
+            // 找到新行：在 newLines 中但不在 oldLines 末尾的
+            var startIdx = 0;
+            if (!forceFull && oldLines.Length > 0)
+            {
+                // 找到 oldLines 末尾在 newLines 中的位置
+                for (var i = 0; i < newLines.Length; i++)
+                {
+                    if (newLines[i] == oldLines[oldLines.Length - 1])
+                    {
+                        startIdx = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            // 显示新增行
+            for (var i = startIdx; i < newLines.Length; i++)
+            {
+                var trimmed = newLines[i].Trim();
+                if (!string.IsNullOrEmpty(trimmed))
+                    AppendLog($"  {trimmed}");
+            }
+
+            // 保存完整日志到临时文件（下次增量基准）
+            File.WriteAllText(_lastLogTempFile, logs);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"获取日志失败（可忽略）：{ex.Message}");
+        }
     }
 
     /// <summary>
@@ -565,7 +618,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         Dispatcher.Invoke(() =>
         {
             LogBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {text}\n");
-            LogBox.ScrollToEnd();
+            // 滚动日志到底部
+            LogScroller.ScrollToBottom();
         });
     }
 
