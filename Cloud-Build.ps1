@@ -41,8 +41,8 @@ if ($Version -notmatch '^\d+\.\d+\.\d+$') {
 if (-not $CommitMessage) {
     $tempFile = Join-Path $env:TEMP "quotix_changelog.txt"
     $instructions = @"
-// 请输入更新日志
-// 以 # 开头的行作为章节标题（如：# 新功能）
+// 请输入更新日志（无需输入版本号标题，脚本会自动添加 #$Version）
+// 以 ## 开头的行作为章节标题（如：## 新功能）
 // 其余行作为章节内容
 // 以 // 开头的行会被忽略
 // 保存并关闭记事本后脚本继续
@@ -51,17 +51,26 @@ if (-not $CommitMessage) {
     Write-Host "Opening notepad for changelog..." -ForegroundColor Cyan
     Start-Process notepad.exe $tempFile -Wait
 
+    # 读取用户输入（过滤掉空行、以 // 开头的注释行）
     $lines = Get-Content $tempFile -Encoding UTF8 | Where-Object { $_.Trim() -ne "" -and -not $_.StartsWith("//") }
-    $CommitMessage = $lines -join "`n"
+
+    # 第一行固定为 #版本号 作为 commit title
+    $commitTitle = "#$Version"
+    # 其余行作为 commit body
+    $commitBody = if ($lines) { $lines -join "`n" } else { "" }
     Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
 
-    if (-not $CommitMessage) {
-        $CommitMessage = "Update"
+    if (-not $commitBody) {
+        $commitBody = "Release $Version"
     }
+} else {
+    $commitTitle = "#$Version"
+    $commitBody = $CommitMessage
 }
 
 Write-Host "Version : $Version" -ForegroundColor Cyan
-Write-Host "Message : $CommitMessage" -ForegroundColor Cyan
+Write-Host "Title   : $commitTitle" -ForegroundColor Cyan
+Write-Host "Body    : $commitBody" -ForegroundColor Cyan
 Write-Host ""
 
 # ========== Step 3: 更新 csproj 版本号（仅当版本号变化时）==========
@@ -88,18 +97,10 @@ git diff --cached --quiet 2>&1
 $hasChanges = $LASTEXITCODE -ne 0
 
 if ($hasChanges) {
-# 有变动，正常 commit
-    $allLines = ($CommitMessage -split "`n") | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ -ne "" }
-    $title = if ($allLines.Count -gt 0) { $allLines[0] } else { "Update" }
-    $body = if ($allLines.Count -gt 1) { ($allLines | Select-Object -Skip 1) -join "`n" } else { "" }
-
+    # commit title 为 #版本号，body 为用户输入的更新日志
     $commitMsgFile = Join-Path $env:TEMP "quotix_git_commit_msg.txt"
-    if ($body) {
-        $fullMsg = $title + "`n`n" + $body
-        Set-Content -Path $commitMsgFile -Value $fullMsg -Encoding UTF8
-    } else {
-        Set-Content -Path $commitMsgFile -Value $title -Encoding UTF8
-    }
+    $fullMsg = $commitTitle + "`n`n" + $commitBody
+    Set-Content -Path $commitMsgFile -Value $fullMsg -Encoding UTF8
     git commit -F "$commitMsgFile"
     if ($LASTEXITCODE -ne 0) { throw "Git commit failed" }
     Write-Host "Git commit successful" -ForegroundColor Green

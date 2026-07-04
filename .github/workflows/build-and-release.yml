@@ -123,14 +123,14 @@ jobs:
 
     - name: Generate Release Notes
       run: |
-        # 将 changelog 中 # 开头的行转为 ### markdown 标题
+        # 将 changelog 中 ## 开头的行转为 ### markdown 标题
         $changelog = "${{ steps.meta.outputs.CHANGELOG }}"
         $notes = ""
         if ($changelog) {
           foreach ($line in ($changelog -split "`n")) {
             $trimmed = $line.TrimStart()
-            if ($trimmed.StartsWith("#")) {
-              $notes += "### " + $trimmed.Substring(1).Trim() + "`n"
+            if ($trimmed.StartsWith("##")) {
+              $notes += "### " + $trimmed.Substring(2).Trim() + "`n"
             } else {
               $notes += $line + "`n"
             }

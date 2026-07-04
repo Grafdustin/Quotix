@@ -30,10 +30,14 @@ $CsprojPath = Join-Path $ProjectDir "QuotixDesktop.csproj"
 try {
 # 交互式输入更新日志（右键运行时没有参数）
 if (-not $CommitMessage) {
+    # 先确定版本号，用于自动生成 commit title
+    [xml]$csprojXmlTemp = Get-Content $CsprojPath
+    $previewVersion = if ($Version) { $Version } else { $csprojXmlTemp.Project.PropertyGroup.Version }
+
     $tempFile = Join-Path $env:TEMP "quotix_commitmsg.txt"
     $instructions = @"
-// 请输入更新日志
-// 以 # 开头的行作为章节标题（如：# 新功能）
+// 请输入更新日志（无需输入版本号标题，脚本会自动添加 #$previewVersion）
+// 以 ## 开头的行作为章节标题（如：## 新功能）
 // 其余行作为章节内容
 // 以 // 开头的行会被忽略
 // 保存并关闭记事本后脚本继续
@@ -73,7 +77,11 @@ if (-not $SkipGit) {
         $gitStatus = git -C $ProjectDir status --porcelain
         if ($gitStatus) {
             git -C $ProjectDir add -A
-            git -C $ProjectDir commit -m "Update" -m "$commitBody"
+            # commit title 为 #版本号，body 为更新日志
+            $commitMsgFile = Join-Path $env:TEMP "quotix_git_commit_msg.txt"
+            $fullMsg = "#$Version`n`n$commitBody"
+            Set-Content -Path $commitMsgFile -Value $fullMsg -Encoding UTF8
+            git -C $ProjectDir commit -F "$commitMsgFile"
             if ($LASTEXITCODE -ne 0) {
                 throw "Git commit failed"
             }
@@ -259,21 +267,21 @@ if (-not $installerPath -or -not (Test-Path $installerPath)) {
 
 Write-Host "Ensuring release exists: $tag" -ForegroundColor Cyan
 
-# 兜底：如果标题为空，用版本号作为标题
-if (-not $commitTitle) { $commitTitle = "v$Version" }
+# 兜底：如果标题为空，用 #版本号 作为标题
+if (-not $commitTitle) { $commitTitle = "#$Version" }
 
 # 确保 release 存在（不存在就创建）
 & $ghPath release view $tag --repo $repoName 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Release not found, creating..." -ForegroundColor Yellow
 
-    # 用临时文件传递多行 Release Notes（# 转为 ### 作为 markdown 标题）
+    # 用临时文件传递多行 Release Notes（## 转为 ### 作为 markdown 标题）
     $notesFile = Join-Path $env:TEMP "quotix_releasenotes.txt"
     if ($commitBody) {
         $releaseNotes = ($commitBody -split "`n" | ForEach-Object {
             $trimmed = $_.TrimStart()
-            if ($trimmed.StartsWith("#")) {
-                "### " + $trimmed.Substring(1).Trim()
+            if ($trimmed.StartsWith("##")) {
+                "### " + $trimmed.Substring(2).Trim()
             } else {
                 $_
             }
