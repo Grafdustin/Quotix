@@ -155,6 +155,9 @@ public partial class MainWindow : FluentWindow
         // 恢复导航栏折叠状态
         RootNavView.IsPaneOpen = !_settingsService.NavigationCollapsed;
 
+        // 折叠时隐藏主题切换按钮（48px 窄栏仅容纳收缩按钮，保持图标居中对齐）
+        UpdatePaneHeaderVisibility();
+
         // 订阅主题变化
         VM.PropertyChanged += (s, args) =>
         {
@@ -414,6 +417,17 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
+    /// 根据面板展开/折叠状态调整 PaneHeader 布局：折叠（窄栏 48px）时隐藏主题切换按钮，
+    /// 仅保留收缩按钮，使其图标与下方导航项图标居中对齐。
+    /// </summary>
+    private void UpdatePaneHeaderVisibility()
+    {
+        ThemeToggleButton.Visibility = RootNavView.IsPaneOpen
+            ? System.Windows.Visibility.Visible
+            : System.Windows.Visibility.Collapsed;
+    }
+
+    /// <summary>
     /// 切换导航面板展开/收起状态。
     /// </summary>
     private void TogglePane_Click(object sender, RoutedEventArgs e)
@@ -424,6 +438,8 @@ public partial class MainWindow : FluentWindow
         _settingsService.NavigationCollapsed = !RootNavView.IsPaneOpen;
 
         UpdatePaneToggleIcon();
+        // 折叠时隐藏主题按钮，保持收缩按钮与导航项图标居中对齐
+        UpdatePaneHeaderVisibility();
     }
 
     /// <summary>

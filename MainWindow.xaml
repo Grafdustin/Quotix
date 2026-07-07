@@ -89,7 +89,7 @@
 
                         <ui:NavigationView.PaneHeader>
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                <Button Height="36" Width="36"
+                                <Button x:Name="PaneToggleButton" Height="36" Width="48"
                                         Background="Transparent"
                                         Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                         BorderThickness="0" Cursor="Hand"
@@ -102,7 +102,7 @@
                                                        VerticalAlignment="Center"/>
                                     </Grid>
                                 </Button>
-                                <Button Height="36" Width="36"
+                                <Button x:Name="ThemeToggleButton" Height="36" Width="48"
                                         Background="Transparent"
                                         Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                         BorderThickness="0" Cursor="Hand"
