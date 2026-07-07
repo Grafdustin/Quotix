@@ -47,12 +47,24 @@ public class AppSettingsService
         set { _current.DefaultExportPath = value; SaveToDisk(); }
     }
 
+    /// <summary>快捷输入是否启用（读写均自动持久化）</summary>
+    public bool QuickInputEnabled
+    {
+        get => _current.QuickInput.Enabled;
+        set { _current.QuickInput.Enabled = value; SaveToDisk(); }
+    }
+
+    /// <summary>快捷输入设置（含各数据库字段映射，读写均自动持久化）</summary>
+    public QuickInputSettings QuickInput => _current.QuickInput;
+
+    /// <summary>持久化快捷输入字段映射的变更</summary>
+    public void SaveQuickInputSettings() => SaveToDisk();
+
     /// <summary>
     /// 获取默认导出路径。
     /// 未设置或路径不存在时，返回桌面下的"Quotix Exports"目录。
     /// </summary>
-    public string GetDefaultExportPath()
-    {
+    public string GetDefaultExportPath()    {
         if (!string.IsNullOrWhiteSpace(DefaultExportPath) && Directory.Exists(DefaultExportPath))
             return DefaultExportPath;
 
@@ -109,4 +121,20 @@ public class AppSettings
 
     /// <summary>用户设置的默认导出路径</summary>
     public string? DefaultExportPath { get; set; }
+
+    /// <summary>快捷输入设置（启用开关 + 按 NDT/RVI 分库的字段映射）</summary>
+    public QuickInputSettings QuickInput { get; set; } = new();
+}
+
+/// <summary>快捷输入设置实体（序列化到 settings.json）</summary>
+public class QuickInputSettings
+{
+    /// <summary>是否启用快捷输入。关闭后报价单编号列不再触发产品快速搜索。</summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>
+    /// 字段映射。外层 key 为数据库类型（"NDT" / "RVI"）；
+    /// 内层 key 为报价单输入框（"编号" / "说明" / "单价"），value 为数据表列名（空字符串表示不映射）。
+    /// </summary>
+    public Dictionary<string, Dictionary<string, string>> Mappings { get; set; } = new();
 }

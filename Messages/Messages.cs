@@ -67,3 +67,15 @@ public sealed class ProgressMessage : ValueChangedMessage<ProgressState>
 /// 显示更新弹窗请求消息。
 /// </summary>
 public sealed class ShowUpdateOverlayMessage : RequestMessage<bool> { }
+
+/// <summary>
+/// 快捷输入启用状态变更消息，携带当前是否启用快捷输入。
+/// </summary>
+public sealed class QuickInputEnabledChangedMessage : ValueChangedMessage<bool>
+{
+    /// <summary>
+    /// 初始化 QuickInputEnabledChangedMessage 实例。
+    /// </summary>
+    /// <param name="enabled">是否启用快捷输入</param>
+    public QuickInputEnabledChangedMessage(bool enabled) : base(enabled) { }
+}

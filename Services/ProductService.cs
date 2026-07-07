@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Text.Json;
 using Quotix.Models;
 using Quotix.Repositories;
 
@@ -22,6 +24,27 @@ public class ProductService
 
     /// <summary>获取指定数据表的所有产品</summary>
     public List<Product> GetProducts(string tableName) => _repo.GetAll(tableName);
+
+    /// <summary>
+    /// 获取指定数据表的所有列头。
+    /// 产品数据以动态 JSON 存储于 data_json，列头即各记录 JSON key 的集合；
+    /// 此处聚合全表记录的 key 并去重（忽略大小写），按首次出现顺序返回。
+    /// </summary>
+    /// <param name="tableName">逻辑表名（如 products_ndt / products_rvi_change）</param>
+    /// <returns>列头名称列表</returns>
+    public List<string> GetTableColumnHeaders(string tableName)
+    {
+        var headers = new List<string>();
+        var seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var p in _repo.GetAll(tableName))
+        {
+            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(p.DataJson);
+            if (dict == null) continue;
+            foreach (var key in dict.Keys)
+                if (seen.Add(key)) headers.Add(key);
+        }
+        return headers;
+    }
 
     /// <summary>分页查询指定数据表的产品（支持关键词过滤）</summary>
     public (List<Product> Products, int TotalCount) GetProductsPaged(

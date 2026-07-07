@@ -69,6 +69,112 @@
 
         </StackPanel>
 
+        <!-- ====== 快捷输入 ====== -->
+        <StackPanel Margin="0,0,0,24">
+
+            <StackPanel Margin="0,0,0,12">
+                <ui:TextBlock Text="快捷输入" FontSize="12" FontWeight="SemiBold"
+                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                              Margin="0,0,0,4"/>
+                <ui:TextBlock Text="自定义产品快速输入填充的字段来源（编号 / 说明 / 单价）"
+                              FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+            </StackPanel>
+
+            <Border CornerRadius="10"
+                    Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" Padding="16,14">
+                <StackPanel>
+                    <!-- 启用开关 -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                            <ui:SymbolIcon Symbol="Search16" FontSize="18"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <ui:TextBlock Text="启用快捷输入" FontSize="14" FontWeight="Medium"
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <ui:TextBlock Text="关闭后，报价单编号列不再触发产品快速搜索"
+                                          FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                          Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <ui:ToggleSwitch Grid.Column="2" IsChecked="{Binding QuickInputEnabled}"
+                                         VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Rectangle Height="1" Fill="{DynamicResource CardStrokeColorDefaultBrush}"
+                               Margin="0,0,0,12"/>
+
+                    <!-- 当前编辑数据库（NDT / RVI）-->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBlock Grid.Column="0" Text="编辑数据库" FontSize="13"
+                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                      VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <ui:Button Content="NDT" MinWidth="56" Height="32" FontSize="13"
+                                       Appearance="{Binding QuickInputDb, Converter={StaticResource QuickDbAppearance}, ConverterParameter=NDT}"
+                                       Command="{Binding SwitchQuickInputDbCommand}" CommandParameter="NDT"/>
+                            <ui:Button Content="RVI" MinWidth="56" Height="32" FontSize="13" Margin="6,0,0,0"
+                                       Appearance="{Binding QuickInputDb, Converter={StaticResource QuickDbAppearance}, ConverterParameter=RVI}"
+                                       Command="{Binding SwitchQuickInputDbCommand}" CommandParameter="RVI"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <ui:TextBlock Text="为每个报价单输入框选择对应的数据表列（留空表示不填充）："
+                                  FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                  Margin="0,0,0,8"/>
+
+                    <!-- 映射行 -->
+                    <ItemsControl ItemsSource="{Binding QuickInputRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBlock Grid.Column="0" Text="{Binding TargetLabel}" FontSize="13"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <ComboBox Grid.Column="1"
+                                              ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.QuickInputColumnOptions}"
+                                              DisplayMemberPath="Display" SelectedValuePath="Value"
+                                              SelectedValue="{Binding SelectedColumn, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Height="32" FontSize="12" HorizontalAlignment="Stretch"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Rectangle Height="1" Fill="{DynamicResource CardStrokeColorDefaultBrush}"
+                               Margin="10,4,0,10"/>
+
+                    <!-- 便捷操作 -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ui:Button Content="智能匹配默认" Appearance="Secondary" Height="32" FontSize="12"
+                                   Command="{Binding ApplyDefaultMappingCommand}" Margin="0,0,8,0"/>
+                        <ui:Button Content="清空映射" Appearance="Tertiary" Height="32" FontSize="12"
+                                   Command="{Binding ClearMappingCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+
         <!-- ====== 分隔线 ====== -->
         <Rectangle Height="1" Fill="{DynamicResource CardStrokeColorDefaultBrush}"
                    Margin="0,0,0,24"/>

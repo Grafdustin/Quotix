@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using Quotix.Messages;
 using Quotix.Models;
 using Quotix.Services;
 using Quotix.Views;
@@ -16,6 +19,7 @@ public partial class NewQuotationViewModel : ObservableObject
     private readonly ProductService _productService;
     private readonly HeaderService _headerService;
     private readonly DialogService _dialog;
+    private readonly AppSettingsService _settingsService;
 
     // 公司信息
     [ObservableProperty] private string _companyContact = "";
@@ -73,6 +77,8 @@ public partial class NewQuotationViewModel : ObservableObject
 
     // ---- 快速输入 ----
     [ObservableProperty] private string _quickInputDatabase = "NDT";
+    /// <summary>快捷输入总开关（由设置页控制，关闭后编号列不触发产品快速搜索）</summary>
+    private bool _quickInputEnabled = true;
     [ObservableProperty] private string _quickSearchText = "";
     [ObservableProperty] private int _activeItemIndex = -1;
     [ObservableProperty] private bool _isQuickSearchVisible;
@@ -117,12 +123,22 @@ public partial class NewQuotationViewModel : ObservableObject
         QuotationService quotationService,
         ProductService productService,
         HeaderService headerService,
-        DialogService dialog)
+        DialogService dialog,
+        AppSettingsService settingsService)
     {
         _quotationService = quotationService;
         _productService = productService;
         _headerService = headerService;
         _dialog = dialog;
+        _settingsService = settingsService;
+        _quickInputEnabled = _settingsService.QuickInput.Enabled;
+
+        // 订阅设置页快捷输入开关变化，实时同步（弱引用，不阻塞回收）
+        WeakReferenceMessenger.Default.Register<QuickInputEnabledChangedMessage>(this, (r, m) =>
+        {
+            _quickInputEnabled = m.Value;
+        });
+
         QuoteDate = $"{DateTime.Now.Year}年{DateTime.Now.Month}月{DateTime.Now.Day}日";
         AddItem();
     }
@@ -338,6 +354,7 @@ public partial class NewQuotationViewModel : ObservableObject
     /// <param name="rowIndex">当前行索引</param>
     public void OnCodeFieldFocused(int rowIndex)
     {
+        if (!_quickInputEnabled) return;
         ActiveItemIndex = rowIndex;
         QuickSearchContext = "product";
         if (Items.Count > rowIndex)
@@ -370,6 +387,14 @@ public partial class NewQuotationViewModel : ObservableObject
     {
         QuickSearchText = text;
         if (string.IsNullOrWhiteSpace(text))
+        {
+            CancelSearch();
+            QuickSearchResults.Clear();
+            IsQuickSearchVisible = false;
+            return;
+        }
+        // 产品快速搜索受总开关控制；关闭后编号列仅作为普通文本框
+        if (QuickSearchContext == "product" && !_quickInputEnabled)
         {
             CancelSearch();
             QuickSearchResults.Clear();
@@ -603,24 +628,37 @@ public partial class NewQuotationViewModel : ObservableObject
         if (result.ResultType == "product" && ActiveItemIndex >= 0 && ActiveItemIndex < Items.Count)
         {
             var item = Items[ActiveItemIndex];
-            item.Code = result.Subtitle;
-            item.ItemName = result.Title;
-            item.UnitPrice = result.Price;
 
-            if (result.RawData != null)
+            // 按设置中的字段映射（编号 / 说明 / 单价）填充，未配置的列保持原值
+            var map = _settingsService.QuickInput.Mappings
+                .TryGetValue(QuickInputDatabase, out var m) && m != null ? m : null;
+
+            if (map != null && result.RawData != null)
             {
-                var descField = result.RawData
-                    .Where(kv => !kv.Key.Contains("名称", StringComparison.OrdinalIgnoreCase)
-                              && !kv.Key.Contains("Name", StringComparison.OrdinalIgnoreCase)
-                              && !kv.Key.Contains("Code", StringComparison.OrdinalIgnoreCase)
-                              && !kv.Key.Contains("编码", StringComparison.OrdinalIgnoreCase)
-                              && !kv.Key.Contains("UPC", StringComparison.OrdinalIgnoreCase)
-                              && !kv.Key.Contains("价", StringComparison.OrdinalIgnoreCase))
-                    .OrderByDescending(kv => kv.Value.Length)
-                    .FirstOrDefault();
-                if (!string.IsNullOrEmpty(descField.Value))
-                    item.Description = descField.Value;
+                foreach (var kv in map)
+                {
+                    var column = kv.Value;
+                    if (string.IsNullOrEmpty(column)) continue;
+                    if (!result.RawData.TryGetValue(column, out var val)) continue;
+
+                    switch (kv.Key)
+                    {
+                        case "编号":
+                            item.Code = val;
+                            break;
+                        case "说明":
+                            item.Description = val;
+                            break;
+                        case "单价":
+                            if (decimal.TryParse(val, NumberStyles.Any, null, out var price))
+                                item.UnitPrice = price;
+                            break;
+                    }
+                }
             }
+
+            // 产品名称：取“说明”栏中第一个标点符号之前的文字
+            item.ItemName = SplitBeforePunctuation(item.Description);
         }
         else if (result.ResultType == "owner")
         {
@@ -635,6 +673,25 @@ public partial class NewQuotationViewModel : ObservableObject
         IsQuickSearchVisible = false;
         QuickSearchResults.Clear();
     }
+
+    /// <summary>
+    /// 取文本中第一个标点符号（中英文标点及空白）之前的文字；无标点则返回去空白后的全文。
+    /// 用于从“说明”栏推断产品名称。
+    /// </summary>
+    private static string SplitBeforePunctuation(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "";
+        var idx = text.IndexOfAny(PunctuationMarks);
+        return idx > 0 ? text.Substring(0, idx).Trim() : text.Trim();
+    }
+
+    /// <summary>用于切分产品名称的标点符号集合（中英文标点及空白）</summary>
+    private static readonly char[] PunctuationMarks =
+    {
+        '，', ',', '。', '.', '；', ';', '：', ':', '、',
+        '（', '(', '）', ')', '【', '[', '】', ']', '《', '<', '》', '>',
+        '/', '\\', '|', '“', '”', '"', '\'', ' ', '\t', '\n', '\r'
+    };
 }
 
 /// <summary>

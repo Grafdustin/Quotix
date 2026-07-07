@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -63,6 +65,18 @@ public partial class SettingsViewModel : ObservableObject
             OnPropertyChanged(nameof(UpdateStatusText));
             OnPropertyChanged(nameof(HasUpdate));
         };
+
+        // 初始化快捷输入设置
+        _quickInputEnabled = _settingsService.QuickInput.Enabled;
+        TargetFields = new List<(string Key, string Label)>
+        {
+            ("编号", "编号"),
+            ("说明", "说明"),
+            ("单价", "单价"),
+        };
+        _quickInputDb = "NDT";
+        LoadColumnOptions();
+        LoadMappingRows();
     }
 
     [ObservableProperty] private bool _isDarkMode;
@@ -244,6 +258,156 @@ public partial class SettingsViewModel : ObservableObject
             _dialog.ShowError($"清理失败: {ex.Message}");
         }
     }
+
+    // ==================== 快捷输入设置 ====================
+
+    /// <summary>快捷输入字段（固定三项：编号 / 说明 / 单价），Key 同时作为映射字典的键</summary>
+    private List<(string Key, string Label)> TargetFields { get; set; } = new();
+
+    [ObservableProperty] private bool _quickInputEnabled;
+
+    /// <summary>快捷输入总开关变化：写回设置并广播给报价单页</summary>
+    partial void OnQuickInputEnabledChanged(bool value)
+    {
+        _settingsService.QuickInput.Enabled = value;
+        WeakReferenceMessenger.Default.Send(new QuickInputEnabledChangedMessage(value));
+    }
+
+    [ObservableProperty] private string _quickInputDb = "NDT";
+
+    /// <summary>当前编辑的数据库（NDT / RVI）对应的字段映射行</summary>
+    [ObservableProperty] private ObservableCollection<QuickInputMappingRow> _quickInputRows = new();
+
+    /// <summary>当前编辑数据库对应的数据表列头下拉项（首项为"未映射"占位）</summary>
+    [ObservableProperty] private ObservableCollection<ColumnOption> _quickInputColumnOptions = new();
+
+    /// <summary>切换当前编辑的数据库（NDT / RVI），重载列头与选项</summary>
+    [RelayCommand]
+    private void SwitchQuickInputDb(string db)
+    {
+        if (QuickInputDb == db) return;
+        QuickInputDb = db;
+        LoadColumnOptions();
+        LoadMappingRows();
+    }
+
+    /// <summary>按列名关键字智能匹配默认映射（编号 / 说明 / 单价）</summary>
+    [RelayCommand]
+    private void ApplyDefaultMapping()
+    {
+        var headers = QuickInputColumnOptions
+            .Select(o => o.Value)
+            .Where(v => !string.IsNullOrEmpty(v))
+            .ToList();
+
+        var map = new Dictionary<string, string>
+        {
+            ["编号"] = MatchHeader(headers, new[] { "code", "编码", "upc", "part", "编号", "货号", "物料" }),
+            ["说明"] = MatchHeader(headers, new[] { "说明", "描述", "desc", "备注", "description", "spec", "规格" }),
+            ["单价"] = MatchHeader(headers, new[] { "price", "价格", "单价", "售价", "价", "amount" }),
+        };
+
+        foreach (var row in QuickInputRows)
+            if (map.TryGetValue(row.TargetKey, out var col))
+                row.SelectedColumn = col ?? "";
+
+        PersistMapping();
+    }
+
+    /// <summary>清空当前数据库的字段映射</summary>
+    [RelayCommand]
+    private void ClearMapping()
+    {
+        foreach (var row in QuickInputRows)
+            row.SelectedColumn = "";
+        PersistMapping();
+    }
+
+    /// <summary>加载当前编辑数据库对应的数据表列头下拉项</summary>
+    private void LoadColumnOptions()
+    {
+        var tableName = QuickInputDb == "NDT" ? "products_ndt" : "products_rvi_change";
+        var options = new ObservableCollection<ColumnOption> { new ColumnOption("（未映射）", "") };
+        foreach (var header in _productService.GetTableColumnHeaders(tableName))
+            options.Add(new ColumnOption(header, header));
+        QuickInputColumnOptions = options;
+    }
+
+    /// <summary>根据当前编辑数据库的已存映射，重建映射行</summary>
+    private void LoadMappingRows()
+    {
+        var stored = _settingsService.QuickInput.Mappings
+            .TryGetValue(QuickInputDb, out var m) && m != null
+                ? new Dictionary<string, string>(m)
+                : new Dictionary<string, string>();
+
+        var rows = new ObservableCollection<QuickInputMappingRow>();
+        foreach (var field in TargetFields)
+        {
+            var row = new QuickInputMappingRow
+            {
+                TargetKey = field.Key,
+                TargetLabel = field.Label,
+                SelectedColumn = stored.TryGetValue(field.Key, out var col) ? col : ""
+            };
+            row.PropertyChanged += Row_PropertyChanged;
+            rows.Add(row);
+        }
+        QuickInputRows = rows;
+    }
+
+    private void Row_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(QuickInputMappingRow.SelectedColumn))
+            PersistMapping();
+    }
+
+    /// <summary>将当前映射行写回设置并持久化</summary>
+    private void PersistMapping()
+    {
+        var dict = new Dictionary<string, string>();
+        foreach (var row in QuickInputRows)
+            if (!string.IsNullOrEmpty(row.SelectedColumn))
+                dict[row.TargetKey] = row.SelectedColumn;
+
+        _settingsService.QuickInput.Mappings[QuickInputDb] = dict;
+        _settingsService.SaveQuickInputSettings();
+    }
+
+    /// <summary>在列头列表中按关键字匹配第一个命中的列名</summary>
+    private static string? MatchHeader(List<string> headers, string[] keywords)
+    {
+        foreach (var kw in keywords)
+        {
+            var hit = headers.FirstOrDefault(h =>
+                h.Contains(kw, System.StringComparison.OrdinalIgnoreCase));
+            if (hit != null) return hit;
+        }
+        return null;
+    }
+
 }
 
 public record DatabaseOption(string Label, string TableName);
+
+/// <summary>快捷输入映射行：绑定到一个报价单输入框（目标字段）及其选中的数据表列。</summary>
+public partial class QuickInputMappingRow : ObservableObject
+{
+    [ObservableProperty] private string _targetKey = "";
+    [ObservableProperty] private string _targetLabel = "";
+    [ObservableProperty] private string _selectedColumn = "";
+}
+
+/// <summary>列头下拉项：显示名 + 实际列名（空字符串表示未映射）。</summary>
+public class ColumnOption
+{
+    public ColumnOption(string display, string value)
+    {
+        Display = display;
+        Value = value;
+    }
+
+    public string Display { get; }
+    public string Value { get; }
+    public override string ToString() => Display;
+}
