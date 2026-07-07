@@ -40,6 +40,7 @@ public partial class MainWindow : FluentWindow
         _settingsService = settingsService;
         _updatePipeline = updatePipeline;
         InitializeComponent();
+        SettingsCard.SizeChanged += (_, _) => UpdateSettingsCardClip();
         LoadIcon();
         LoadTitleBarIcon();
         Loaded += OnLoaded;
@@ -66,6 +67,17 @@ public partial class MainWindow : FluentWindow
     {
         _updatePipeline.State.PropertyChanged -= OnUpdateStateChanged;
         _updatePipeline.Dispose();
+    }
+
+    /// <summary>
+    /// 将设置弹窗内容裁剪为圆角矩形，使顶部/底部圆角真正可见（避免子内容溢出露出遮罩直角）。
+    /// </summary>
+    private void UpdateSettingsCardClip()
+    {
+        if (SettingsContentGrid == null) return;
+        const double radius = 18.0;
+        SettingsContentGrid.Clip = new RectangleGeometry(
+            new Rect(0, 0, SettingsContentGrid.ActualWidth, SettingsContentGrid.ActualHeight), radius, radius);
     }
 
     /// <summary>
@@ -332,6 +344,7 @@ public partial class MainWindow : FluentWindow
                 case "settings":
                     // 设置面板居中覆盖显示，不切换 Tab
                     SettingsOverlay.Visibility = Visibility.Visible;
+                    UpdateSettingsCardClip();
                     return; // 不更新导航栏激活状态，保持当前页面的激活状态
             }
 

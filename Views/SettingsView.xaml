@@ -34,29 +34,44 @@
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                        <Setter Property="Padding" Value="12,10"/>
+                        <Setter Property="Padding" Value="0"/>
                         <Setter Property="Margin" Value="0,2"/>
                         <Setter Property="Cursor" Value="Hand"/>
                         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="ListBoxItem">
-                                    <Border x:Name="Bd" CornerRadius="8"
-                                            Background="Transparent"
-                                            Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter VerticalAlignment="Center"/>
-                                    </Border>
+                                    <Grid>
+                                        <!-- 左侧激活指示条 -->
+                                        <Border x:Name="Indicator" Width="3" HorizontalAlignment="Left"
+                                                CornerRadius="2" Background="Transparent"
+                                                Margin="4,6,0,6"/>
+                                        <Border x:Name="Bd" CornerRadius="8"
+                                                Background="Transparent"
+                                                Margin="8,0,8,0"
+                                                Padding="12,10">
+                                            <ContentPresenter VerticalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
                                     <ControlTemplate.Triggers>
+                                        <!-- 选中态：明显 accent 背景 + 指示条 + 反色文字 -->
                                         <Trigger Property="IsSelected" Value="True">
                                             <Setter TargetName="Bd" Property="Background"
-                                                    Value="{DynamicResource AccentFillColorSecondaryBrush}"/>
+                                                    Value="{DynamicResource AccentFillColorDefaultBrush}"/>
                                             <Setter Property="Foreground"
                                                     Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
+                                            <Setter TargetName="Indicator" Property="Background"
+                                                    Value="{DynamicResource AccentFillColorDefaultBrush}"/>
                                         </Trigger>
-                                        <Trigger Property="IsMouseOver" Value="True">
+                                        <!-- 仅未选中时悬停才显示淡背景，避免覆盖选中高亮 -->
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsMouseOver" Value="True"/>
+                                                <Condition Property="IsSelected" Value="False"/>
+                                            </MultiTrigger.Conditions>
                                             <Setter TargetName="Bd" Property="Background"
                                                     Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
-                                        </Trigger>
+                                        </MultiTrigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Setter.Value>
@@ -69,7 +84,8 @@
                             <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="16"
                                            VerticalAlignment="Center" Margin="0,0,12,0"/>
                             <ui:TextBlock Text="{Binding Label}" FontSize="13"
-                                          VerticalAlignment="Center"/>
+                                          VerticalAlignment="Center"
+                                          Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

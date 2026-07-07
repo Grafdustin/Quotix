@@ -289,17 +289,17 @@
             <Grid x:Name="SettingsOverlay" Visibility="Collapsed"
                   Grid.ColumnSpan="2"
                   Background="#88000000" Panel.ZIndex="1000">
-                <Border HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Width="820" MaxHeight="720"
+                <Border x:Name="SettingsCard" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Width="820" MinHeight="560" MaxHeight="720"
                         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-                        CornerRadius="16"
+                        CornerRadius="18"
                         BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                         BorderThickness="1">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="40" ShadowDepth="6"
                                           Opacity="0.30" Color="Black"/>
                     </Border.Effect>
-                    <Grid>
+                    <Grid x:Name="SettingsContentGrid">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
