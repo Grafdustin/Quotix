@@ -25,8 +25,9 @@ public class HeaderImportService
     /// <summary>从 Excel 导入货主或客户</summary>
     public int ImportFromExcel(string filePath, string tableName)
     {
-        // 先复制到临时文件，避免原文件被 Excel 等进程锁定
-        string tempPath = Path.Combine(Path.GetTempPath(), $"Quotix_Import_{Guid.NewGuid()}.xlsx");
+        // 先复制到安装目录下 Data 文件夹的临时文件，避免原文件被 Excel 等进程锁定
+        string dataDir = AppPaths.DataDir;
+        string tempPath = Path.Combine(dataDir, $"Quotix_Import_{Guid.NewGuid()}.xlsx");
         try
         {
             File.Copy(filePath, tempPath, overwrite: true);

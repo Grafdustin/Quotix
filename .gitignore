@@ -72,3 +72,6 @@ Desktop.ini
 
 # 更新包缓存
 Updates/
+
+# 导入临时文件（Excel 导入时复制到 Data 目录的副本）
+Data/Quotix_Import_*.xlsx
