@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using ClosedXML.Excel;
 using Quotix.Common;
@@ -25,62 +26,81 @@ public class ProductImportService
     /// <summary>从 Excel 导入产品（事务保护）</summary>
     public int ImportFromExcel(string filePath, string tableName, IProgress<int>? progress = null)
     {
-        using var workbook = new XLWorkbook(filePath);
-        var worksheet = workbook.Worksheets.First();
-        var rows = worksheet.RowsUsed().ToList();
-        if (rows.Count < 2) return 0;
-
-        var headerRow = rows[0];
-        var headers = new List<string>();
-        foreach (var cell in headerRow.Cells())
-            headers.Add(cell.GetString().Trim());
-
-        var now = DateTime.Now.ToString(Constants.DateTimeFormat);
-        var products = new List<Product>();
-
-        for (int i = 1; i < rows.Count; i++)
+        // 先复制到临时文件，避免原文件被 Excel 等进程锁定
+        string tempPath = Path.Combine(Path.GetTempPath(), $"Quotix_Import_{Guid.NewGuid()}.xlsx");
+        try
         {
-            var row = rows[i];
-            var data = new Dictionary<string, string>();
-            for (int j = 0; j < headers.Count; j++)
-            {
-                var val = row.Cell(j + 1).GetString().Trim();
-                if (!string.IsNullOrEmpty(val))
-                    data[headers[j]] = val;
-            }
-
-            products.Add(new Product
-            {
-                Id = IdGenerator.New(),
-                TableName = tableName,
-                DataJson = JsonSerializer.Serialize(data),
-                CreatedBy = Constants.LocalUserId,
-                CreatedAt = now,
-                UpdatedAt = now
-            });
-
-            progress?.Report((i + 1) * 100 / rows.Count);
+            File.Copy(filePath, tempPath, overwrite: true);
         }
-
-        using var conn = _db.GetConnection();
-        using var tx = conn.BeginTransaction();
+        catch (IOException ex)
+        {
+            throw new IOException($"无法访问文件 '{filePath}'，请确认文件未被其他程序打开。", ex);
+        }
 
         try
         {
-            foreach (var product in products)
-            {
-                _repo.Insert(conn, tx, product);
-                _repo.InsertFts(conn, tx, product);
-            }
-            tx.Commit();
-        }
-        catch
-        {
-            tx.Rollback();
-            throw;
-        }
+            using var workbook = new XLWorkbook(tempPath);
+            var worksheet = workbook.Worksheets.First();
+            var rows = worksheet.RowsUsed().ToList();
+            if (rows.Count < 2) return 0;
 
-        _cache.InvalidateProducts();
-        return products.Count;
+            var headerRow = rows[0];
+            var headers = new List<string>();
+            foreach (var cell in headerRow.Cells())
+                headers.Add(cell.GetString().Trim());
+
+            var now = DateTime.Now.ToString(Constants.DateTimeFormat);
+            var products = new List<Product>();
+
+            for (int i = 1; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                var data = new Dictionary<string, string>();
+                for (int j = 0; j < headers.Count; j++)
+                {
+                    var val = row.Cell(j + 1).GetString().Trim();
+                    if (!string.IsNullOrEmpty(val))
+                        data[headers[j]] = val;
+                }
+
+                products.Add(new Product
+                {
+                    Id = IdGenerator.New(),
+                    TableName = tableName,
+                    DataJson = JsonSerializer.Serialize(data),
+                    CreatedBy = Constants.LocalUserId,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+
+                progress?.Report((i + 1) * 100 / rows.Count);
+            }
+
+            using var conn = _db.GetConnection();
+            using var tx = conn.BeginTransaction();
+
+            try
+            {
+                foreach (var product in products)
+                {
+                    _repo.Insert(conn, tx, product);
+                    _repo.InsertFts(conn, tx, product);
+                }
+                tx.Commit();
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
+            }
+
+            _cache.InvalidateProducts();
+            return products.Count;
+        }
+        finally
+        {
+            // 清理临时文件
+            try { File.Delete(tempPath); } catch { /* ignore */ }
+        }
     }
 }

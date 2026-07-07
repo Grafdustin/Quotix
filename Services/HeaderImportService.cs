@@ -1,3 +1,4 @@
+using System.IO;
 using ClosedXML.Excel;
 using Quotix.Common;
 using Quotix.Models;
@@ -24,68 +25,87 @@ public class HeaderImportService
     /// <summary>从 Excel 导入货主或客户</summary>
     public int ImportFromExcel(string filePath, string tableName)
     {
-        using var workbook = new XLWorkbook(filePath);
-        var worksheet = workbook.Worksheets.First();
-        var rows = worksheet.RowsUsed().ToList();
-        if (rows.Count < 2) return 0;
-
-        var headerRow = rows[0];
-        var headers = new List<string>();
-        foreach (var cell in headerRow.Cells())
-            headers.Add(cell.GetString().Trim());
-
-        var count = 0;
-
-        using var conn = _db.GetConnection();
-        using var tx = conn.BeginTransaction();
+        // 先复制到临时文件，避免原文件被 Excel 等进程锁定
+        string tempPath = Path.Combine(Path.GetTempPath(), $"Quotix_Import_{Guid.NewGuid()}.xlsx");
+        try
+        {
+            File.Copy(filePath, tempPath, overwrite: true);
+        }
+        catch (IOException ex)
+        {
+            throw new IOException($"无法访问文件 '{filePath}'，请确认文件未被其他程序打开。", ex);
+        }
 
         try
         {
-            for (int i = 1; i < rows.Count; i++)
+            using var workbook = new XLWorkbook(tempPath);
+            var worksheet = workbook.Worksheets.First();
+            var rows = worksheet.RowsUsed().ToList();
+            if (rows.Count < 2) return 0;
+
+            var headerRow = rows[0];
+            var headers = new List<string>();
+            foreach (var cell in headerRow.Cells())
+                headers.Add(cell.GetString().Trim());
+
+            var count = 0;
+
+            using var conn = _db.GetConnection();
+            using var tx = conn.BeginTransaction();
+
+            try
             {
-                var row = rows[i];
-                string id = IdGenerator.New();
-
-                if (tableName == "owners")
+                for (int i = 1; i < rows.Count; i++)
                 {
-                    var name = GetCellValue(row, headers, "name");
-                    if (string.IsNullOrWhiteSpace(name)) continue;
+                    var row = rows[i];
+                    string id = IdGenerator.New();
 
-                    _repo.InsertOwnerTx(conn, tx, new Owner
+                    if (tableName == "owners")
                     {
-                        Id = id, Name = name,
-                        Phone = GetCellValue(row, headers, "phone"),
-                        Tel = GetCellValue(row, headers, "tel"),
-                        Email = GetCellValue(row, headers, "email")
-                    });
-                }
-                else if (tableName == "customers")
-                {
-                    var companyName = GetCellValue(row, headers, "company_name");
-                    if (string.IsNullOrWhiteSpace(companyName)) continue;
+                        var name = GetCellValue(row, headers, "name");
+                        if (string.IsNullOrWhiteSpace(name)) continue;
 
-                    _repo.InsertCustomerTx(conn, tx, new Customer
+                        _repo.InsertOwnerTx(conn, tx, new Owner
+                        {
+                            Id = id, Name = name,
+                            Phone = GetCellValue(row, headers, "phone"),
+                            Tel = GetCellValue(row, headers, "tel"),
+                            Email = GetCellValue(row, headers, "email")
+                        });
+                    }
+                    else if (tableName == "customers")
                     {
-                        Id = id, CompanyName = companyName,
-                        Contact = GetCellValue(row, headers, "contact"),
-                        Phone = GetCellValue(row, headers, "phone"),
-                        Email = GetCellValue(row, headers, "email")
-                    });
+                        var companyName = GetCellValue(row, headers, "company_name");
+                        if (string.IsNullOrWhiteSpace(companyName)) continue;
+
+                        _repo.InsertCustomerTx(conn, tx, new Customer
+                        {
+                            Id = id, CompanyName = companyName,
+                            Contact = GetCellValue(row, headers, "contact"),
+                            Phone = GetCellValue(row, headers, "phone"),
+                            Email = GetCellValue(row, headers, "email")
+                        });
+                    }
+
+                    count++;
                 }
 
-                count++;
+                tx.Commit();
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
             }
 
-            tx.Commit();
+            if (count > 0) _cache.InvalidateHeaders();
+            return count;
         }
-        catch
+        finally
         {
-            tx.Rollback();
-            throw;
+            // 清理临时文件
+            try { File.Delete(tempPath); } catch { /* ignore */ }
         }
-
-        if (count > 0) _cache.InvalidateHeaders();
-        return count;
     }
 
     private static string? GetCellValue(IXLRow row, List<string> headers, string columnName)
