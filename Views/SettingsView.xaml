@@ -41,27 +41,19 @@
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="ListBoxItem">
-                                    <Grid>
-                                        <!-- 左侧激活指示条 -->
-                                        <Border x:Name="Indicator" Width="3" HorizontalAlignment="Left"
-                                                CornerRadius="2" Background="Transparent"
-                                                Margin="4,6,0,6"/>
-                                        <Border x:Name="Bd" CornerRadius="8"
-                                                Background="Transparent"
-                                                Margin="8,0,8,0"
-                                                Padding="12,10">
-                                            <ContentPresenter VerticalAlignment="Center"/>
-                                        </Border>
-                                    </Grid>
+                                    <Border x:Name="Bd" CornerRadius="8"
+                                            Background="Transparent"
+                                            Margin="8,0,8,0"
+                                            Padding="12,10">
+                                        <ContentPresenter VerticalAlignment="Center"/>
+                                    </Border>
                                     <ControlTemplate.Triggers>
-                                        <!-- 选中态：明显 accent 背景 + 指示条 + 反色文字 -->
+                                        <!-- 选中态：accent 背景 + 反色文字，无指示条 -->
                                         <Trigger Property="IsSelected" Value="True">
                                             <Setter TargetName="Bd" Property="Background"
                                                     Value="{DynamicResource AccentFillColorDefaultBrush}"/>
                                             <Setter Property="Foreground"
                                                     Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
-                                            <Setter TargetName="Indicator" Property="Background"
-                                                    Value="{DynamicResource AccentFillColorDefaultBrush}"/>
                                         </Trigger>
                                         <!-- 仅未选中时悬停才显示淡背景，避免覆盖选中高亮 -->
                                         <MultiTrigger>
@@ -99,9 +91,6 @@
 
                 <!-- ====== 导出路径 ====== -->
                 <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=export}">
-                    <ui:TextBlock Text="导出路径" FontSize="18" FontWeight="Bold"
-                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                  Margin="0,0,0,12"/>
                     <Border CornerRadius="10"
                             Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -144,9 +133,6 @@
 
                 <!-- ====== 快捷输入 ====== -->
                 <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=quickinput}">
-                    <ui:TextBlock Text="快捷输入" FontSize="18" FontWeight="Bold"
-                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                  Margin="0,0,0,12"/>
                     <Border CornerRadius="10"
                             Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -237,9 +223,6 @@
 
                 <!-- ====== 外观 ====== -->
                 <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=appearance}">
-                    <ui:TextBlock Text="外观" FontSize="18" FontWeight="Bold"
-                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                  Margin="0,0,0,12"/>
                     <Border CornerRadius="10"
                             Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -282,9 +265,6 @@
 
                 <!-- ====== 产品列表 ====== -->
                 <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=products}">
-                    <ui:TextBlock Text="产品列表" FontSize="18" FontWeight="Bold"
-                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                  Margin="0,0,0,12"/>
                     <Border CornerRadius="10"
                             Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -405,9 +385,6 @@
 
                 <!-- ====== 更新 ====== -->
                 <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=update}">
-                    <ui:TextBlock Text="检查更新" FontSize="18" FontWeight="Bold"
-                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                  Margin="0,0,0,12"/>
                     <Border CornerRadius="10"
                             Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -444,9 +421,6 @@
 
                 <!-- ====== 关于 ====== -->
                 <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=about}">
-                    <ui:TextBlock Text="关于" FontSize="18" FontWeight="Bold"
-                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                  Margin="0,0,0,12"/>
                     <Border CornerRadius="10"
                             Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
