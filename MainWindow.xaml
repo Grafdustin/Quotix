@@ -290,7 +290,7 @@
                   Grid.ColumnSpan="2"
                   Background="#88000000" Panel.ZIndex="1000">
                 <Border HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Width="520" MaxHeight="680"
+                        Width="820" MaxHeight="720"
                         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                         CornerRadius="16"
                         BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
@@ -340,9 +340,7 @@
                                    Fill="{DynamicResource DividerStrokeColorDefaultBrush}"/>
 
                         <!-- 内容 -->
-                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                            <views:SettingsView x:Name="SettingsViewControl" Margin="28,20,28,28"/>
-                        </ScrollViewer>
+                        <views:SettingsView Grid.Row="2" x:Name="SettingsViewControl" Margin="0"/>
                     </Grid>
                 </Border>
             </Grid>

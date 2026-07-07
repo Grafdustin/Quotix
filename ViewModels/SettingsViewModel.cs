@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using Quotix.Messages;
 using Quotix.Models;
 using Quotix.Services;
+using Wpf.Ui.Controls;
 
 namespace Quotix.ViewModels;
 
@@ -78,6 +79,22 @@ public partial class SettingsViewModel : ObservableObject
         LoadColumnOptions();
         LoadMappingRows();
     }
+
+    // ==================== 设置分类导航（左侧导航栏）====================
+
+    /// <summary>设置页左侧导航分类列表（Key 用于切换，Label 用于显示）</summary>
+    public ObservableCollection<SettingsCategoryItem> SettingsCategories { get; } = new()
+    {
+        new("export", "导出路径", SymbolRegular.FolderOpen16),
+        new("quickinput", "快捷输入", SymbolRegular.Search16),
+        new("appearance", "外观", SymbolRegular.WeatherMoon16),
+        new("products", "产品列表", SymbolRegular.Box24),
+        new("update", "更新", SymbolRegular.ArrowSync16),
+        new("about", "关于", SymbolRegular.Info16),
+    };
+
+    /// <summary>当前选中的设置分类 Key，驱动右侧内容面板切换</summary>
+    [ObservableProperty] private string _selectedSettingsCategory = "export";
 
     [ObservableProperty] private bool _isDarkMode;
 
@@ -356,6 +373,21 @@ public partial class SettingsViewModel : ObservableObject
 }
 
 public record DatabaseOption(string Label, string TableName);
+
+/// <summary>设置页左侧导航项：Key 作为分类标识，Label 为显示名，Icon 为导航图标。</summary>
+public sealed class SettingsCategoryItem
+{
+    public string Key { get; }
+    public string Label { get; }
+    public SymbolRegular Icon { get; }
+
+    public SettingsCategoryItem(string key, string label, SymbolRegular icon)
+    {
+        Key = key;
+        Label = label;
+        Icon = icon;
+    }
+}
 
 /// <summary>快捷输入映射行：绑定到一个报价单输入框（目标字段）及其选中的数据表列。</summary>
 public partial class QuickInputMappingRow : ObservableObject

@@ -106,6 +106,19 @@ public class IndexConverter : IValueConverter
 }
 
 /// <summary>
+/// 设置分类可见性转换器。当绑定值（当前选中分类 Key）与参数相等时返回 Visible，否则返回 Collapsed。
+/// </summary>
+public class CategoryToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => string.Equals(value?.ToString(), parameter?.ToString(), StringComparison.OrdinalIgnoreCase)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
 /// 零值转空字符串转换器。当 decimal 值为 0 时返回空字符串，否则返回原值。
 /// </summary>
 public class ZeroToEmptyConverter : IValueConverter
