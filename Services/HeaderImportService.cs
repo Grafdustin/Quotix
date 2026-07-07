@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using ClosedXML.Excel;
 using Quotix.Common;
 using Quotix.Models;
@@ -28,17 +29,24 @@ public class HeaderImportService
         // 先复制到安装目录下 Data 文件夹的临时文件，避免原文件被 Excel 等进程锁定
         string dataDir = AppPaths.DataDir;
         string tempPath = Path.Combine(dataDir, $"Quotix_Import_{Guid.NewGuid()}.xlsx");
-        try
-        {
-            File.Copy(filePath, tempPath, overwrite: true);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException($"无法访问文件 '{filePath}'，请确认文件未被其他程序打开。", ex);
-        }
 
         try
         {
+            try
+            {
+                File.Copy(filePath, tempPath, overwrite: true);
+            }
+            catch (IOException ex)
+            {
+                throw new IOException($"无法访问文件 '{filePath}'，请确认文件未被其他程序打开。", ex);
+            }
+
+            // 检测 Office 密码保护（加密）
+            if (IsExcelEncrypted(tempPath))
+            {
+                throw new InvalidOperationException("文件被加密，请解密后导入。");
+            }
+
             using var workbook = new XLWorkbook(tempPath);
             var worksheet = workbook.Worksheets.First();
             var rows = worksheet.RowsUsed().ToList();
@@ -104,8 +112,32 @@ public class HeaderImportService
         }
         finally
         {
-            // 清理临时文件
+            // 清理临时文件（无论成功或失败都会删除）
             try { File.Delete(tempPath); } catch { /* ignore */ }
+        }
+    }
+
+    /// <summary>检测 Excel 文件是否启用了 Office 密码保护（加密）。</summary>
+    private static bool IsExcelEncrypted(string path)
+    {
+        try
+        {
+            using var zip = ZipFile.OpenRead(path);
+            foreach (var entry in zip.Entries)
+            {
+                // 受密码保护的 xlsx 会包含 EncryptedPackage / EncryptionInfo 部件
+                if (entry.FullName.Equals("EncryptedPackage", StringComparison.OrdinalIgnoreCase)
+                    || entry.FullName.Equals("EncryptionInfo", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        catch
+        {
+            // 不是有效的 zip 包（如旧版 .xls），交给后续流程处理
+            return false;
         }
     }
 
