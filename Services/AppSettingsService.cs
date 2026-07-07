@@ -21,6 +21,9 @@ public class AppSettingsService
     public AppSettingsService()
     {
         _current = LoadFromDisk();
+        // 确保默认配置（如"快捷输入默认开启"）在首次运行或旧文件缺失时落盘。
+        // 若用户已显式关闭，反序列化后 _current.QuickInput.Enabled 即为 false，写入不会覆盖其选择。
+        SaveToDisk();
     }
 
     /// <summary>当前设置（读取即最新值）</summary>
@@ -129,8 +132,8 @@ public class AppSettings
 /// <summary>快捷输入设置实体（序列化到 settings.json）</summary>
 public class QuickInputSettings
 {
-    /// <summary>是否启用快捷输入。关闭后报价单编号列不再触发产品快速搜索。</summary>
-    public bool Enabled { get; set; }
+    /// <summary>是否启用快捷输入。关闭后报价单编号列不再触发产品快速搜索。默认开启。</summary>
+    public bool Enabled { get; set; } = true;
 
     /// <summary>
     /// 字段映射。外层 key 为数据库类型（"NDT" / "RVI"）；
