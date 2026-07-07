@@ -298,13 +298,26 @@ public partial class SettingsViewModel : ObservableObject
     /// <summary>当前编辑数据库对应的数据表列头下拉项（首项为"未映射"占位）</summary>
     [ObservableProperty] private ObservableCollection<ColumnOption> _quickInputColumnOptions = new();
 
-    /// <summary>切换当前编辑的数据库（NDT / RVI），先保存当前映射再重载</summary>
+    /// <summary>切换当前编辑的数据库（NDT / RVI），先保存映射、断开旧行订阅，再重载</summary>
     [RelayCommand]
     private void SwitchQuickInputDb(string db)
     {
         if (QuickInputDb == db) return;
-        // 切换前先保存当前数据库的已设映射
-        PersistMapping();
+
+        // 1️⃣ 快照保存当前数据库映射（在内存中直接写入，不受后续 ItemsSource 变更影响）
+        var snapshot = new Dictionary<string, string>();
+        foreach (var row in QuickInputRows)
+            if (!string.IsNullOrEmpty(row.SelectedColumn))
+                snapshot[row.TargetKey] = row.SelectedColumn;
+        _settingsService.QuickInput.Mappings[QuickInputDb] = snapshot;
+        _settingsService.SaveQuickInputSettings();
+
+        // 2️⃣ 断开所有旧行的 PropertyChanged 订阅，防止后续 ItemsSource 切换
+        //    导致 ComboBox 异步回写空值 → 再次触发 PersistMapping 覆盖快照
+        foreach (var row in QuickInputRows)
+            row.PropertyChanged -= Row_PropertyChanged;
+
+        // 3️⃣ 切换数据库并重载
         QuickInputDb = db;
         LoadColumnOptions();
         LoadMappingRows();
@@ -329,9 +342,13 @@ public partial class SettingsViewModel : ObservableObject
         QuickInputColumnOptions = options;
     }
 
-    /// <summary>根据当前编辑数据库的已存映射，重建映射行</summary>
+    /// <summary>根据当前编辑数据库的已存映射，重建映射行（替换前断开旧行订阅）</summary>
     private void LoadMappingRows()
     {
+        // 断开旧行订阅，防止 ComboBox 异步回写触发已失效的 PersistMapping
+        foreach (var row in QuickInputRows)
+            row.PropertyChanged -= Row_PropertyChanged;
+
         var stored = _settingsService.QuickInput.Mappings
             .TryGetValue(QuickInputDb, out var m) && m != null
                 ? new Dictionary<string, string>(m)
