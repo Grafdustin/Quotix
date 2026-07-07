@@ -165,8 +165,6 @@
 
                     <!-- 便捷操作 -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <ui:Button Content="智能匹配默认" Appearance="Secondary" Height="32" FontSize="12"
-                                   Command="{Binding ApplyDefaultMappingCommand}" Margin="0,0,8,0"/>
                         <ui:Button Content="清空映射" Appearance="Secondary" Height="32" FontSize="12"
                                    Command="{Binding ClearMappingCommand}"/>
                     </StackPanel>

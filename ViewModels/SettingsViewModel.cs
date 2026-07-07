@@ -281,37 +281,16 @@ public partial class SettingsViewModel : ObservableObject
     /// <summary>当前编辑数据库对应的数据表列头下拉项（首项为"未映射"占位）</summary>
     [ObservableProperty] private ObservableCollection<ColumnOption> _quickInputColumnOptions = new();
 
-    /// <summary>切换当前编辑的数据库（NDT / RVI），重载列头与选项</summary>
+    /// <summary>切换当前编辑的数据库（NDT / RVI），先保存当前映射再重载</summary>
     [RelayCommand]
     private void SwitchQuickInputDb(string db)
     {
         if (QuickInputDb == db) return;
+        // 切换前先保存当前数据库的已设映射
+        PersistMapping();
         QuickInputDb = db;
         LoadColumnOptions();
         LoadMappingRows();
-    }
-
-    /// <summary>按列名关键字智能匹配默认映射（编号 / 说明 / 单价）</summary>
-    [RelayCommand]
-    private void ApplyDefaultMapping()
-    {
-        var headers = QuickInputColumnOptions
-            .Select(o => o.Value)
-            .Where(v => !string.IsNullOrEmpty(v))
-            .ToList();
-
-        var map = new Dictionary<string, string>
-        {
-            ["编号"] = MatchHeader(headers, new[] { "code", "编码", "upc", "part", "编号", "货号", "物料" }),
-            ["说明"] = MatchHeader(headers, new[] { "说明", "描述", "desc", "备注", "description", "spec", "规格" }),
-            ["单价"] = MatchHeader(headers, new[] { "price", "价格", "单价", "售价", "价", "amount" }),
-        };
-
-        foreach (var row in QuickInputRows)
-            if (map.TryGetValue(row.TargetKey, out var col))
-                row.SelectedColumn = col ?? "";
-
-        PersistMapping();
     }
 
     /// <summary>清空当前数据库的字段映射</summary>
@@ -372,18 +351,6 @@ public partial class SettingsViewModel : ObservableObject
 
         _settingsService.QuickInput.Mappings[QuickInputDb] = dict;
         _settingsService.SaveQuickInputSettings();
-    }
-
-    /// <summary>在列头列表中按关键字匹配第一个命中的列名</summary>
-    private static string? MatchHeader(List<string> headers, string[] keywords)
-    {
-        foreach (var kw in keywords)
-        {
-            var hit = headers.FirstOrDefault(h =>
-                h.Contains(kw, System.StringComparison.OrdinalIgnoreCase));
-            if (hit != null) return hit;
-        }
-        return null;
     }
 
 }
