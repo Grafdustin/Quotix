@@ -90,7 +90,7 @@
                         <ui:NavigationView.PaneHeader>
                             <!-- 左对齐，确保每个按钮槽位从图标列起点(x=0)开始 -->
                             <StackPanel x:Name="HeaderButtonsPanel" Orientation="Horizontal"
-                                       HorizontalAlignment="Left" Margin="0,4,0,0">
+                                       HorizontalAlignment="Left" Margin="-5,4,0,0">
                                 <!-- 每个按钮放在 48px(=CompactPaneLength) 的图标列槽中并水平居中，
                                      使其图标与下方导航项图标在同一列中心(x=24)对齐；按钮本体宽度保持 36 不变 -->
                                 <Grid Width="48">
