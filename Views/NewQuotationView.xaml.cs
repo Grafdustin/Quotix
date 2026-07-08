@@ -48,8 +48,16 @@ public partial class NewQuotationView : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(NewQuotationViewModel.IsQuickSearchVisible) && _subscribedVm?.IsQuickSearchVisible == true)
-            PositionQuickSearchPopup();
+        if (e.PropertyName == nameof(NewQuotationViewModel.IsQuickSearchVisible))
+        {
+            var visible = _subscribedVm?.IsQuickSearchVisible == true;
+            // 先定位再打开，避免弹出瞬间 PlacementTarget 未就绪
+            if (visible)
+                PositionQuickSearchPopup();
+            // 直接控制 Popup.IsOpen，避免绑定 + StaysOpen=False 自动关闭后
+            // 本地值覆盖绑定、导致后续无法重新打开的经典陷阱
+            QuickSearchPopup.IsOpen = visible;
+        }
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -91,28 +99,17 @@ public partial class NewQuotationView : UserControl
     {
         if (sender is TextBox tb && DataContext is NewQuotationViewModel vm)
         {
-            // 通过可视化树查找行索引
-            var parent = tb.Parent;
-            while (parent != null)
+            // 文本框的数据上下文即为该行对应的报价项，直接定位行索引（比视觉树遍历更可靠）
+            if (tb.DataContext is QuotationItemViewModel item)
             {
-                if (parent is ContentPresenter cp)
+                var idx = vm.Items.IndexOf(item);
+                if (idx >= 0)
                 {
-                    // ItemsControl 为每个项生成 ContentPresenter
-                    var itemsControl = ItemsControl.ItemsControlFromItemContainer(cp);
-                    if (itemsControl != null)
-                    {
-                        var idx = itemsControl.ItemContainerGenerator.IndexFromContainer(cp);
-                        if (idx >= 0)
-                        {
-                            _lastCodeRowIndex = idx;
-                            vm.OnCodeFieldFocused(idx);
-                            // 聚焦即自动激活：空文本也展示全部，便于直接点选
-                            vm.HandleQuickSearchTextChanged(tb.Text);
-                        }
-                        break;
-                    }
+                    _lastCodeRowIndex = idx;
+                    vm.OnCodeFieldFocused(idx);
+                    // 聚焦即自动激活：空文本也展示全部，便于直接点选
+                    vm.HandleQuickSearchTextChanged(tb.Text);
                 }
-                parent = System.Windows.Media.VisualTreeHelper.GetParent(parent as System.Windows.DependencyObject);
             }
         }
     }

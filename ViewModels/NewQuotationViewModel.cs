@@ -547,7 +547,8 @@ public partial class NewQuotationViewModel : ObservableObject
                 QuickSearchResults.Clear();
                 foreach (var r in matches)
                     QuickSearchResults.Add(r);
-                IsQuickSearchVisible = QuickSearchResults.Count > 0;
+                // 产品上下文：聚焦编号列即弹出（无结果时显示占位提示），owner/customer 上下文仍按是否有结果决定
+                IsQuickSearchVisible = true;
             });
         }
         else if (QuickSearchContext == "owner")
@@ -616,7 +617,16 @@ public partial class NewQuotationViewModel : ObservableObject
 
         foreach (var p in products)
         {
-            var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(p.DataJson);
+            Dictionary<string, string>? dict = null;
+            try
+            {
+                dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(p.DataJson);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // 单条数据 JSON 损坏不应中断整个搜索索引构建
+                continue;
+            }
             if (dict == null || dict.Count == 0) continue;
 
             // 一次性遍历，同时提取 searchText / title / subtitle / price / rawData

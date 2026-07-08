@@ -13,6 +13,7 @@
     <conv:InverseBoolConverter x:Key="InverseBool"/>
     <conv:MultiplyConverter x:Key="Multiply"/>
     <conv:StringToVisibilityConverter x:Key="StringToVis"/>
+    <conv:CountToVisibilityConverter x:Key="CountToVis"/>
     <conv:CurrencyBgConverter x:Key="CurrencyBg"/>
     <conv:QuickDbAppearanceConverter x:Key="QuickDbAppearance"/>
     <conv:IndexConverter x:Key="Index"/>

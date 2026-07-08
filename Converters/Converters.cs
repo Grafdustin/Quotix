@@ -55,6 +55,23 @@ public class StringToVisibilityConverter : IValueConverter
 }
 
 /// <summary>
+/// 集合数量转可见性转换器。当数量为 0 时返回 Visible（参数 "Zero"），否则返回 Collapsed；
+/// 不带参数时反之（数量大于 0 显示）。用于空结果占位提示。
+/// </summary>
+public class CountToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var count = value is int c ? c : 0;
+        var showWhenZero = parameter?.ToString() == "Zero";
+        return showWhenZero ? (count == 0 ? Visibility.Visible : Visibility.Collapsed)
+                            : (count > 0 ? Visibility.Visible : Visibility.Collapsed);
+    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
 /// 币种按钮背景转换器。当前币种与目标币种匹配时返回 Primary，否则返回 Secondary。
 /// </summary>
 public class CurrencyBgConverter : IValueConverter

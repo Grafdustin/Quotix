@@ -608,8 +608,7 @@
 
         <!-- ═══════════════ 快速搜索 Popup ═══════════════ -->
         <Popup x:Name="QuickSearchPopup" Placement="Bottom" StaysOpen="False"
-               AllowsTransparency="True" PopupAnimation="Fade"
-               IsOpen="{Binding IsQuickSearchVisible}">
+               AllowsTransparency="True" PopupAnimation="Fade">
             <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                     CornerRadius="12"
                     BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
@@ -644,11 +643,12 @@
                     </Border>
 
                     <!-- 结果列表 -->
-                    <ListBox Grid.Row="1" x:Name="QuickResultsList"
-                             ItemsSource="{Binding QuickSearchResults}"
-                             BorderThickness="0" Background="Transparent"
-                             PreviewMouseLeftButtonUp="QuickResultsList_PreviewMouseLeftButtonUp"
-                             PreviewKeyDown="QuickResultsList_PreviewKeyDown">
+                    <Grid Grid.Row="1">
+                        <ListBox x:Name="QuickResultsList"
+                                 ItemsSource="{Binding QuickSearchResults}"
+                                 BorderThickness="0" Background="Transparent"
+                                 PreviewMouseLeftButtonUp="QuickResultsList_PreviewMouseLeftButtonUp"
+                                 PreviewKeyDown="QuickResultsList_PreviewKeyDown">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="Padding" Value="0"/>
@@ -692,7 +692,13 @@
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
-                    </ListBox>
+                        </ListBox>
+                        <!-- 空结果占位提示（仅当结果数为 0 时显示） -->
+                        <ui:TextBlock Text="无匹配数据。请先在「设置 → 快捷输入」中配置“编号”列，或在产品数据库中导入数据。"
+                                      FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      TextWrapping="Wrap" HorizontalAlignment="Center"
+                                      Margin="16,24" Visibility="{Binding QuickSearchResults.Count, Converter={StaticResource CountToVis}, ConverterParameter=Zero}"/>
+                    </Grid>
                 </Grid>
             </Border>
         </Popup>
