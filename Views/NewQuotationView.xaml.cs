@@ -85,6 +85,7 @@ public partial class NewQuotationView : UserControl
 
     /// <summary>
     /// 编码文本框获得焦点时调用，确定当前行索引并激活产品搜索模式。
+    /// 聚焦即自动弹出快捷输入窗口（空文本也展示该列全部内容）。
     /// </summary>
     private void CodeBox_GotFocus(object sender, RoutedEventArgs e)
     {
@@ -101,13 +102,12 @@ public partial class NewQuotationView : UserControl
                     if (itemsControl != null)
                     {
                         var idx = itemsControl.ItemContainerGenerator.IndexFromContainer(cp);
-                        if (idx >= 0 && (_lastCodeRowIndex != idx || vm.ActiveItemIndex != idx))
+                        if (idx >= 0)
                         {
                             _lastCodeRowIndex = idx;
                             vm.OnCodeFieldFocused(idx);
-                            // 重新触发搜索
-                            if (!string.IsNullOrEmpty(tb.Text))
-                                vm.HandleQuickSearchTextChanged(tb.Text);
+                            // 聚焦即自动激活：空文本也展示全部，便于直接点选
+                            vm.HandleQuickSearchTextChanged(tb.Text);
                         }
                         break;
                     }

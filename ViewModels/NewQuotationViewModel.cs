@@ -401,20 +401,23 @@ public partial class NewQuotationViewModel : ObservableObject
 
     /// <summary>
     /// 由 View 调用：文本变化时触发搜索（带防抖）。
+    /// 产品上下文（编号列）下，空文本也展示该列全部内容（预填列表）；
+    /// 负责人/客户上下文空文本则隐藏结果。
     /// </summary>
     /// <param name="text">搜索文本</param>
     public void HandleQuickSearchTextChanged(string text)
     {
         QuickSearchText = text;
-        if (string.IsNullOrWhiteSpace(text))
+        // 产品快速搜索受总开关控制；关闭后编号列仅作为普通文本框
+        if (QuickSearchContext == "product" && !_quickInputEnabled)
         {
             CancelSearch();
             QuickSearchResults.Clear();
             IsQuickSearchVisible = false;
             return;
         }
-        // 产品快速搜索受总开关控制；关闭后编号列仅作为普通文本框
-        if (QuickSearchContext == "product" && !_quickInputEnabled)
+        // 负责人/客户上下文：空文本隐藏结果
+        if (string.IsNullOrWhiteSpace(text) && QuickSearchContext != "product")
         {
             CancelSearch();
             QuickSearchResults.Clear();
@@ -484,7 +487,7 @@ public partial class NewQuotationViewModel : ObservableObject
     /// <param name="ct">取消令牌</param>
     private async System.Threading.Tasks.Task QuickSearchAsync(string query, CancellationToken ct)
     {
-        var lower = query.ToLowerInvariant();
+        var lower = (query ?? "").ToLowerInvariant();
 
         if (QuickSearchContext == "product")
         {
@@ -500,17 +503,37 @@ public partial class NewQuotationViewModel : ObservableObject
 
             var index = _cachedProductIndex;
 
-            // 在后台线程过滤
+            // 取设置中映射到“编号”的列；只展示该列内容，其他列不显示
+            var map = _settingsService.QuickInput.Mappings
+                .TryGetValue(dbType, out var m) && m != null ? m : null;
+            var codeColumn = map != null && map.TryGetValue("编号", out var cc) ? cc : "";
+
+            // 在后台线程过滤：仅按“编号”映射列的值匹配
             var matches = await System.Threading.Tasks.Task.Run(() =>
             {
-                var list = new List<QuickSearchIndex>(50);
-                for (int i = 0; i < index.Count; i++)
+                var list = new List<QuickSearchResult>(200);
+                foreach (var p in index)
                 {
-                    if (index[i].SearchText.Contains(lower))
+                    // 显示内容 = 编号映射列的值；未配置该列时回退到自动识别的标题
+                    var display = (!string.IsNullOrEmpty(codeColumn)
+                                   && p.RawData.TryGetValue(codeColumn, out var dv)
+                                   && !string.IsNullOrEmpty(dv))
+                        ? dv
+                        : p.Title;
+                    if (string.IsNullOrEmpty(display)) continue;
+
+                    if (!string.IsNullOrEmpty(lower) && !display.ToLowerInvariant().Contains(lower))
+                        continue;
+
+                    list.Add(new QuickSearchResult
                     {
-                        list.Add(index[i]);
-                        if (list.Count >= 50) break;
-                    }
+                        Title = display,
+                        Subtitle = "",
+                        PriceText = "",
+                        RawData = p.RawData,
+                        ResultType = "product"
+                    });
+                    if (list.Count >= 200) break;
                 }
                 list.Sort((a, b) => string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase));
                 return list;
@@ -522,18 +545,8 @@ public partial class NewQuotationViewModel : ObservableObject
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 QuickSearchResults.Clear();
-                foreach (var m in matches)
-                {
-                    QuickSearchResults.Add(new QuickSearchResult
-                    {
-                        Title = m.Title,
-                        Subtitle = m.Subtitle,
-                        PriceText = m.PriceText,
-                        Price = m.Price,
-                        RawData = m.RawData,
-                        ResultType = "product"
-                    });
-                }
+                foreach (var r in matches)
+                    QuickSearchResults.Add(r);
                 IsQuickSearchVisible = QuickSearchResults.Count > 0;
             });
         }
