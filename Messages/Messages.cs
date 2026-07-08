@@ -79,3 +79,16 @@ public sealed class QuickInputEnabledChangedMessage : ValueChangedMessage<bool>
     /// <param name="enabled">是否启用快捷输入</param>
     public QuickInputEnabledChangedMessage(bool enabled) : base(enabled) { }
 }
+
+/// <summary>
+/// 产品数据变更消息，携带发生变更的表名（如 products_ndt / products_rvi_change）。
+/// 用于在产品导入、清空后，通知设置页快捷输入卡片刷新可用的表头下拉项。
+/// </summary>
+public sealed class ProductDataChangedMessage : ValueChangedMessage<string>
+{
+    /// <summary>
+    /// 初始化 ProductDataChangedMessage 实例。
+    /// </summary>
+    /// <param name="tableName">发生数据变更的表名</param>
+    public ProductDataChangedMessage(string tableName) : base(tableName) { }
+}

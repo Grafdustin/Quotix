@@ -2,7 +2,9 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Win32;
+using Quotix.Messages;
 using Quotix.Models;
 using Quotix.Services;
 
@@ -331,6 +333,8 @@ public partial class ProductDatabaseViewModel : ObservableObject
                     _importService.ImportFromExcel(dialog.FileName, GetCurrentTableName()));
 
                 _dialog.ShowInfo($"成功导入 {count} 条产品数据", "导入成功");
+                // 广播产品数据变更，通知设置页快捷输入卡片刷新表头下拉项
+                WeakReferenceMessenger.Default.Send(new ProductDataChangedMessage(GetCurrentTableName()));
                 await LoadPageAsync(1);
             }
             catch (Exception ex)
@@ -354,6 +358,8 @@ public partial class ProductDatabaseViewModel : ObservableObject
             return;
 
         _productService.ClearProducts(GetCurrentTableName());
+        // 广播产品数据变更，通知设置页快捷输入卡片刷新表头下拉项
+        WeakReferenceMessenger.Default.Send(new ProductDataChangedMessage(GetCurrentTableName()));
         await LoadPageAsync(1);
     }
 

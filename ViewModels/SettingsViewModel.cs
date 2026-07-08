@@ -78,6 +78,26 @@ public partial class SettingsViewModel : ObservableObject
         _quickInputDb = "NDT";
         LoadColumnOptions();
         LoadMappingRows();
+
+        // 订阅产品数据变更（导入/清空），及时刷新快捷输入可用的表头下拉项
+        WeakReferenceMessenger.Default.Register<ProductDataChangedMessage>(this, (r, m) =>
+            RefreshQuickInputColumns(m.Value));
+    }
+
+    /// <summary>当前快捷输入编辑库对应的物理表名</summary>
+    private string CurrentQuickInputTable =>
+        QuickInputDb == "NDT" ? "products_ndt" : "products_rvi_change";
+
+    /// <summary>
+    /// 当某张产品表发生数据变更（导入/清空）时，若该表正是当前快捷输入所用表，
+    /// 则重新加载表头下拉项与字段映射行，使卡片立即反映最新表结构。
+    /// </summary>
+    /// <param name="tableName">发生变更的表名</param>
+    private void RefreshQuickInputColumns(string tableName)
+    {
+        if (tableName != CurrentQuickInputTable) return;
+        LoadColumnOptions();
+        LoadMappingRows();
     }
 
     // ==================== 设置分类导航（左侧导航栏）====================
@@ -95,6 +115,13 @@ public partial class SettingsViewModel : ObservableObject
 
     /// <summary>当前选中的设置分类 Key，驱动右侧内容面板切换</summary>
     [ObservableProperty] private string _selectedSettingsCategory = "export";
+
+    /// <summary>切换设置分类时，若进入“快捷输入”则刷新表头下拉项，保证显示最新表结构</summary>
+    partial void OnSelectedSettingsCategoryChanged(string value)
+    {
+        if (value == "quickinput")
+            RefreshQuickInputColumns(CurrentQuickInputTable);
+    }
 
     [ObservableProperty] private bool _isDarkMode;
 
@@ -213,6 +240,7 @@ public partial class SettingsViewModel : ObservableObject
                 _productImport.ImportFromExcel(dialog.FileName, tableName, progress));
 
             resultMsg = $"成功导入 {count} 条产品数据到 {SelectedDatabase.Label}";
+            RefreshQuickInputColumns(tableName);
         }
         catch (Exception ex)
         {
@@ -246,6 +274,7 @@ public partial class SettingsViewModel : ObservableObject
         try
         {
             _productService.ClearProducts(SelectedDatabase.TableName);
+            RefreshQuickInputColumns(SelectedDatabase.TableName);
         }
         finally
         {
