@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -116,11 +118,13 @@ public partial class SettingsViewModel : ObservableObject
     /// <summary>当前选中的设置分类 Key，驱动右侧内容面板切换</summary>
     [ObservableProperty] private string _selectedSettingsCategory = "export";
 
-    /// <summary>切换设置分类时，若进入“快捷输入”则刷新表头下拉项，保证显示最新表结构</summary>
+    /// <summary>切换设置分类时，若进入“快捷输入”则重建映射行。
+    /// 注意：此处仅重建行，不重建下拉项集合（QuickInputColumnOptions 保持稳定），
+    /// 以避免 ComboBox 因 ItemsSource 变化瞬时重置 SelectedValue 并回写空值覆盖已保存映射。</summary>
     partial void OnSelectedSettingsCategoryChanged(string value)
     {
         if (value == "quickinput")
-            RefreshQuickInputColumns(CurrentQuickInputTable);
+            LoadMappingRows();
     }
 
     [ObservableProperty] private bool _isDarkMode;
@@ -361,45 +365,64 @@ public partial class SettingsViewModel : ObservableObject
         PersistMapping();
     }
 
-    /// <summary>加载当前编辑数据库对应的数据表列头下拉项</summary>
+    /// <summary>加载当前编辑数据库对应的数据表列头下拉项。
+    /// 复用同一集合实例（Clear+Add 而非新建），保持 ComboBox.ItemsSource 引用稳定，
+    /// 避免 ItemsSource 实例变化触发 SelectedValue 瞬时重置并回写空值覆盖已保存映射。</summary>
     private void LoadColumnOptions()
     {
         var tableName = QuickInputDb == "NDT" ? "products_ndt" : "products_rvi_change";
-        var options = new ObservableCollection<ColumnOption> { new ColumnOption("（未映射）", "") };
+        QuickInputColumnOptions.Clear();
+        QuickInputColumnOptions.Add(new ColumnOption("（未映射）", ""));
         foreach (var header in _productService.GetTableColumnHeaders(tableName))
-            options.Add(new ColumnOption(header, header));
-        QuickInputColumnOptions = options;
+            QuickInputColumnOptions.Add(new ColumnOption(header, header));
     }
 
     /// <summary>根据当前编辑数据库的已存映射，重建映射行（替换前断开旧行订阅）</summary>
     private void LoadMappingRows()
     {
-        // 断开旧行订阅，防止 ComboBox 异步回写触发已失效的 PersistMapping
-        foreach (var row in QuickInputRows)
-            row.PropertyChanged -= Row_PropertyChanged;
-
-        var stored = _settingsService.QuickInput.Mappings
-            .TryGetValue(QuickInputDb, out var m) && m != null
-                ? new Dictionary<string, string>(m)
-                : new Dictionary<string, string>();
-
-        var rows = new ObservableCollection<QuickInputMappingRow>();
-        foreach (var field in TargetFields)
+        // 重建期间 ComboBox 可能因 ItemsSource/SelectedValue 重新绑定而瞬时把 SelectedColumn 重置为空，
+        // 此时若立即 PersistMapping 会把空值写回并覆盖已保存的映射。用 _reloading 标志在布局完成前忽略这些回写。
+        _reloading = true;
+        try
         {
-            var row = new QuickInputMappingRow
+            // 断开旧行订阅，防止 ComboBox 异步回写触发已失效的 PersistMapping
+            foreach (var row in QuickInputRows)
+                row.PropertyChanged -= Row_PropertyChanged;
+
+            var stored = _settingsService.QuickInput.Mappings
+                .TryGetValue(QuickInputDb, out var m) && m != null
+                    ? new Dictionary<string, string>(m)
+                    : new Dictionary<string, string>();
+
+            var rows = new ObservableCollection<QuickInputMappingRow>();
+            foreach (var field in TargetFields)
             {
-                TargetKey = field.Key,
-                TargetLabel = field.Label,
-                SelectedColumn = stored.TryGetValue(field.Key, out var col) ? col : ""
-            };
-            row.PropertyChanged += Row_PropertyChanged;
-            rows.Add(row);
+                var row = new QuickInputMappingRow
+                {
+                    TargetKey = field.Key,
+                    TargetLabel = field.Label,
+                    SelectedColumn = stored.TryGetValue(field.Key, out var col) ? col : ""
+                };
+                row.PropertyChanged += Row_PropertyChanged;
+                rows.Add(row);
+            }
+            QuickInputRows = rows;
         }
-        QuickInputRows = rows;
+        finally
+        {
+            // 延迟到布局完成后再允许持久化，避开 ComboBox 重建时的瞬时空值回写
+            Application.Current.Dispatcher.BeginInvoke(
+                DispatcherPriority.Loaded,
+                new System.Action(() => _reloading = false));
+        }
     }
+
+    /// <summary>重建映射行/下拉项期间为 true，期间忽略 ComboBox 的瞬时空值回写，避免覆盖已保存映射</summary>
+    private bool _reloading;
 
     private void Row_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (_reloading) return;
         if (e.PropertyName == nameof(QuickInputMappingRow.SelectedColumn))
             PersistMapping();
     }
