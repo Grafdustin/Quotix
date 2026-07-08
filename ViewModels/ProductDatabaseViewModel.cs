@@ -31,6 +31,8 @@ public partial class ProductDatabaseViewModel : ObservableObject
     }
 
     private int _pendingSearchToken;
+    /// <summary>加载请求序号，用于丢弃过期加载结果（并发调用时仅最新一次生效）</summary>
+    private int _loadToken;
 
     /// <summary>
     /// 产品数据行集合。
@@ -152,6 +154,7 @@ public partial class ProductDatabaseViewModel : ObservableObject
     {
         IsLoading = true;
         StatusText = "加载中...";
+        var loadToken = ++_loadToken;
 
         var tableName = GetCurrentTableName();
         var keyword = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim();
@@ -194,6 +197,10 @@ public partial class ProductDatabaseViewModel : ObservableObject
 
             return (rowVms, allKeys.ToList(), total);
         });
+
+        // 若已有更新的加载请求发起，丢弃本次结果，避免旧数据覆盖新数据
+        if (loadToken != _loadToken)
+            return;
 
         // ---- UI 线程：批量更新 ----
         BeforeCollectionUpdate?.Invoke();

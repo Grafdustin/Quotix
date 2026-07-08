@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -17,6 +18,8 @@ public partial class NewQuotationView : UserControl
     /// </summary>
     private NewQuotationViewModel VM => (NewQuotationViewModel)DataContext;
     private int _lastCodeRowIndex = -1;
+    /// <summary>已订阅 PropertyChanged 的 VM 引用，用于切换/卸载时退订，避免重复订阅与 view 被 VM 强引用泄漏</summary>
+    private NewQuotationViewModel? _subscribedVm;
 
     /// <summary>
     /// 初始化 NewQuotationView 实例。
@@ -24,15 +27,38 @@ public partial class NewQuotationView : UserControl
     public NewQuotationView()
     {
         InitializeComponent();
-        DataContextChanged += (_, _) =>
+        DataContextChanged += OnDataContextChanged;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        // 退订旧 VM，避免重复订阅与 view 被长生命周期 VM 强引用导致泄漏
+        if (_subscribedVm != null)
         {
-            if (DataContext is not NewQuotationViewModel vm) return;
-            vm.PropertyChanged += (s, e) =>
-            {
-                if (e.PropertyName == nameof(vm.IsQuickSearchVisible) && vm.IsQuickSearchVisible)
-                    PositionQuickSearchPopup();
-            };
-        };
+            _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
+            _subscribedVm = null;
+        }
+        if (e.NewValue is NewQuotationViewModel vm)
+        {
+            _subscribedVm = vm;
+            vm.PropertyChanged += OnVmPropertyChanged;
+        }
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(NewQuotationViewModel.IsQuickSearchVisible) && _subscribedVm?.IsQuickSearchVisible == true)
+            PositionQuickSearchPopup();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (_subscribedVm != null)
+        {
+            _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
+            _subscribedVm = null;
+        }
     }
 
     // ==================== 快速数据库切换 ====================

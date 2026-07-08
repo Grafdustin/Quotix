@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -139,6 +141,9 @@ public partial class NewQuotationViewModel : ObservableObject
             _quickInputEnabled = m.Value;
         });
 
+        // 统一管理报价项属性变更订阅，避免 Add/Remove/加载已有报价时悬空回调与内存泄漏（见 OnItemsCollectionChanged）
+        Items.CollectionChanged += OnItemsCollectionChanged;
+
         QuoteDate = $"{DateTime.Now.Year}年{DateTime.Now.Month}月{DateTime.Now.Day}日";
         AddItem();
     }
@@ -150,7 +155,6 @@ public partial class NewQuotationViewModel : ObservableObject
     private void AddItem()
     {
         var item = new QuotationItemViewModel { Quantity = 1 };
-        item.PropertyChanged += (_, _) => UpdateGrandTotal();
         Items.Add(item);
         UpdateGrandTotal();
     }
@@ -171,11 +175,27 @@ public partial class NewQuotationViewModel : ObservableObject
     /// <summary>
     /// 更新总计金额和币种符号。
     /// </summary>
-    private void UpdateGrandTotal()
-    {
-        GrandTotal = Items.Sum(i => i.Quantity * i.UnitPrice);
-        CurrencySymbol = Currency == "USD" ? "$" : "¥";
-    }
+        private void UpdateGrandTotal()
+        {
+            GrandTotal = Items.Sum(i => i.Quantity * i.UnitPrice);
+            CurrencySymbol = Currency == "USD" ? "$" : "¥";
+        }
+
+        /// <summary>
+        /// Items 集合变更时统一订阅/退订子项 PropertyChanged，避免 RemoveItem / 加载已有报价时悬空回调与内存泄漏。
+        /// </summary>
+        private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.OldItems != null)
+                foreach (QuotationItemViewModel item in e.OldItems)
+                    item.PropertyChanged -= OnItemPropertyChanged;
+            if (e.NewItems != null)
+                foreach (QuotationItemViewModel item in e.NewItems)
+                    item.PropertyChanged += OnItemPropertyChanged;
+            UpdateGrandTotal();
+        }
+
+        private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e) => UpdateGrandTotal();
 
     /// <summary>
     /// 切换币种（RMB 或 USD）。
@@ -345,7 +365,7 @@ public partial class NewQuotationViewModel : ObservableObject
         _cachedDatabaseType = "";
 
         if (IsQuickSearchVisible && !string.IsNullOrEmpty(QuickSearchText))
-            TriggerDebouncedSearch(QuickSearchText);
+            _ = TriggerDebouncedSearch(QuickSearchText);
     }
 
     /// <summary>
@@ -401,44 +421,51 @@ public partial class NewQuotationViewModel : ObservableObject
             IsQuickSearchVisible = false;
             return;
         }
-        TriggerDebouncedSearch(text);
+        _ = TriggerDebouncedSearch(text);
     }
 
     /// <summary>
     /// 快速搜索失去焦点时调用，延迟隐藏搜索结果。
     /// </summary>
-    public void OnQuickSearchLostFocus()
-    {
-        System.Threading.Tasks.Task.Delay(200).ContinueWith(_ =>
+        public async void OnQuickSearchLostFocus()
         {
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
-            {
-                IsQuickSearchVisible = false;
-                QuickSearchResults.Clear();
-            });
-        });
-    }
+            try { await System.Threading.Tasks.Task.Delay(200); }
+            catch { return; }
+
+            // 窗口可能已关闭导致 Dispatcher 失效，跳过以避免 ObjectDisposedException
+            var app = System.Windows.Application.Current;
+            if (app == null || app.Dispatcher.HasShutdownStarted)
+                return;
+
+            IsQuickSearchVisible = false;
+            QuickSearchResults.Clear();
+        }
 
     /// <summary>
     /// 取消当前搜索并启动 250ms 防抖。
     /// </summary>
     /// <param name="query">搜索查询字符串</param>
-    private async void TriggerDebouncedSearch(string query)
-    {
-        CancelSearch();
-        _searchCts = new CancellationTokenSource();
-        var token = _searchCts.Token;
-
-        try
+        private async System.Threading.Tasks.Task TriggerDebouncedSearch(string query)
         {
-            // 防抖：等待 250ms，期间如果有新输入，CancelSearch 会被再次调用
-            await System.Threading.Tasks.Task.Delay(DebounceInterval, token);
-            if (token.IsCancellationRequested) return;
+            CancelSearch();
+            _searchCts = new CancellationTokenSource();
+            var token = _searchCts.Token;
 
-            await QuickSearchAsync(query, token);
+            try
+            {
+                // 防抖：等待 250ms，期间如果有新输入，CancelSearch 会被再次调用
+                await System.Threading.Tasks.Task.Delay(DebounceInterval, token);
+                if (token.IsCancellationRequested) return;
+
+                await QuickSearchAsync(query, token);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                // 搜索失败不应中断 UI；记录以便排查
+                System.Diagnostics.Debug.WriteLine($"[Quotix] 快速搜索异常: {ex}");
+            }
         }
-        catch (OperationCanceledException) { }
-    }
 
     /// <summary>
     /// 取消当前正在进行的搜索。
