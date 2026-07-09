@@ -126,12 +126,26 @@ if ($hasChanges) {
     Write-Host "No file changes, skipping commit" -ForegroundColor Yellow
 }
 
-# push main
-$gitOutput = git push origin main 2>&1
-# 过滤掉 "Everything up-to-date" 的正常输出
-if ($LASTEXITCODE -ne 0 -and $gitOutput -notmatch "Everything up-to-date") {
+# push main（带网络重试：GitHub 偶发连接重置时单次失败不应中断发布）
+$pushOk = $false
+$maxPushAttempts = 8
+for ($attempt = 1; $attempt -le $maxPushAttempts; $attempt++) {
+    $gitOutput = git push origin main 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $pushOk = $true
+        break
+    }
+    # "Everything up-to-date" 视为成功（重跑脚本时本地已领先远程）
+    if ($gitOutput -match "Everything up-to-date") {
+        $pushOk = $true
+        break
+    }
+    Write-Host "Git push attempt $attempt failed: $gitOutput" -ForegroundColor Yellow
+    Start-Sleep -Seconds 3
+}
+if (-not $pushOk) {
     Write-Host $gitOutput
-    throw "Git push failed"
+    throw "Git push failed after $maxPushAttempts attempts"
 }
 Write-Host "Pushed to main" -ForegroundColor Green
 
