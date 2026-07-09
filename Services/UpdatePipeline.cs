@@ -352,7 +352,8 @@ namespace Quotix.Services
                     ? dt.ToString("yyyy-MM-dd")
                     : DateTime.Now.ToString("yyyy-MM-dd");
 
-                // 优先从 latest.yml 解析版本号和更新日志
+                // 仅从 latest.yml 解析版本号和更新日志。
+                // 不再回退到 Release body——Release body 是 GitHub 自动生成的提交日志，并非用户期望的更新说明。
                 string        version   = tagName.TrimStart('v');
                 ChangelogEntry[] changelog = Array.Empty<ChangelogEntry>();
 
@@ -368,17 +369,11 @@ namespace Quotix.Services
                     }
                     catch
                     {
-                        // latest.yml 下载失败，回退到 Release body
-                        var body = root.GetProperty("body").GetString() ?? "";
-                        changelog = ParseChangelog(body);
+                        // latest.yml 不可用时不读取 GitHub 提交日志，保持 changelog 为空
+                        changelog = Array.Empty<ChangelogEntry>();
                     }
                 }
-                else
-                {
-                    // 没有 latest.yml，回退到 Release body
-                    var body = root.GetProperty("body").GetString() ?? "";
-                    changelog = ParseChangelog(body);
-                }
+                // 没有 latest.yml 资产时不回退到 Release body，避免显示 GitHub commit 日志
 
                 var updateInfo = new UpdateInfo
                 {

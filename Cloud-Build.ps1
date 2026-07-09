@@ -54,8 +54,8 @@ if (-not $CommitMessage) {
     # 读取用户输入（过滤掉空行、以 // 开头的注释行）
     $lines = Get-Content $tempFile -Encoding UTF8 | Where-Object { $_.Trim() -ne "" -and -not $_.StartsWith("//") }
 
-    # 第一行固定为 #版本号 作为 commit title
-    $commitTitle = "#$Version"
+    # 提交日志仅用纯版本号（不带 V / 不带 #）；详细更新说明只写入 latest.yml
+    $commitTitle = $Version
     # 其余行作为 commit body
     $commitBody = if ($lines) { $lines -join "`n" } else { "" }
     Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
@@ -64,7 +64,7 @@ if (-not $CommitMessage) {
         $commitBody = "Release $Version"
     }
 } else {
-    $commitTitle = "#$Version"
+    $commitTitle = $Version
     $commitBody = $CommitMessage
 }
 
@@ -115,9 +115,9 @@ git diff --cached --quiet 2>&1
 $hasChanges = $LASTEXITCODE -ne 0
 
 if ($hasChanges) {
-    # commit title 为 #版本号，body 为用户输入的更新日志
+    # GitHub 提交日志只保留版本号；详细更新说明已写入 latest.yml，不写入 GitHub commit
     $commitMsgFile = Join-Path $env:TEMP "quotix_git_commit_msg.txt"
-    $fullMsg = $commitTitle + "`n`n" + $commitBody
+    $fullMsg = $commitTitle
     Set-Content -Path $commitMsgFile -Value $fullMsg -Encoding UTF8
     git commit -F "$commitMsgFile"
     if ($LASTEXITCODE -ne 0) { throw "Git commit failed" }

@@ -438,8 +438,9 @@
                         <Border Grid.Row="2" CornerRadius="8" Padding="14,10"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}"
                                 Margin="0,0,0,16"
-                                MaxHeight="200">
-                            <StackPanel>
+                                MaxHeight="220">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
                                 <ItemsControl ItemsSource="{Binding Changelog}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -479,7 +480,7 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                            </StackPanel>
+                            </ScrollViewer>
                         </Border>
 
                         <!-- 下载进度区域 -->
