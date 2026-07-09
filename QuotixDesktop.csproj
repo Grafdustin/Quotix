@@ -6,11 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>Quotix</AssemblyName>
-    <Version>1.1.3</Version>
-    <!-- AssemblyVersion: 濠电姷鏁搁崕鎴犲緤閽樺娲晜閻愵剙搴婇梺鍛婂姦娴滄牠宕?1.0.0.0 闂傚倸鍊烽悞锕€顪冮崹顕呯劷闁秆勵殔缁€澶愭倵閿濆骸澧插┑顔挎珪閵囧嫰骞掗幋婵冨亾婵犳碍鍎楁繛鍡樻尰閸婄敻鏌ㄥ┑鍡欏嚬缂併劎鏅惀顏堝级鐠恒剱褎鎱ㄦ繝鍌ょ吋鐎规洖宕灃濞撴艾娲﹂敓銉モ攽閻橆偅濯伴柛鏇炵仛閻や線鎮楀▓鍨灓闁轰礁顭烽妴浣肝旈崨顓犲姦濡炪倖甯掔€氼剛鎲撮敃鍌涘€甸柨婵嗛閸樻挳鏌涚€ｎ偅灏垫繛鎴犳暬瀹曨亝鎷呴崷顓犘ラ梻?-->
+    <Version>1.1.4</Version>
+    <!-- AssemblyVersion: 婵犵數濮烽弫鎼佸磿閹寸姴绶ら柦妯侯棦濞差亝鏅滈柣鎰靛墮鎼村﹪姊洪崨濠傚Е濞存粍鐗犲畷?1.0.0.0 闂傚倸鍊搁崐鐑芥倿閿曗偓椤啴宕归鍛姺闂佺鍕垫當缂佲偓婢舵劖鍊甸柨婵嗛婢ф彃鈹戦鎸庣彧闁靛洤瀚伴獮鎺楀箣濠靛啫浜惧┑鐘崇閸庢绻涢崱妯诲鞍闁稿﹦鏁婚弻銊モ攽閸℃瑥鍤紓浣靛妿閺咁偊鎯€椤忓牆绾ч悹鎭掑壉瑜庨幈銊︾節閸屻倗鍚嬮悗瑙勬礀瀹曨剝鐏冩繛鎾磋壘濞诧箓鏁撻妷銉㈡斀闁绘﹩鍋呮刊浼存煕閺囩偟浠涢柣銈勭窔閹鈻撻崹顔界亾闂佽桨绀侀…鐑藉Υ娴ｈ倽鏃堝川椤撶姴濮︽俊鐐€栫敮鎺斺偓姘煎墰閹叉挳鏁冮崒娑樷偓鐢告煥濠靛棝顎楅柛妯绘尦閺屾稓鈧綆鍋呯亸鍨箾閹寸姵鏆€规洦浜濋幏鍛村捶椤撶姌銉╂⒒?-->
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.68.0</FileVersion>
-    <InformationalVersion>1.1.3</InformationalVersion>
+    <InformationalVersion>1.1.4</InformationalVersion>
     <Company>NISYO</Company>
     <Copyright>Copyright (C) 2026 NISYO</Copyright>
     <PublishSingleFile>false</PublishSingleFile>
