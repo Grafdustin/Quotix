@@ -130,7 +130,7 @@ if ($hasChanges) {
 $pushOk = $false
 $maxPushAttempts = 8
 for ($attempt = 1; $attempt -le $maxPushAttempts; $attempt++) {
-    $gitOutput = git push origin main 2>&1
+    $gitOutput = git push origin main 2>&1 | Out-String
     if ($LASTEXITCODE -eq 0) {
         $pushOk = $true
         break
@@ -150,46 +150,53 @@ if (-not $pushOk) {
 Write-Host "Pushed to main" -ForegroundColor Green
 
 # ========== Step 6: 创建并推送 tag 触发 GitHub Actions ==========
-Write-Host "Creating tag v$Version to trigger GitHub Actions..." -ForegroundColor Yellow
-
-# 检查 tag 是否已存在，若存在则删除（支持重新触发）
-$existingTag = git tag -l "v$Version"
-if ($existingTag) {
-    Write-Host "Tag v$Version already exists locally, removing..." -ForegroundColor Yellow
-    git tag -d "v$Version" 2>&1 | Out-Null
-}
-# 检查远程 tag 是否存在（网络调用，失败时不致命，仅跳过删除）
+# 检查远程 tag 是否存在（网络调用，失败时不致命）
 try {
     $remoteTag = git ls-remote --tags origin "refs/tags/v$Version" 2>$null
 } catch {
     $remoteTag = $null
 }
-if ($remoteTag) {
-    Write-Host "Tag v$Version exists on remote, removing..." -ForegroundColor Yellow
-    git push origin --delete "v$Version" 2>&1 | Out-Null
-}
 
-# 创建并推送 tag（带网络重试：GitHub 偶发连接重置时单次失败不应中断发布）
-git tag "v$Version"
-$tagOk = $false
-for ($attempt = 1; $attempt -le $maxPushAttempts; $attempt++) {
-    $tagPushOutput = git push origin "v$Version" 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        $tagOk = $true
-        break
+# 守卫：本次没有文件变动、且远程 tag 已存在时，无需重复创建/推送，避免触发冗余构建
+if (-not $hasChanges -and $remoteTag) {
+    Write-Host "版本 $Version 未变更且远程 tag v$Version 已存在，跳过 tag 推送（如需强制重新触发，请先删除该 tag）。" -ForegroundColor Green
+} else {
+    Write-Host "Creating tag v$Version to trigger GitHub Actions..." -ForegroundColor Yellow
+
+    # 检查本地 tag 是否已存在，若存在则删除（支持重新触发）
+    $existingTag = git tag -l "v$Version"
+    if ($existingTag) {
+        Write-Host "Tag v$Version already exists locally, removing..." -ForegroundColor Yellow
+        git tag -d "v$Version" 2>&1 | Out-Null
     }
-    Write-Host "Git tag push attempt $attempt failed: $tagPushOutput" -ForegroundColor Yellow
-    Start-Sleep -Seconds 3
-}
-if (-not $tagOk) {
-    Write-Host $tagPushOutput
-    throw "Failed to push tag v$Version after $maxPushAttempts attempts"
-}
+    # 检查远程 tag 是否存在（上面已获取，避免重复网络调用）
+    if ($remoteTag) {
+        Write-Host "Tag v$Version exists on remote, removing..." -ForegroundColor Yellow
+        git push origin --delete "v$Version" 2>&1 | Out-Null
+    }
 
-Write-Host ""
-Write-Host "=== Build triggered! ===" -ForegroundColor Green
-Write-Host "Watch progress:" -ForegroundColor Cyan
-Write-Host "  https://github.com/Grafdustin/Quotix/actions" -ForegroundColor Blue
-Write-Host ""
-Write-Host "When ready, download from:" -ForegroundColor Cyan
-Write-Host "  https://github.com/Grafdustin/Quotix/releases/tag/v$Version" -ForegroundColor Blue
+    # 创建并推送 tag（带网络重试：GitHub 偶发连接重置时单次失败不应中断发布）
+    git tag "v$Version"
+    $tagOk = $false
+    for ($attempt = 1; $attempt -le $maxPushAttempts; $attempt++) {
+        $tagPushOutput = git push origin "v$Version" 2>&1 | Out-String
+        if ($LASTEXITCODE -eq 0) {
+            $tagOk = $true
+            break
+        }
+        Write-Host "Git tag push attempt $attempt failed: $tagPushOutput" -ForegroundColor Yellow
+        Start-Sleep -Seconds 3
+    }
+    if (-not $tagOk) {
+        Write-Host $tagPushOutput
+        throw "Failed to push tag v$Version after $maxPushAttempts attempts"
+    }
+
+    Write-Host ""
+    Write-Host "=== Build triggered! ===" -ForegroundColor Green
+    Write-Host "Watch progress:" -ForegroundColor Cyan
+    Write-Host "  https://github.com/Grafdustin/Quotix/actions" -ForegroundColor Blue
+    Write-Host ""
+    Write-Host "When ready, download from:" -ForegroundColor Cyan
+    Write-Host "  https://github.com/Grafdustin/Quotix/releases/tag/v$Version" -ForegroundColor Blue
+}
