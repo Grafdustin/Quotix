@@ -158,19 +158,32 @@ if ($existingTag) {
     Write-Host "Tag v$Version already exists locally, removing..." -ForegroundColor Yellow
     git tag -d "v$Version" 2>&1 | Out-Null
 }
-# 检查远程 tag 是否存在
-$remoteTag = git ls-remote --tags origin "refs/tags/v$Version" 2>&1
+# 检查远程 tag 是否存在（网络调用，失败时不致命，仅跳过删除）
+try {
+    $remoteTag = git ls-remote --tags origin "refs/tags/v$Version" 2>$null
+} catch {
+    $remoteTag = $null
+}
 if ($remoteTag) {
     Write-Host "Tag v$Version exists on remote, removing..." -ForegroundColor Yellow
-    git push origin --delete "v$Version" 2>&1
+    git push origin --delete "v$Version" 2>&1 | Out-Null
 }
 
-# 创建并推送 tag
+# 创建并推送 tag（带网络重试：GitHub 偶发连接重置时单次失败不应中断发布）
 git tag "v$Version"
-$tagPushOutput = git push origin "v$Version" 2>&1
-if ($LASTEXITCODE -ne 0) {
+$tagOk = $false
+for ($attempt = 1; $attempt -le $maxPushAttempts; $attempt++) {
+    $tagPushOutput = git push origin "v$Version" 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $tagOk = $true
+        break
+    }
+    Write-Host "Git tag push attempt $attempt failed: $tagPushOutput" -ForegroundColor Yellow
+    Start-Sleep -Seconds 3
+}
+if (-not $tagOk) {
     Write-Host $tagPushOutput
-    throw "Failed to push tag v$Version"
+    throw "Failed to push tag v$Version after $maxPushAttempts attempts"
 }
 
 Write-Host ""
