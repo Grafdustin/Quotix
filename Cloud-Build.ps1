@@ -15,6 +15,11 @@ $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ProjectDir = Split-Path $MyInvocation.MyCommand.Path
 
+# 让 git 自身将 stderr 合并到 stdout（C 级别），避免 PowerShell 5.1 在
+# $ErrorActionPreference="Stop" 下把 git 的 stderr（如推送连接重置提示）包装成
+# NativeCommandError 而终止脚本。所有 git 调用因此都不会再抛出该异常。
+$env:GIT_REDIRECT_STDERR = '2>&1'
+
 # ========== Step 1: 读取/设置版本号 ==========
 Write-Host "=== Quotix Cloud Build ===" -ForegroundColor Cyan
 Write-Host ""
@@ -118,7 +123,9 @@ if ($hasChanges) {
     # GitHub 提交日志只保留版本号；详细更新说明已写入 latest.yml，不写入 GitHub commit
     $commitMsgFile = Join-Path $env:TEMP "quotix_git_commit_msg.txt"
     $fullMsg = $commitTitle
-    Set-Content -Path $commitMsgFile -Value $fullMsg -Encoding UTF8
+    # 用 .NET 写 UTF-8 无 BOM：PowerShell 5.1 的 Set-Content -Encoding UTF8
+    # 会在文件头写入 BOM，导致 GitHub 提交信息出现隐藏字符（﻿1.1.5）。
+    [System.IO.File]::WriteAllText($commitMsgFile, $fullMsg, [System.Text.UTF8Encoding]::new($false))
     git commit -F "$commitMsgFile"
     if ($LASTEXITCODE -ne 0) { throw "Git commit failed" }
     Write-Host "Git commit successful" -ForegroundColor Green
@@ -127,20 +134,28 @@ if ($hasChanges) {
 }
 
 # push main（带网络重试：GitHub 偶发连接重置时单次失败不应中断发布）
+# 用 & 显式调用并把退出码单独取出。git 的正常推送信息（如
+# “To https://...”）写在 stderr，配合文件顶部 $env:GIT_REDIRECT_STDERR
+# 已让 git 把 stderr 合并到 stdout，不会再被 PowerShell 包装成 NativeCommandError。
 $pushOk = $false
 $maxPushAttempts = 8
 for ($attempt = 1; $attempt -le $maxPushAttempts; $attempt++) {
-    $gitOutput = git push origin main 2>&1 | Out-String
-    if ($LASTEXITCODE -eq 0) {
+    $gitOutput = (& git push origin main 2>&1 | Out-String)
+    $exitCode = $LASTEXITCODE
+
+    if ($exitCode -eq 0) {
         $pushOk = $true
         break
     }
+
     # "Everything up-to-date" 视为成功（重跑脚本时本地已领先远程）
     if ($gitOutput -match "Everything up-to-date") {
         $pushOk = $true
         break
     }
-    Write-Host "Git push attempt $attempt failed: $gitOutput" -ForegroundColor Yellow
+
+    Write-Host "Git push attempt $attempt failed:"
+    Write-Host $gitOutput -ForegroundColor Yellow
     Start-Sleep -Seconds 3
 }
 if (-not $pushOk) {
@@ -169,9 +184,10 @@ if (-not $hasChanges -and $remoteTag) {
         Write-Host "Tag v$Version already exists locally, removing..." -ForegroundColor Yellow
         git tag -d "v$Version" 2>&1 | Out-Null
     }
-    # 检查远程 tag 是否存在（上面已获取，避免重复网络调用）
-    if ($remoteTag) {
-        Write-Host "Tag v$Version exists on remote, removing..." -ForegroundColor Yellow
+    # 仅重新触发模式（-Redeploy）才删除已存在的远程 tag：避免“删除成功但
+    # 新建 tag 失败”时留下不一致的 GitHub release 状态。正常发布不删除已有 tag。
+    if ($remoteTag -and $Redeploy) {
+        Write-Host "Tag v$Version exists on remote, removing (redeploy mode)..." -ForegroundColor Yellow
         git push origin --delete "v$Version" 2>&1 | Out-Null
     }
 
@@ -179,12 +195,16 @@ if (-not $hasChanges -and $remoteTag) {
     git tag "v$Version"
     $tagOk = $false
     for ($attempt = 1; $attempt -le $maxPushAttempts; $attempt++) {
-        $tagPushOutput = git push origin "v$Version" 2>&1 | Out-String
-        if ($LASTEXITCODE -eq 0) {
+        $tagPushOutput = (& git push origin "v$Version" 2>&1 | Out-String)
+        $exitCode = $LASTEXITCODE
+
+        if ($exitCode -eq 0) {
             $tagOk = $true
             break
         }
-        Write-Host "Git tag push attempt $attempt failed: $tagPushOutput" -ForegroundColor Yellow
+
+        Write-Host "Git tag push attempt $attempt failed:"
+        Write-Host $tagPushOutput -ForegroundColor Yellow
         Start-Sleep -Seconds 3
     }
     if (-not $tagOk) {
