@@ -649,10 +649,12 @@
                         <ListBox x:Name="QuickResultsList"
                                  ItemsSource="{Binding QuickSearchResults}"
                                  BorderThickness="0" Background="Transparent"
+                                 Focusable="False"
                                  PreviewMouseLeftButtonUp="QuickResultsList_PreviewMouseLeftButtonUp"
                                  PreviewKeyDown="QuickResultsList_PreviewKeyDown">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
+                                <Setter Property="Focusable" Value="False"/>
                                 <Setter Property="Padding" Value="0"/>
                                 <Setter Property="Template">
                                     <Setter.Value>

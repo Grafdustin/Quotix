@@ -30,7 +30,15 @@ public partial class NewQuotationView : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        Loaded += OnViewLoaded;
         Unloaded += OnUnloaded;
+    }
+
+    private void OnViewLoaded(object? sender, RoutedEventArgs e)
+    {
+        // 独立于 DataContextChanged 的兜底订阅：确保无论 DataContext 在
+        // 对象初始化器阶段还是 Loaded 之后才就绪，PropertyChanged 订阅都一定生效。
+        SubscribeToVm();
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -41,8 +49,19 @@ public partial class NewQuotationView : UserControl
             _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
             _subscribedVm = null;
         }
-        if (e.NewValue is NewQuotationViewModel vm)
+        SubscribeToVm();
+    }
+
+    /// <summary>
+    /// 订阅当前 DataContext 对应的 VM 的 PropertyChanged；
+    /// 兼容「对象初始化器设置 DataContext」与「Loaded 后解析」两种时机，确保订阅一定生效。
+    /// </summary>
+    private void SubscribeToVm()
+    {
+        if (DataContext is NewQuotationViewModel vm && _subscribedVm != vm)
         {
+            if (_subscribedVm != null)
+                _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
             _subscribedVm = vm;
             vm.PropertyChanged += OnVmPropertyChanged;
         }
@@ -167,8 +186,14 @@ public partial class NewQuotationView : UserControl
     /// </summary>
     private void QuickBox_LostFocus(object sender, RoutedEventArgs e)
     {
-        if (DataContext is NewQuotationViewModel vm)
-            vm.OnQuickSearchLostFocus();
+        if (DataContext is not NewQuotationViewModel vm) return;
+
+        // 焦点转移到弹窗内部（例如点击候选列表项）时不关闭
+        if (QuickSearchPopup.IsKeyboardFocusWithin) return;
+        // 焦点仍停留在某个输入框（如从编号框切到负责人框）时不关闭
+        if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox) return;
+
+        vm.OnQuickSearchLostFocus();
     }
 
     // ==================== 弹出框定位 ====================
