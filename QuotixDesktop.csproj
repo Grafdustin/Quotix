@@ -7,9 +7,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>Quotix</AssemblyName>
     <Version>1.1.6</Version>
-    <!-- AssemblyVersion: 濠电姷鏁告慨鐑藉极閹间礁纾块柟瀵稿Т缁躲倝鏌﹀Ο渚＆婵炲樊浜濋弲婊堟煟閹伴潧澧幖鏉戯躬濮婃椽宕ㄦ繝鍌毿曟繛瀛樼矋閻楃姴鐣?1.0.0.0 闂傚倸鍊搁崐鎼佸磹閻戣姤鍊块柨鏇楀亾妞ゎ亜鍟村畷褰掝敋閸涱垰濮洪梻浣侯潒閸曞灚鐣剁紓浣插亾濠㈣埖鍔栭崐鐢告煥濠靛棝顎楀褎褰冮埞鎴︻敊閹稿海褰ч梺闈涙搐鐎氫即鐛幒妤€绠ｆ繝闈涘暙娴滄儳鈹戦悩宕囶暡闁稿孩顨嗙换娑㈠幢濡闉嶉梺绋匡功閺佸寮婚妸銉㈡斀闁糕剝鐟ラ崵顒傜磽娴ｉ潧濡块柡鍜佸亰閹偓妞ゅ繐鐗嗙痪褔鎮归幁鎺戝鐟滃酣骞堥妸锔剧瘈闁稿被鍊楅崥瀣倵鐟欏嫭绀€鐎规洦鍓濋悘鍐╃箾閹剧澹樻繛璇х畵閺佹捇濡烽妷銏℃杸闂佺粯锕╅崑鍛垔娴煎瓨鐓曢柡鍥╁仧娴犳盯鏌ｉ妶鍕獢闁诡喗顨呴埢鎾诲垂椤旂晫浜鹃梻浣芥〃缁€渚€鈥﹂悜钘壩ュù锝堝€介弮鍫濆窛妞ゆ挾濮存慨锔戒繆閻愵亜鈧牜鏁幒鏂哄亾濮樼厧澧伴柟鍙夋尦閺佸啴宕掑☉妯峰亾閻㈠憡鐓ユ繝闈涙椤庢鏌涘Ο缁樺唉闁哄本绋撻埀顒婄秵閸嬪懐浜搁崹顐ょ闁瑰濮甸弳顒傗偓瑙勬处娴滄繈骞忛崨鏉戞嵍妞ゆ挾濮岄妷鈺傗拻?-->
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.68.0</FileVersion>
+    <!-- 不显式指定 AssemblyVersion / FileVersion，由 SDK 自动从 Version 派生，确保文件版本随发布版本实时更新 -->
     <InformationalVersion>1.1.6</InformationalVersion>
     <Company>NISYO</Company>
     <Copyright>Copyright (C) 2026 NISYO</Copyright>
