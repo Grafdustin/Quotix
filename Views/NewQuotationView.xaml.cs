@@ -276,9 +276,15 @@ public partial class NewQuotationView : UserControl
 
         // Preview（隧道）阶段 ListBox.SelectedItem 尚未更新为刚点击的项，
         // 因此必须从点击源向上查找被点击的 ListBoxItem，取其 DataContext 作为选中项。
+        // 注意：点击高亮文字时 OriginalSource 是 HighlightTextBlock 内部的 Run（TextElement，非 Visual），
+        // 遇到非 Visual 节点须改用 LogicalTreeHelper，否则 VisualTreeHelper.GetParent 会抛异常。
         var dep = e.OriginalSource as DependencyObject;
         while (dep != null && dep is not ListBoxItem)
-            dep = VisualTreeHelper.GetParent(dep);
+        {
+            dep = dep is Visual visual
+                ? VisualTreeHelper.GetParent(visual)
+                : LogicalTreeHelper.GetParent(dep);
+        }
         if (dep is ListBoxItem item && item.DataContext is QuickSearchResult result)
             vm.OnQuickResultSelected(result);
     }
