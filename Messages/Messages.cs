@@ -81,6 +81,19 @@ public sealed class QuickInputEnabledChangedMessage : ValueChangedMessage<bool>
 }
 
 /// <summary>
+/// 全局模糊搜索开关变更消息，携带当前是否启用模糊搜索。
+/// 用于同步报价单页快捷搜索的匹配算法（高级分散匹配 / 基础匹配）。
+/// </summary>
+public sealed class QuickInputFuzzyChangedMessage : ValueChangedMessage<bool>
+{
+    /// <summary>
+    /// 初始化 QuickInputFuzzyChangedMessage 实例。
+    /// </summary>
+    /// <param name="enabled">是否启用全局模糊搜索</param>
+    public QuickInputFuzzyChangedMessage(bool enabled) : base(enabled) { }
+}
+
+/// <summary>
 /// 产品数据变更消息，携带发生变更的表名（如 products_ndt / products_rvi_change）。
 /// 用于在产品导入、清空后，通知设置页快捷输入卡片刷新可用的表头下拉项。
 /// </summary>

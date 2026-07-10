@@ -681,7 +681,7 @@
                                 <StackPanel>
                                     <!-- 编号详情：仅显示编号值，并高亮匹配用户输入的内容（黄底红字） -->
                                     <local:HighlightTextBlock SourceText="{Binding Title}"
-                                                              HighlightText="{Binding RelativeSource={RelativeSource AncestorType=ListBox}, Path=DataContext.QuickSearchText}"
+                                                              HighlightIndices="{Binding HighlightIndices}"
                                                               FontSize="13" FontWeight="SemiBold"
                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                               TextTrimming="CharacterEllipsis"/>

@@ -71,6 +71,7 @@ public partial class SettingsViewModel : ObservableObject
 
         // 初始化快捷输入设置
         _quickInputEnabled = _settingsService.QuickInput.Enabled;
+        _quickInputFuzzyEnabled = _settingsService.QuickInput.FuzzySearch;
         TargetFields = new List<(string Key, string Label)>
         {
             ("编号", "编号"),
@@ -321,6 +322,15 @@ public partial class SettingsViewModel : ObservableObject
     {
         _settingsService.QuickInput.Enabled = value;
         WeakReferenceMessenger.Default.Send(new QuickInputEnabledChangedMessage(value));
+    }
+
+    [ObservableProperty] private bool _quickInputFuzzyEnabled;
+
+    /// <summary>全局模糊搜索开关变化：写回设置并广播给报价单页快捷搜索</summary>
+    partial void OnQuickInputFuzzyEnabledChanged(bool value)
+    {
+        _settingsService.QuickInput.FuzzySearch = value;
+        WeakReferenceMessenger.Default.Send(new QuickInputFuzzyChangedMessage(value));
     }
 
     [ObservableProperty] private string _quickInputDb = "NDT";

@@ -16,10 +16,16 @@ public class QuickSearchResult
     
     /// <summary>单价数值</summary>
     public decimal Price { get; set; }
-    
+
     /// <summary>原始 JSON 数据（完整产品信息）</summary>
     public Dictionary<string, string>? RawData { get; set; }
-    
+
     /// <summary>搜索类型: product / owner / customer</summary>
     public string ResultType { get; set; } = "product";
+
+    /// <summary>匹配度分数（仅用于结果排序，不参与显示）</summary>
+    public double Score { get; set; }
+
+    /// <summary>需在标题中高亮的字符下标集合（由模糊搜索算法计算，针对 Title）</summary>
+    public int[]? HighlightIndices { get; set; }
 }

@@ -136,6 +136,13 @@ public class QuickInputSettings
     public bool Enabled { get; set; } = true;
 
     /// <summary>
+    /// 是否启用全局模糊搜索（高级分散匹配）。
+    /// 开启后所有快捷搜索框与快捷窗口使用模糊匹配算法（支持字符分散匹配，如 "1-3" 匹配 "1-2-3"）；
+    /// 关闭则仅使用基础前缀 / 包含匹配。默认开启。
+    /// </summary>
+    public bool FuzzySearch { get; set; } = true;
+
+    /// <summary>
     /// 字段映射。外层 key 为数据库类型（"NDT" / "RVI"）；
     /// 内层 key 为报价单输入框（"编号" / "说明" / "单价"），value 为数据表列名（空字符串表示不映射）。
     /// </summary>

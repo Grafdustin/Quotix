@@ -164,6 +164,32 @@
                                                  VerticalAlignment="Center"/>
                             </Grid>
 
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
+                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                    <ui:SymbolIcon Symbol="Search16" FontSize="18"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                                    <ui:TextBlock Text="模糊搜索" FontSize="14" FontWeight="Medium"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <ui:TextBlock Text="在所有快捷搜索框与弹窗启用模糊匹配（支持字符分散匹配，如 1-3 匹配 1-2-3）"
+                                                  FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                  Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <ui:ToggleSwitch Grid.Column="2" IsChecked="{Binding QuickInputFuzzyEnabled}"
+                                                 VerticalAlignment="Center"/>
+                            </Grid>
+
                             <Rectangle Height="1" Fill="{DynamicResource CardStrokeColorDefaultBrush}"
                                        Margin="0,0,0,12"/>
 

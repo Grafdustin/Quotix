@@ -81,6 +81,8 @@ public partial class NewQuotationViewModel : ObservableObject
     [ObservableProperty] private string _quickInputDatabase = "NDT";
     /// <summary>快捷输入总开关（由设置页控制，关闭后编号列不触发产品快速搜索）</summary>
     private bool _quickInputEnabled = true;
+    /// <summary>全局模糊搜索开关（由设置页控制，开启后使用高级分散匹配算法）</summary>
+    private bool _quickInputFuzzyEnabled = true;
     [ObservableProperty] private string _quickSearchText = "";
     [ObservableProperty] private int _activeItemIndex = -1;
     [ObservableProperty] private bool _isQuickSearchVisible;
@@ -134,11 +136,18 @@ public partial class NewQuotationViewModel : ObservableObject
         _dialog = dialog;
         _settingsService = settingsService;
         _quickInputEnabled = _settingsService.QuickInput.Enabled;
+        _quickInputFuzzyEnabled = _settingsService.QuickInput.FuzzySearch;
 
         // 订阅设置页快捷输入开关变化，实时同步（弱引用，不阻塞回收）
         WeakReferenceMessenger.Default.Register<QuickInputEnabledChangedMessage>(this, (r, m) =>
         {
             _quickInputEnabled = m.Value;
+        });
+
+        // 订阅设置页全局模糊搜索开关变化，实时同步匹配算法
+        WeakReferenceMessenger.Default.Register<QuickInputFuzzyChangedMessage>(this, (r, m) =>
+        {
+            _quickInputFuzzyEnabled = m.Value;
         });
 
         // 统一管理报价项属性变更订阅，避免 Add/Remove/加载已有报价时悬空回调与内存泄漏（见 OnItemsCollectionChanged）
@@ -488,6 +497,7 @@ public partial class NewQuotationViewModel : ObservableObject
     private async System.Threading.Tasks.Task QuickSearchAsync(string query, CancellationToken ct)
     {
         var lower = (query ?? "").ToLowerInvariant();
+        var fuzzy = _quickInputFuzzyEnabled;
 
         if (QuickSearchContext == "product")
         {
@@ -500,30 +510,32 @@ public partial class NewQuotationViewModel : ObservableObject
             }
 
             ct.ThrowIfCancellationRequested();
-
             var index = _cachedProductIndex;
 
-            // 取设置中映射到“编号”的列；只展示该列内容，其他列不显示
+            // 取设置中映射到“编号”的列，作为弹窗唯一显示内容（严格使用映射，不加兜底）
             var map = _settingsService.QuickInput.Mappings
                 .TryGetValue(dbType, out var m) && m != null ? m : null;
             var codeColumn = map != null && map.TryGetValue("编号", out var cc) ? cc : "";
 
-            // 在后台线程过滤：仅按“编号”映射列的值匹配
+            // 在后台线程过滤与打分：按映射的所有列（编号 / 说明 / 单价）取最高匹配分
             var matches = await System.Threading.Tasks.Task.Run(() =>
             {
                 var list = new List<QuickSearchResult>(200);
                 foreach (var p in index)
                 {
-                    // 显示内容 = 编号映射列的值；未配置该列时回退到自动识别的标题
-                    var display = (!string.IsNullOrEmpty(codeColumn)
-                                   && p.RawData.TryGetValue(codeColumn, out var dv)
-                                   && !string.IsNullOrEmpty(dv))
-                        ? dv
-                        : p.Title;
-                    if (string.IsNullOrEmpty(display)) continue;
-
-                    if (!string.IsNullOrEmpty(lower) && !display.ToLowerInvariant().Contains(lower))
+                    // 显示内容 = 编号映射列的值；未配置该列则不显示（不做兜底回退）
+                    if (string.IsNullOrEmpty(codeColumn)
+                        || !p.RawData.TryGetValue(codeColumn, out var display)
+                        || string.IsNullOrEmpty(display))
                         continue;
+
+                    // 按映射的全部列取最高模糊匹配分
+                    double score = 0;
+                    if (!string.IsNullOrEmpty(lower))
+                    {
+                        score = ScoreByMappedColumns(p.RawData, map, lower, fuzzy);
+                        if (score <= 0) continue;
+                    }
 
                     list.Add(new QuickSearchResult
                     {
@@ -531,11 +543,13 @@ public partial class NewQuotationViewModel : ObservableObject
                         Subtitle = "",
                         PriceText = "",
                         RawData = p.RawData,
-                        ResultType = "product"
+                        ResultType = "product",
+                        Score = score,
+                        HighlightIndices = FuzzySearch.GetHighlightIndices(display, query ?? "")
                     });
                     if (list.Count >= 200) break;
                 }
-                list.Sort((a, b) => string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase));
+                list.Sort(CompareQuickResults);
                 return list;
             }, ct);
 
@@ -556,16 +570,30 @@ public partial class NewQuotationViewModel : ObservableObject
             var results = await System.Threading.Tasks.Task.Run(() =>
             {
                 var owners = _headerService.GetOwners();
-                return owners
-                    .Where(o => $"{o.Name} {o.Phone} {o.Tel} {o.Email}".ToLowerInvariant().Contains(lower))
-                    .Select(o => new QuickSearchResult
+                var list = new List<QuickSearchResult>(100);
+                foreach (var o in owners)
+                {
+                    double score = 0;
+                    if (!string.IsNullOrEmpty(lower))
+                    {
+                        score = System.Math.Max(score, FuzzySearch.Match(o.Name, lower, fuzzy));
+                        score = System.Math.Max(score, FuzzySearch.Match(o.Phone ?? "", lower, fuzzy));
+                        score = System.Math.Max(score, FuzzySearch.Match(o.Tel ?? "", lower, fuzzy));
+                        score = System.Math.Max(score, FuzzySearch.Match(o.Email ?? "", lower, fuzzy));
+                        if (score <= 0) continue;
+                    }
+                    list.Add(new QuickSearchResult
                     {
                         Title = o.Name,
                         Subtitle = o.Phone ?? "",
-                        ResultType = "owner"
-                    })
-                    .Take(20)
-                    .ToList();
+                        ResultType = "owner",
+                        Score = score,
+                        HighlightIndices = FuzzySearch.GetHighlightIndices(o.Name, query ?? "")
+                    });
+                }
+                list.Sort(CompareQuickResults);
+                if (list.Count > 100) list.RemoveRange(100, list.Count - 100);
+                return list;
             }, ct);
 
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
@@ -581,16 +609,30 @@ public partial class NewQuotationViewModel : ObservableObject
             var results = await System.Threading.Tasks.Task.Run(() =>
             {
                 var customers = _headerService.GetCustomers();
-                return customers
-                    .Where(c => $"{c.CompanyName} {c.Contact} {c.Phone} {c.Email}".ToLowerInvariant().Contains(lower))
-                    .Select(c => new QuickSearchResult
+                var list = new List<QuickSearchResult>(100);
+                foreach (var c in customers)
+                {
+                    double score = 0;
+                    if (!string.IsNullOrEmpty(lower))
+                    {
+                        score = System.Math.Max(score, FuzzySearch.Match(c.CompanyName, lower, fuzzy));
+                        score = System.Math.Max(score, FuzzySearch.Match(c.Contact ?? "", lower, fuzzy));
+                        score = System.Math.Max(score, FuzzySearch.Match(c.Phone ?? "", lower, fuzzy));
+                        score = System.Math.Max(score, FuzzySearch.Match(c.Email ?? "", lower, fuzzy));
+                        if (score <= 0) continue;
+                    }
+                    list.Add(new QuickSearchResult
                     {
                         Title = c.CompanyName,
                         Subtitle = c.Contact ?? "",
-                        ResultType = "customer"
-                    })
-                    .Take(20)
-                    .ToList();
+                        ResultType = "customer",
+                        Score = score,
+                        HighlightIndices = FuzzySearch.GetHighlightIndices(c.CompanyName, query ?? "")
+                    });
+                }
+                list.Sort(CompareQuickResults);
+                if (list.Count > 100) list.RemoveRange(100, list.Count - 100);
+                return list;
             }, ct);
 
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
@@ -601,6 +643,45 @@ public partial class NewQuotationViewModel : ObservableObject
                 IsQuickSearchVisible = QuickSearchResults.Count > 0;
             });
         }
+    }
+
+    /// <summary>
+    /// 按映射列（编号 / 说明 / 单价）对单条产品数据取最高模糊匹配分。
+    /// 列信息来自设置中的字段映射（我们的“映射表信息”），不使用任何兜底列。
+    /// </summary>
+    private static double ScoreByMappedColumns(
+        Dictionary<string, string> rawData,
+        Dictionary<string, string>? map,
+        string lower,
+        bool fuzzy)
+    {
+        double best = 0;
+        if (map == null) return best;
+        foreach (var column in map.Values)
+        {
+            if (string.IsNullOrEmpty(column)) continue;
+            if (!rawData.TryGetValue(column, out var value) || string.IsNullOrEmpty(value)) continue;
+            var s = FuzzySearch.Match(value, lower, fuzzy);
+            if (s > best) best = s;
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// 快捷搜索结果排序：分数降序 → 标题长度升序 → 字母开头优先于数字开头 → 字典序。
+    /// 与前端排序规则一致。
+    /// </summary>
+    private static int CompareQuickResults(QuickSearchResult a, QuickSearchResult b)
+    {
+        var c = b.Score.CompareTo(a.Score);
+        if (c != 0) return c;
+        c = a.Title.Length.CompareTo(b.Title.Length);
+        if (c != 0) return c;
+        bool aLetter = a.Title.Length > 0 && char.IsLetter(a.Title, 0);
+        bool bLetter = b.Title.Length > 0 && char.IsLetter(b.Title, 0);
+        if (aLetter && !bLetter) return -1;
+        if (!aLetter && bLetter) return 1;
+        return string.Compare(a.Title, b.Title, StringComparison.Ordinal);
     }
 
     /// <summary>
