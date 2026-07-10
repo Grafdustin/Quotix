@@ -138,7 +138,7 @@ if ($hasChanges) {
 # “To https://...”）写在 stderr，配合文件顶部 $env:GIT_REDIRECT_STDERR
 # 已让 git 把 stderr 合并到 stdout，不会再被 PowerShell 包装成 NativeCommandError。
 $pushOk = $false
-$maxPushAttempts = 8
+$maxPushAttempts = 20
 for ($attempt = 1; $attempt -le $maxPushAttempts; $attempt++) {
     $gitOutput = (& git push origin main 2>&1 | Out-String)
     $exitCode = $LASTEXITCODE
@@ -156,7 +156,9 @@ for ($attempt = 1; $attempt -le $maxPushAttempts; $attempt++) {
 
     Write-Host "Git push attempt $attempt failed:"
     Write-Host $gitOutput -ForegroundColor Yellow
-    Start-Sleep -Seconds 3
+    # 退避：3s 起，每次 +2s，封顶 15s，覆盖 GitHub 偶发的较长时间的连接重置
+    $delay = [Math]::Min(3 + ($attempt - 1) * 2, 15)
+    Start-Sleep -Seconds $delay
 }
 if (-not $pushOk) {
     Write-Host $gitOutput
@@ -205,7 +207,19 @@ if (-not $hasChanges -and $remoteTag) {
 
         Write-Host "Git tag push attempt $attempt failed:"
         Write-Host $tagPushOutput -ForegroundColor Yellow
-        Start-Sleep -Seconds 3
+        # 退避：3s 起，每次 +2s，封顶 15s
+        $delay = [Math]::Min(3 + ($attempt - 1) * 2, 15)
+        Start-Sleep -Seconds $delay
+    }
+    # 兜底校验：重试全部失败后，做一次 ls-remote 确认远程 tag 是否其实已存在。
+    # 某些情况下某次推送实际已成功落地（如网络在推送尾段恢复），但退出码未被正确
+    # 判为成功，会导致误抛异常；此时远程已有 tag，构建已触发，应视为成功。
+    if (-not $tagOk) {
+        $remoteCheck = (& git ls-remote --tags origin "refs/tags/v$Version" 2>&1 | Out-String)
+        if ($remoteCheck -match "refs/tags/v$Version`$") {
+            Write-Host "远程已存在 tag v$Version，视为推送成功（构建已触发）。" -ForegroundColor Green
+            $tagOk = $true
+        }
     }
     if (-not $tagOk) {
         Write-Host $tagPushOutput
