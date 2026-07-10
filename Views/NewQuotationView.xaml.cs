@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using Quotix.Models;
 using Quotix.ViewModels;
 
@@ -267,11 +268,18 @@ public partial class NewQuotationView : UserControl
     // ==================== 选择结果 ====================
 
     /// <summary>
-    /// 快速搜索结果列表鼠标左键释放时调用，选择搜索结果。
+    /// 快速搜索结果列表鼠标左键释放（隧道阶段）时调用，选择搜索结果。
     /// </summary>
     private void QuickResultsList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (QuickResultsList.SelectedItem is QuickSearchResult result && DataContext is NewQuotationViewModel vm)
+        if (DataContext is not NewQuotationViewModel vm) return;
+
+        // Preview（隧道）阶段 ListBox.SelectedItem 尚未更新为刚点击的项，
+        // 因此必须从点击源向上查找被点击的 ListBoxItem，取其 DataContext 作为选中项。
+        var dep = e.OriginalSource as DependencyObject;
+        while (dep != null && dep is not ListBoxItem)
+            dep = VisualTreeHelper.GetParent(dep);
+        if (dep is ListBoxItem item && item.DataContext is QuickSearchResult result)
             vm.OnQuickResultSelected(result);
     }
 

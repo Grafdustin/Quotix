@@ -529,11 +529,12 @@ public partial class NewQuotationViewModel : ObservableObject
                         || string.IsNullOrEmpty(display))
                         continue;
 
-                    // 按映射的全部列取最高模糊匹配分
+                    // 仅对“编号”列值（即弹窗显示内容本身）做模糊匹配，与前端 UPC 单列打分一致；
+                    // 不按“说明/单价”等其它映射列命中，避免把编号本身不相关的产品也带出来。
                     double score = 0;
                     if (!string.IsNullOrEmpty(lower))
                     {
-                        score = ScoreByMappedColumns(p.RawData, map, lower, fuzzy);
+                        score = FuzzySearch.Match(display, lower, fuzzy);
                         if (score <= 0) continue;
                     }
 
@@ -643,28 +644,6 @@ public partial class NewQuotationViewModel : ObservableObject
                 IsQuickSearchVisible = QuickSearchResults.Count > 0;
             });
         }
-    }
-
-    /// <summary>
-    /// 按映射列（编号 / 说明 / 单价）对单条产品数据取最高模糊匹配分。
-    /// 列信息来自设置中的字段映射（我们的“映射表信息”），不使用任何兜底列。
-    /// </summary>
-    private static double ScoreByMappedColumns(
-        Dictionary<string, string> rawData,
-        Dictionary<string, string>? map,
-        string lower,
-        bool fuzzy)
-    {
-        double best = 0;
-        if (map == null) return best;
-        foreach (var column in map.Values)
-        {
-            if (string.IsNullOrEmpty(column)) continue;
-            if (!rawData.TryGetValue(column, out var value) || string.IsNullOrEmpty(value)) continue;
-            var s = FuzzySearch.Match(value, lower, fuzzy);
-            if (s > best) best = s;
-        }
-        return best;
     }
 
     /// <summary>
