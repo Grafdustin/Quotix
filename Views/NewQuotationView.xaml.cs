@@ -18,6 +18,8 @@ public partial class NewQuotationView : UserControl
     /// </summary>
     private NewQuotationViewModel VM => (NewQuotationViewModel)DataContext;
     private int _lastCodeRowIndex = -1;
+    /// <summary>最近一次获得焦点的“编号”文本框引用，作为弹窗定位锚点（避免视觉树遍历误取到产品名称框）</summary>
+    private TextBox? _lastCodeBox;
     /// <summary>已订阅 PropertyChanged 的 VM 引用，用于切换/卸载时退订，避免重复订阅与 view 被 VM 强引用泄漏</summary>
     private NewQuotationViewModel? _subscribedVm;
 
@@ -99,6 +101,8 @@ public partial class NewQuotationView : UserControl
     {
         if (sender is TextBox tb && DataContext is NewQuotationViewModel vm)
         {
+            // 记录聚焦的编号文本框，作为弹窗定位锚点
+            _lastCodeBox = tb;
             // 文本框的数据上下文即为该行对应的报价项，直接定位行索引（比视觉树遍历更可靠）
             if (tb.DataContext is QuotationItemViewModel item)
             {
@@ -180,12 +184,21 @@ public partial class NewQuotationView : UserControl
 
         if (vm.QuickSearchContext == "product" && vm.ActiveItemIndex >= 0)
         {
-            var itemsControl = ItemsControlList;
-            if (itemsControl == null) return;
-            var container = itemsControl.ItemContainerGenerator.ContainerFromIndex(vm.ActiveItemIndex);
-            if (container is ContentPresenter cp)
+            // 优先用聚焦时记录的编号文本框作为锚点（最精准）；
+            // 兜底再回退到视觉树查找（可能取到产品名称框，仅作保障）
+            if (_lastCodeBox != null && _lastCodeBox.IsLoaded)
             {
-                placementTarget = FindVisualChild<TextBox>(cp);
+                placementTarget = _lastCodeBox;
+            }
+            else
+            {
+                var itemsControl = ItemsControlList;
+                if (itemsControl == null) return;
+                var container = itemsControl.ItemContainerGenerator.ContainerFromIndex(vm.ActiveItemIndex);
+                if (container is ContentPresenter cp)
+                {
+                    placementTarget = FindVisualChild<TextBox>(cp);
+                }
             }
         }
         else if (vm.QuickSearchContext == "owner")
@@ -201,7 +214,8 @@ public partial class NewQuotationView : UserControl
         {
             QuickSearchPopup.PlacementTarget = placementTarget;
             QuickSearchPopup.HorizontalOffset = 0;
-            QuickSearchPopup.VerticalOffset = 4;
+            // Placement=Top 时弹窗在输入框上方；负偏移留出 4px 间距
+            QuickSearchPopup.VerticalOffset = -4;
         }
     }
 
