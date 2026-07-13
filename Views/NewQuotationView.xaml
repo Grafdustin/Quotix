@@ -29,12 +29,12 @@
                                 <ui:Button x:Name="QuickNDTButton" Content="NDT"
                                            MinWidth="56" Height="34" FontSize="13"
                                            Tag="QuickInputAnchor"
-                                           Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance}, ConverterParameter=NDT}"
+                                           Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance},                                            ConverterParameter=NDT}"
                                            Click="QuickNDTButton_Click"/>
                                 <ui:Button x:Name="QuickRVIButton" Content="RVI"
                                            MinWidth="56" Height="34" FontSize="13" Margin="6,0,0,0"
                                            Tag="QuickInputAnchor"
-                                           Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance}, ConverterParameter=RVI}"
+                                           Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance},                                            ConverterParameter=RVI}"
                                            Click="QuickRVIButton_Click"/>
                             </StackPanel>
 
