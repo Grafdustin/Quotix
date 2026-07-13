@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Quotix.Models;
 using Quotix.ViewModels;
 
@@ -89,6 +90,8 @@ public partial class NewQuotationView : UserControl
             _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
             _subscribedVm = null;
         }
+        // 离开视图（切换页面）时关闭弹窗，避免残留
+        QuickSearchPopup.IsOpen = false;
     }
 
     // ==================== 快速数据库切换 ====================
@@ -100,6 +103,8 @@ public partial class NewQuotationView : UserControl
     {
         if (DataContext is not NewQuotationViewModel vm) return;
         vm.SwitchQuickDatabaseCommand.Execute("NDT");
+        // 重新聚焦输入框：保证「再次点击快速输入」时弹窗保持打开且可继续输入
+        RefocusQuickInputBox();
     }
 
     /// <summary>
@@ -109,6 +114,29 @@ public partial class NewQuotationView : UserControl
     {
         if (DataContext is not NewQuotationViewModel vm) return;
         vm.SwitchQuickDatabaseCommand.Execute("RVI");
+        RefocusQuickInputBox();
+    }
+
+    /// <summary>
+    /// 切换快速输入数据库后，将焦点重新交还当前上下文对应的输入框。
+    /// 配合 StaysOpen=True，使弹窗在「再次点击快速输入按钮」时保持打开并继续可输入。
+    /// </summary>
+    private void RefocusQuickInputBox()
+    {
+        if (DataContext is not NewQuotationViewModel vm) return;
+        // 延后到本次点击处理完成后再聚焦，避免与按钮抢焦点导致弹窗被误关
+        Dispatcher.BeginInvoke(() =>
+        {
+            TextBox? target = vm.QuickSearchContext switch
+            {
+                "product" => _lastCodeBox,
+                "owner" => CompanyContactBox,
+                "customer" => CustomerNameBox,
+                _ => null
+            };
+            if (target != null && target.IsLoaded)
+                target.Focus();
+        });
     }
 
     // ==================== 编码字段（产品快速输入） ====================
@@ -193,6 +221,11 @@ public partial class NewQuotationView : UserControl
         if (QuickSearchPopup.IsKeyboardFocusWithin) return;
         // 焦点仍停留在某个输入框（如从编号框切到负责人框）时不关闭
         if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox) return;
+        // 焦点转移到「快速输入」数据库切换按钮（NDT/RVI）时不关闭：
+        // 该按钮只负责切换数据库并重新聚焦输入框，不应关闭弹窗
+        // （StaysOpen=True 下弹窗不会因外部点击自动关闭，此处补上按钮这一例）
+        if (ReferenceEquals(System.Windows.Input.Keyboard.FocusedElement, QuickNDTButton) ||
+            ReferenceEquals(System.Windows.Input.Keyboard.FocusedElement, QuickRVIButton)) return;
 
         vm.OnQuickSearchLostFocus();
     }

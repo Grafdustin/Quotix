@@ -609,7 +609,7 @@
 
         <!-- ═══════════════ 快速搜索 Popup ═══════════════ -->
         <!-- Placement=Top：弹窗只在输入栏上方显示，左边缘与输入框左边缘对齐 -->
-        <Popup x:Name="QuickSearchPopup" Placement="Top" StaysOpen="False"
+        <Popup x:Name="QuickSearchPopup" Placement="Top" StaysOpen="True"
                AllowsTransparency="True" PopupAnimation="Fade">
             <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                     CornerRadius="12"
