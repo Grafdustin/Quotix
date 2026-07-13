@@ -28,12 +28,10 @@
                                               VerticalAlignment="Center" Margin="0,0,10,0"/>
                                 <ui:Button x:Name="QuickNDTButton" Content="NDT"
                                            MinWidth="56" Height="34" FontSize="13"
-                                           Tag="QuickInputAnchor"
                                            Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance},                                            ConverterParameter=NDT}"
                                            Click="QuickNDTButton_Click"/>
                                 <ui:Button x:Name="QuickRVIButton" Content="RVI"
                                            MinWidth="56" Height="34" FontSize="13" Margin="6,0,0,0"
-                                           Tag="QuickInputAnchor"
                                            Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance},                                            ConverterParameter=RVI}"
                                            Click="QuickRVIButton_Click"/>
                             </StackPanel>
@@ -614,9 +612,8 @@
 
         <!-- ═══════════════ 快速搜索 Popup ═══════════════ -->
         <!-- Placement=Top：弹窗只在输入栏上方显示，左边缘与输入框左边缘对齐 -->
-        <Popup x:Name="QuickSearchPopup" Placement="Top" StaysOpen="False"
-               AllowsTransparency="True" PopupAnimation="Fade"
-               Mouse.PreviewMouseDownOutsideCapturedElement="QuickPopup_OutsideClick">
+        <Popup x:Name="QuickSearchPopup" Placement="Top" StaysOpen="True"
+               AllowsTransparency="True" PopupAnimation="Fade">
             <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                     CornerRadius="12"
                     BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"

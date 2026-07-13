@@ -9,6 +9,7 @@ using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
+using Quotix.Common;
 using Quotix.Services;
 using Quotix.Views;
 
@@ -93,6 +94,9 @@ public partial class App : Application
     /// <summary>执行应用程序主启动流程</summary>
     private async Task StartApplicationAsync()
     {
+        // 全局平滑滚动：对所有 ScrollViewer 类级注册滚轮缓动（无需 XAML 标记，不依赖样式时机）
+        SmoothScrollBehavior.Register();
+
         // 构建 DI 容器
         _serviceProvider = DiConfig.Build();
 

@@ -113,8 +113,6 @@ public partial class NewQuotationView : UserControl
     {
         if (DataContext is not NewQuotationViewModel vm) return;
         vm.SwitchQuickDatabaseCommand.Execute("NDT");
-        // 重新聚焦输入框：保证「再次点击快速输入」时弹窗保持打开且可继续输入
-        RefocusQuickInputBox();
     }
 
     /// <summary>
@@ -124,7 +122,6 @@ public partial class NewQuotationView : UserControl
     {
         if (DataContext is not NewQuotationViewModel vm) return;
         vm.SwitchQuickDatabaseCommand.Execute("RVI");
-        RefocusQuickInputBox();
     }
 
     /// <summary>
@@ -224,32 +221,8 @@ public partial class NewQuotationView : UserControl
     /// 快速搜索失去焦点时调用。
     /// </summary>
     /// <summary>
-    /// 接管 Popup 的「外部点击」行为。StaysOpen=True 下 Popup 不会自动关闭，
-    /// 由本方法按点击落点决定是否关闭：命中「激活输入框」或快速输入切换按钮（NDT/RVI）
-    /// 则保持弹窗；命中其他输入框 / 页面其他位置则关闭。
-    /// </summary>
-    /// <summary>
-    /// 接管 Popup 的「外部点击」行为。StaysOpen=False 下 Popup 会捕获鼠标，
-    /// 点击捕获元素之外即触发本事件：命中「激活输入框」或快速输入切换按钮（NDT/RVI）
-    /// 则标记已处理、阻止 Popup 自动关闭；命中其他输入框 / 页面其他位置则同步关闭 VM。
-    /// </summary>
-    private void QuickPopup_OutsideClick(object? sender, MouseButtonEventArgs e)
-    {
-        // 点击的是激活输入框 / 切换按钮：阻止 Popup 因外部点击而关闭
-        if (IsQuickInputAnchor(e.OriginalSource as DependencyObject))
-        {
-            e.Handled = true;
-            return;
-        }
-
-        // 其他位置：同步关闭 VM，由 OnVmPropertyChanged 驱动 Popup 关闭并清理候选
-        if (DataContext is NewQuotationViewModel vm)
-            vm.IsQuickSearchVisible = false;
-    }
-
-    /// <summary>
     /// 判断指定元素（或其在视觉树上的祖先）是否为「快速输入激活锚点」
-    /// （编号 / 负责人 / 客户输入框，以及 NDT / RVI 切换按钮）。
+    /// （编号 / 负责人 / 客户输入框）。
     /// </summary>
     private static bool IsQuickInputAnchor(DependencyObject? dep)
     {

@@ -321,6 +321,7 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnQuickInputEnabledChanged(bool value)
     {
         _settingsService.QuickInput.Enabled = value;
+        _settingsService.SaveQuickInputSettings();
         WeakReferenceMessenger.Default.Send(new QuickInputEnabledChangedMessage(value));
     }
 
@@ -330,6 +331,7 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnQuickInputFuzzyEnabledChanged(bool value)
     {
         _settingsService.QuickInput.FuzzySearch = value;
+        _settingsService.SaveQuickInputSettings();
         WeakReferenceMessenger.Default.Send(new QuickInputFuzzyChangedMessage(value));
     }
 
