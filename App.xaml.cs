@@ -132,41 +132,20 @@ public partial class App : Application
                 LogException(ex);
         };
 
-        // 启动闪屏
-        var splash = new SplashWindow();
-        splash.Show();
-
-        // 并行：数据库初始化 + 闪屏动画
-        var dbInitTask = InitializeDatabaseAsync();
-        _ = MonitorDatabaseInit(dbInitTask, splash);
-
-        // 等待闪屏动画完成（最长 15 秒超时保护，防止动画卡死导致永远不显示主窗口）
-        var readyTask = splash.WaitForReadyAsync();
-        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(15));
-        var completedTask = await Task.WhenAny(readyTask, timeoutTask);
-
-        if (completedTask != readyTask)
-        {
-            // 超时：强制快进闪屏
-            splash.FastForward();
-            await readyTask;
-        }
-
-        // 确保数据库初始化完成
-        await dbInitTask;
+        // 数据库初始化
+        await InitializeDatabaseAsync();
 
         // 数据库迁移
         _serviceProvider.GetRequiredService<Services.MigrationService>().Run();
 
-        // 预热缓存（利用闪屏时间段完成）
-        var cacheTask = Task.Run(() => _serviceProvider.GetRequiredService<Services.CacheService>().WarmUp());
+        // 预热缓存
+        _ = Task.Run(() => _serviceProvider.GetRequiredService<Services.CacheService>().WarmUp());
 
         // 进入主窗口
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
-        await splash.FadeOutAsync();
 
-        // 显式指定 MainWindow（SplashWindow 关闭后 WPF 可能不会自动提升）
+        // 显式指定 MainWindow（保证应用生命周期与主窗口绑定）
         Application.Current.MainWindow = mainWindow;
 
         // 主窗口关闭时退出应用
@@ -179,14 +158,6 @@ public partial class App : Application
         _serviceProvider?.Dispose();
         _singleInstanceMutex?.Dispose();
         base.OnExit(e);
-    }
-
-    /// <summary>监控数据库初始化任务，完成后通知闪屏</summary>
-    private static async Task MonitorDatabaseInit(Task dbInitTask, SplashWindow splash)
-    {
-        await dbInitTask;
-        splash.SignalExternalReady();
-        splash.FastForward();
     }
 
     /// <summary>模拟数据库初始化（后续可替换为实际加载逻辑）</summary>
