@@ -422,12 +422,6 @@
                             </Border>
 
                             <ui:TextBlock Grid.Column="1"
-                                          Text="{Binding ReleaseDate, StringFormat='发布于 {0}'}"
-                                          FontSize="12"
-                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                          VerticalAlignment="Center" Margin="10,0,0,0"/>
-
-                            <ui:TextBlock Grid.Column="2"
                                           Text="{Binding FileSizeDisplay}"
                                           FontSize="12"
                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
