@@ -39,9 +39,15 @@ public static class SmoothScrollBehavior
     public static void Register()
     {
         EventManager.RegisterClassHandler(
+            typeof(ItemsControl),
+            FrameworkElement.LoadedEvent,
+            new RoutedEventHandler(OnItemsControlLoaded));
+
+        EventManager.RegisterClassHandler(
             typeof(ScrollViewer),
             ScrollViewer.PreviewMouseWheelEvent,
-            new MouseWheelEventHandler(OnPreviewMouseWheel));
+            new MouseWheelEventHandler(OnPreviewMouseWheel),
+            true);
     }
 
     private static void OnShadowOffsetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -79,6 +85,12 @@ public static class SmoothScrollBehavior
         sv.BeginAnimation(ShadowOffsetProperty, anim);
     }
 
+    private static void OnItemsControlLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ItemsControl ic)
+            ApplyPixelScroll(ic);
+    }
+
     /// <summary>
     /// 若该滚动容器承载的是 <see cref="ItemsControl"/>（ListBox / DataGrid / ListView 等虚拟化容器），
     /// 则将其 <see cref="VirtualizingPanel.ScrollUnit"/> 设为 <see cref="VirtualizationScrollUnit.Pixel"/>，
@@ -98,7 +110,34 @@ public static class SmoothScrollBehavior
             }
         }
 
-        if (ic != null && VirtualizingPanel.GetScrollUnit(ic) != ScrollUnit.Pixel)
+        if (ic != null)
+            ApplyPixelScroll(ic);
+    }
+
+    private static void ApplyPixelScroll(ItemsControl ic)
+    {
+        if (VirtualizingPanel.GetScrollUnit(ic) != ScrollUnit.Pixel)
             VirtualizingPanel.SetScrollUnit(ic, ScrollUnit.Pixel);
+
+        if (!ScrollViewer.GetCanContentScroll(ic))
+            ScrollViewer.SetCanContentScroll(ic, true);
+
+        ApplyPixelScrollToVirtualizingPanels(ic);
+    }
+
+    private static void ApplyPixelScrollToVirtualizingPanels(DependencyObject root)
+    {
+        int count = VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < count; i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(root, i);
+            if (child is VirtualizingPanel panel &&
+                VirtualizingPanel.GetScrollUnit(panel) != ScrollUnit.Pixel)
+            {
+                VirtualizingPanel.SetScrollUnit(panel, ScrollUnit.Pixel);
+            }
+
+            ApplyPixelScrollToVirtualizingPanels(child);
+        }
     }
 }
