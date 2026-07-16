@@ -441,7 +441,8 @@
                                           VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled"
                                           CanContentScroll="False"
-                                          HorizontalContentAlignment="Stretch">
+                                          HorizontalContentAlignment="Stretch"
+                                          Padding="0,0,10,0">
                                 <ItemsControl ItemsSource="{Binding Changelog}"
                                               HorizontalContentAlignment="Stretch">
                                     <!-- 关键：默认 ItemsControl 生成的 ContentPresenter 是
