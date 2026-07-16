@@ -433,60 +433,65 @@
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}"
                                 Margin="0,0,0,16"
                                 MaxHeight="220">
+                            <!-- ScrollViewer 会把子元素宽度约束到视口宽度（纵向测量给无限高），
+                                 因此 ItemsControl 直接放入即可让内部 TextBlock 正确换行，
+                                 无需再套一层 Grid 绑定 ViewportWidth（那会引入测量依赖）。
+                                 CanContentScroll=False：按像素滚动，超 MaxHeight 时显示垂直滚动条。 -->
                             <ScrollViewer x:Name="UpdateLogScroller"
                                           VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled">
-                                <!-- 用 Grid 限制宽度：ScrollViewer 默认给子元素无限宽，
-                                     导致 TextWrapping=Wrap 永不触发（文字溢出不换行）。
-                                     绑定到滚动视口宽度后文本正确折行，超出高度时显示垂直滚动条。 -->
-                                <Grid>
-                                    <Grid.Width>
-                                        <Binding ElementName="UpdateLogScroller" Path="ViewportWidth"/>
-                                    </Grid.Width>
-                                    <ItemsControl ItemsSource="{Binding Changelog}">
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          CanContentScroll="False"
+                                          HorizontalContentAlignment="Stretch">
+                                <ItemsControl ItemsSource="{Binding Changelog}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <!-- 圆点标记（仅内容行显示，头部行隐藏） -->
-                                            <Ellipse Grid.Column="0" Width="4" Height="4"
-                                                     Fill="{DynamicResource AccentFillColorDefaultBrush}"
-                                                     VerticalAlignment="Center" Margin="0,0,8,0">
-                                                <Ellipse.Style>
-                                                    <Style TargetType="Ellipse">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsHeader}" Value="True">
-                                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Ellipse.Style>
-                                            </Ellipse>
-                                            <ui:TextBlock Grid.Column="1" Text="{Binding Text}"
-                                                          FontSize="12"
-                                                          TextWrapping="Wrap"
-                                                          VerticalAlignment="Center">
-                                                <ui:TextBlock.Style>
-                                                    <Style TargetType="ui:TextBlock">
-                                                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsHeader}" Value="True">
-                                                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                                                <Setter Property="FontSize" Value="13"/>
-                                                                <Setter Property="Margin" Value="0,6,0,2"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </ui:TextBlock.Style>
-                                            </ui:TextBlock>
-                                        </Grid>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <!-- 圆点标记（仅内容行显示，头部行隐藏） -->
+                                                <Ellipse Grid.Column="0" Width="4" Height="4"
+                                                         Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                                                         VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <ui:TextBlock Grid.Column="1" Text="{Binding Text}"
+                                                              FontSize="12"
+                                                              TextWrapping="Wrap"
+                                                              TextTrimming="None"
+                                                              HorizontalAlignment="Stretch"
+                                                              VerticalAlignment="Center">
+                                                    <ui:TextBlock.Style>
+                                                        <Style TargetType="ui:TextBlock">
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                                    <Setter Property="FontSize" Value="13"/>
+                                                                    <Setter Property="Margin" Value="0,6,0,2"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ui:TextBlock.Style>
+                                                </ui:TextBlock>
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                </Grid>
                             </ScrollViewer>
                         </Border>
 
