@@ -442,7 +442,18 @@
                                           HorizontalScrollBarVisibility="Disabled"
                                           CanContentScroll="False"
                                           HorizontalContentAlignment="Stretch">
-                                <ItemsControl ItemsSource="{Binding Changelog}">
+                                <ItemsControl ItemsSource="{Binding Changelog}"
+                                              HorizontalContentAlignment="Stretch">
+                                    <!-- 关键：默认 ItemsControl 生成的 ContentPresenter 是
+                                         HorizontalAlignment=Left，导致内部 Grid 只拿到"内容所需宽度"
+                                         （等效无限宽），TextWrapping 失效。显式设为 Stretch 后，
+                                         每个条目容器会撑满 ScrollViewer 宽度，Grid 的 * 列得到有限宽度，
+                                         TextBlock 即可正确换行。 -->
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <StackPanel/>
@@ -458,7 +469,7 @@
                                                 <!-- 圆点标记（仅内容行显示，头部行隐藏） -->
                                                 <Ellipse Grid.Column="0" Width="4" Height="4"
                                                          Fill="{DynamicResource AccentFillColorDefaultBrush}"
-                                                         VerticalAlignment="Center" Margin="0,0,8,0">
+                                                         VerticalAlignment="Top" Margin="0,5,8,0">
                                                     <Ellipse.Style>
                                                         <Style TargetType="Ellipse">
                                                             <Style.Triggers>
