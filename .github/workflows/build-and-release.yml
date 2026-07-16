@@ -102,6 +102,24 @@ jobs:
         & "$iscc" /DMyAppVersion=${{ steps.meta.outputs.VERSION }} Installer/QuotixInstaller.iss
       shell: pwsh
 
+    - name: Sign installer (if cert configured)
+      # 仅当仓库配置了 CODE_SIGN_CERT 密钥时才签名；否则跳过，不影响现有发布流程。
+      if: ${{ secrets.CODE_SIGN_CERT != '' }}
+      shell: pwsh
+      env:
+        CERT_B64: ${{ secrets.CODE_SIGN_CERT }}
+        CERT_PW: ${{ secrets.CODE_SIGN_PASSWORD }}
+      run: |
+        $pfxPath = "Installer/Out/sign.pfx"
+        [System.IO.File]::WriteAllBytes($pfxPath, [System.Convert]::FromBase64String($env:CERT_B64))
+        $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $signtool) { throw "signtool.exe not found on runner" }
+        $exe = Get-Item "Installer/Out/Quotix_Setup_*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        & $signtool.FullName sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f $pfxPath /p $env:CERT_PW $exe.FullName
+        if ($LASTEXITCODE -ne 0) { throw "Signing failed" }
+        Remove-Item $pfxPath -Force
+        Write-Host "Installer signed: $($exe.FullName)"
+
     - name: Prepare latest.yml
       run: |
         # 使用 Cloud-Build.ps1 提交的 latest.yml，复制到 Installer/Out/
