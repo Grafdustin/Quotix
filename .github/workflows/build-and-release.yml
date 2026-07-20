@@ -99,13 +99,17 @@ jobs:
       shell: pwsh
 
     - name: Sign installer (if cert configured)
-      # 仅当仓库配置了 CODE_SIGN_CERT 密钥时才签名；否则跳过，不影响现有发布流程。
-      if: ${{ secrets.CODE_SIGN_CERT != '' }}
       shell: pwsh
       env:
         CERT_B64: ${{ secrets.CODE_SIGN_CERT }}
         CERT_PW: ${{ secrets.CODE_SIGN_PASSWORD }}
       run: |
+        # GitHub Actions 不支持在 step if 中直接判断 secrets；在脚本内判断可避免 workflow 调度失败。
+        if ([string]::IsNullOrWhiteSpace($env:CERT_B64)) {
+          Write-Host "CODE_SIGN_CERT is not configured, skipping signing"
+          exit 0
+        }
+
         $pfxPath = "Installer/Out/sign.pfx"
         [System.IO.File]::WriteAllBytes($pfxPath, [System.Convert]::FromBase64String($env:CERT_B64))
         $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -First 1
