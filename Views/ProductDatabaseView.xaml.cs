@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -14,6 +15,7 @@ namespace Quotix.Views;
 public partial class ProductDatabaseView : UserControl
 {
     private ProductDatabaseViewModel? _currentVM;
+    private ProductRowViewModel? _expandedRow;
 
     /// <summary>
     /// 初始化 ProductDatabaseView 实例。
@@ -114,8 +116,9 @@ public partial class ProductDatabaseView : UserControl
             {
                 Header = header,
                 Width = new DataGridLength(1, DataGridLengthUnitType.Star),
-                MinWidth = 80,
-                Binding = new System.Windows.Data.Binding($"Data[{header}]")
+                MinWidth = 0,
+                Binding = new System.Windows.Data.Binding($"Data[{header}]"),
+                ElementStyle = CreateCellTextStyle()
             });
         }
 
@@ -125,9 +128,52 @@ public partial class ProductDatabaseView : UserControl
             {
                 Header = "数据",
                 Width = new DataGridLength(1, DataGridLengthUnitType.Star),
-                Binding = new System.Windows.Data.Binding("Data")
+                MinWidth = 0,
+                Binding = new System.Windows.Data.Binding("Data"),
+                ElementStyle = CreateCellTextStyle()
             });
         }
+    }
+
+    /// <summary>
+    /// 创建产品单元格文本样式：默认单行省略，展开行换行显示完整内容。
+    /// </summary>
+    private static Style CreateCellTextStyle()
+    {
+        var style = new Style(typeof(TextBlock));
+        style.Setters.Add(new Setter(TextBlock.TextWrappingProperty, TextWrapping.NoWrap));
+        style.Setters.Add(new Setter(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis));
+        style.Setters.Add(new Setter(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center));
+
+        var expandedTrigger = new DataTrigger
+        {
+            Binding = new System.Windows.Data.Binding(nameof(ProductRowViewModel.IsExpanded)),
+            Value = true
+        };
+        expandedTrigger.Setters.Add(new Setter(TextBlock.TextWrappingProperty, TextWrapping.Wrap));
+        expandedTrigger.Setters.Add(new Setter(TextBlock.TextTrimmingProperty, TextTrimming.None));
+        expandedTrigger.Setters.Add(new Setter(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Top));
+        style.Triggers.Add(expandedTrigger);
+
+        return style;
+    }
+
+    /// <summary>
+    /// 双击产品行时展开完整文本；再次双击同一行则折叠。
+    /// </summary>
+    private void ProductsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        var row = FindVisualParent<DataGridRow>(e.OriginalSource as DependencyObject);
+        if (row?.DataContext is not ProductRowViewModel item)
+            return;
+
+        var shouldExpand = !item.IsExpanded;
+        if (_expandedRow != null && !ReferenceEquals(_expandedRow, item))
+            _expandedRow.IsExpanded = false;
+
+        item.IsExpanded = shouldExpand;
+        _expandedRow = shouldExpand ? item : null;
+        e.Handled = true;
     }
 
     /// <summary>
@@ -235,6 +281,19 @@ public partial class ProductDatabaseView : UserControl
             if (descendant != null)
                 return descendant;
         }
+        return null;
+    }
+
+    private static T? FindVisualParent<T>(DependencyObject? child) where T : DependencyObject
+    {
+        while (child != null)
+        {
+            if (child is T result)
+                return result;
+
+            child = VisualTreeHelper.GetParent(child);
+        }
+
         return null;
     }
 }

@@ -401,4 +401,9 @@ public partial class ProductRowViewModel : ObservableObject
     /// 产品数据字典（列名-值）。
     /// </summary>
     public Dictionary<string, string> Data { get; set; } = new();
+
+    /// <summary>
+    /// 当前行是否展开显示完整单元格文本。
+    /// </summary>
+    [ObservableProperty] private bool _isExpanded;
 }

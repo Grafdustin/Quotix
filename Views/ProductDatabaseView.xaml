@@ -204,12 +204,16 @@
                 <DataGrid Grid.Row="2" x:Name="ProductsGrid" Style="{StaticResource ModernDataGrid}"
                           ItemsSource="{Binding Products}"
                           AlternationCount="2"
+                          CanUserReorderColumns="False"
+                          CanUserResizeColumns="False"
+                          CanUserResizeRows="False"
                           EnableRowVirtualization="True"
                           EnableColumnVirtualization="True"
                           VirtualizingPanel.IsVirtualizing="True"
                           VirtualizingPanel.VirtualizationMode="Recycling"
                           ScrollViewer.IsDeferredScrollingEnabled="False"
-                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          MouseDoubleClick="ProductsGrid_MouseDoubleClick"/>
 
                 <!-- ═══ Row 3：底部分页栏 ═══ -->
                 <DockPanel Grid.Row="3" Margin="0,12,0,0">
