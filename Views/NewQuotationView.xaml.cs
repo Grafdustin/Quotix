@@ -111,6 +111,20 @@ public partial class NewQuotationView : UserControl
         QuickSearchPopup.HorizontalOffset -= 0.01;
     }
 
+    private void QueueQuickSearchPopupPlacement()
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (DataContext is not NewQuotationViewModel vm || !vm.IsQuickSearchVisible)
+                return;
+
+            PositionQuickSearchPopup();
+            QuickSearchPopup.IsOpen = true;
+            QuickSearchPopup.HorizontalOffset += 0.01;
+            QuickSearchPopup.HorizontalOffset -= 0.01;
+        }, DispatcherPriority.Input);
+    }
+
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         if (_subscribedVm != null)
@@ -189,6 +203,7 @@ public partial class NewQuotationView : UserControl
                     vm.OnCodeFieldFocused(idx);
                     // 聚焦即自动激活：空文本也展示全部，便于直接点选
                     vm.HandleQuickSearchActivated(tb.Text);
+                    QueueQuickSearchPopupPlacement();
                 }
             }
         }
@@ -213,9 +228,14 @@ public partial class NewQuotationView : UserControl
     {
         if (_suppressQuickSearchEvents) return;
         if (!IsLoaded || DataContext is not NewQuotationViewModel vm) return;
+        _lastCodeBox = null;
+        _lastCodeRowIndex = -1;
         vm.OnOwnerFieldFocused();
         if (sender is TextBox tb)
+        {
             vm.HandleQuickSearchActivated(tb.Text);
+            QueueQuickSearchPopupPlacement();
+        }
     }
 
     /// <summary>
@@ -225,9 +245,14 @@ public partial class NewQuotationView : UserControl
     {
         if (_suppressQuickSearchEvents) return;
         if (!IsLoaded || DataContext is not NewQuotationViewModel vm) return;
+        _lastCodeBox = null;
+        _lastCodeRowIndex = -1;
         vm.OnCustomerFieldFocused();
         if (sender is TextBox tb)
+        {
             vm.HandleQuickSearchActivated(tb.Text);
+            QueueQuickSearchPopupPlacement();
+        }
     }
 
     /// <summary>
