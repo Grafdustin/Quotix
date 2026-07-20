@@ -22,6 +22,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ProductService _productService;
     private readonly DialogService _dialog;
     private readonly UpdatePipeline _updatePipeline;
+    private readonly FeedbackService _feedbackService;
 
     /// <summary>
     /// 更新状态文字（设置页只读显示，不交互）。
@@ -46,13 +47,15 @@ public partial class SettingsViewModel : ObservableObject
         ProductService productService,
         AppSettingsService settingsService,
         DialogService dialog,
-        UpdatePipeline updatePipeline)
+        UpdatePipeline updatePipeline,
+        FeedbackService feedbackService)
     {
         _productImport = productImport;
         _productService = productService;
         _settingsService = settingsService;
         _dialog = dialog;
         _updatePipeline = updatePipeline;
+        _feedbackService = feedbackService;
 
         DatabaseOptions = new ObservableCollection<DatabaseOption>
         {
@@ -113,6 +116,7 @@ public partial class SettingsViewModel : ObservableObject
         new("appearance", "外观", SymbolRegular.WeatherMoon16),
         new("products", "产品列表", SymbolRegular.Box24),
         new("update", "更新", SymbolRegular.ArrowSync16),
+        new("feedback", "问题反馈", SymbolRegular.Chat16),
         new("about", "关于", SymbolRegular.Info16),
     };
 
@@ -126,6 +130,8 @@ public partial class SettingsViewModel : ObservableObject
     {
         if (value == "quickinput")
             LoadMappingRows();
+        if (value == "feedback")
+            RefreshFeedbackErrorLog();
     }
 
     [ObservableProperty] private bool _isDarkMode;
@@ -453,6 +459,112 @@ public partial class SettingsViewModel : ObservableObject
         _settingsService.QuickInput.Mappings[QuickInputDb] = dict;
         _settingsService.SaveQuickInputSettings();
         WeakReferenceMessenger.Default.Send(new QuickInputMappingChangedMessage(QuickInputDb));
+    }
+
+    // ==================== 问题反馈 ====================
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFeedbackCrash))]
+    [NotifyPropertyChangedFor(nameof(IsFeedbackFunctionError))]
+    [NotifyPropertyChangedFor(nameof(IsFeedbackDataError))]
+    [NotifyPropertyChangedFor(nameof(IsFeedbackSuggestion))]
+    private string _feedbackProblemType = "功能异常";
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SendFeedbackCommand))]
+    private string _feedbackDescription = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FeedbackScreenshotName))]
+    private string? _feedbackScreenshotPath;
+
+    [ObservableProperty] private bool _feedbackAttachErrorLog = true;
+    [ObservableProperty] private bool _isFeedbackSending;
+    [ObservableProperty] private string _feedbackErrorLogStatus = "未找到错误日志";
+
+    public bool IsFeedbackCrash => FeedbackProblemType == "程序崩溃";
+    public bool IsFeedbackFunctionError => FeedbackProblemType == "功能异常";
+    public bool IsFeedbackDataError => FeedbackProblemType == "数据错误";
+    public bool IsFeedbackSuggestion => FeedbackProblemType == "功能建议";
+
+    public string FeedbackScreenshotName => string.IsNullOrWhiteSpace(FeedbackScreenshotPath)
+        ? "未添加截图"
+        : Path.GetFileName(FeedbackScreenshotPath);
+
+    private bool CanSendFeedback()
+        => !IsFeedbackSending && !string.IsNullOrWhiteSpace(FeedbackDescription);
+
+    partial void OnIsFeedbackSendingChanged(bool value)
+        => SendFeedbackCommand.NotifyCanExecuteChanged();
+
+    partial void OnFeedbackAttachErrorLogChanged(bool value)
+        => RefreshFeedbackErrorLog();
+
+    [RelayCommand]
+    private void SetFeedbackProblemType(string problemType)
+    {
+        if (!string.IsNullOrWhiteSpace(problemType))
+            FeedbackProblemType = problemType;
+    }
+
+    [RelayCommand]
+    private void SelectFeedbackScreenshot()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "选择反馈截图",
+            Filter = "图片文件|*.png;*.jpg;*.jpeg;*.bmp;*.webp|所有文件|*.*",
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog() == true)
+            FeedbackScreenshotPath = dialog.FileName;
+    }
+
+    [RelayCommand]
+    private void ClearFeedbackScreenshot()
+    {
+        FeedbackScreenshotPath = null;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanSendFeedback))]
+    private async Task SendFeedback()
+    {
+        IsFeedbackSending = true;
+        try
+        {
+            var errorLogPath = FeedbackAttachErrorLog ? _feedbackService.FindErrorLogPath() : null;
+            var request = new FeedbackRequest
+            {
+                ProblemType = FeedbackProblemType,
+                Description = FeedbackDescription.Trim(),
+                ScreenshotPath = FeedbackScreenshotPath,
+                AttachErrorLog = FeedbackAttachErrorLog,
+                ErrorLogPath = errorLogPath
+            };
+
+            await _feedbackService.SendAsync(request);
+            FeedbackDescription = "";
+            FeedbackScreenshotPath = null;
+            RefreshFeedbackErrorLog();
+            _dialog.ShowInfo("反馈已发送，感谢你的记录。", "发送成功");
+        }
+        catch (Exception ex)
+        {
+            _dialog.ShowError($"反馈发送失败：{ex.Message}");
+        }
+        finally
+        {
+            IsFeedbackSending = false;
+        }
+    }
+
+    private void RefreshFeedbackErrorLog()
+    {
+        var path = _feedbackService.FindErrorLogPath();
+        FeedbackErrorLogStatus = FeedbackAttachErrorLog
+            ? path == null ? "未找到错误日志" : $"将附加 {Path.GetFileName(path)}"
+            : "不会附加错误日志";
     }
 
 }

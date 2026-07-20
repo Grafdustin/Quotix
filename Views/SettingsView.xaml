@@ -445,6 +445,123 @@
                     </Border>
                 </StackPanel>
 
+                <!-- ====== 问题反馈 ====== -->
+                <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=feedback}">
+                    <Border CornerRadius="10"
+                            Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="18,16">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,18">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
+                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                    <ui:SymbolIcon Symbol="Chat16" FontSize="18"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                                    <ui:TextBlock Text="问题反馈" FontSize="14" FontWeight="Medium"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <ui:TextBlock Text="反馈会通过程序邮箱发送，截图和错误日志只在你选择时附加"
+                                                  FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                  Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <ui:TextBlock Text="问题类型" FontSize="13" FontWeight="Medium"
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                          Margin="0,0,0,10"/>
+
+                            <WrapPanel Margin="0,0,0,18">
+                                <RadioButton Content="程序崩溃" GroupName="FeedbackType"
+                                             IsChecked="{Binding IsFeedbackCrash, Mode=OneWay}"
+                                             Command="{Binding SetFeedbackProblemTypeCommand}"
+                                             CommandParameter="程序崩溃"
+                                             Margin="0,0,22,8"/>
+                                <RadioButton Content="功能异常" GroupName="FeedbackType"
+                                             IsChecked="{Binding IsFeedbackFunctionError, Mode=OneWay}"
+                                             Command="{Binding SetFeedbackProblemTypeCommand}"
+                                             CommandParameter="功能异常"
+                                             Margin="0,0,22,8"/>
+                                <RadioButton Content="数据错误" GroupName="FeedbackType"
+                                             IsChecked="{Binding IsFeedbackDataError, Mode=OneWay}"
+                                             Command="{Binding SetFeedbackProblemTypeCommand}"
+                                             CommandParameter="数据错误"
+                                             Margin="0,0,22,8"/>
+                                <RadioButton Content="功能建议" GroupName="FeedbackType"
+                                             IsChecked="{Binding IsFeedbackSuggestion, Mode=OneWay}"
+                                             Command="{Binding SetFeedbackProblemTypeCommand}"
+                                             CommandParameter="功能建议"
+                                             Margin="0,0,22,8"/>
+                            </WrapPanel>
+
+                            <ui:TextBlock Text="问题描述" FontSize="13" FontWeight="Medium"
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                          Margin="0,0,0,8"/>
+                            <ui:TextBox Text="{Binding FeedbackDescription, UpdateSourceTrigger=PropertyChanged}"
+                                        MinHeight="132"
+                                        AcceptsReturn="True"
+                                        TextWrapping="Wrap"
+                                        VerticalContentAlignment="Top"
+                                        PlaceholderText="请描述你遇到的问题、触发步骤或建议内容"
+                                        Margin="0,0,0,18"/>
+
+                            <ui:TextBlock Text="截图" FontSize="13" FontWeight="Medium"
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                          Margin="0,0,0,8"/>
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ui:Button Grid.Column="0" Content="添加图片" Appearance="Secondary"
+                                           Height="34" FontSize="12"
+                                           Command="{Binding SelectFeedbackScreenshotCommand}"/>
+
+                                <ui:TextBlock Grid.Column="1" Text="{Binding FeedbackScreenshotName}"
+                                              FontSize="12" VerticalAlignment="Center"
+                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                              TextTrimming="CharacterEllipsis"
+                                              Margin="12,0"/>
+
+                                <ui:Button Grid.Column="2" Content="移除" Appearance="Secondary"
+                                           Height="34" FontSize="12"
+                                           Command="{Binding ClearFeedbackScreenshotCommand}"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <CheckBox Grid.Column="0"
+                                          Content="自动附加错误日志（如果存在）"
+                                          IsChecked="{Binding FeedbackAttachErrorLog}"
+                                          VerticalAlignment="Center"/>
+
+                                <ui:TextBlock Grid.Column="1" Text="{Binding FeedbackErrorLogStatus}"
+                                              FontSize="12" VerticalAlignment="Center"
+                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                              HorizontalAlignment="Right"/>
+                            </Grid>
+
+                            <ui:Button Content="发送反馈" Appearance="Primary"
+                                       Height="36" MinWidth="112" FontSize="13"
+                                       HorizontalAlignment="Right"
+                                       Command="{Binding SendFeedbackCommand}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
                 <!-- ====== 关于 ====== -->
                 <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=about}">
                     <Border CornerRadius="10"

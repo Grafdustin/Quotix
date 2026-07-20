@@ -42,6 +42,7 @@ public static class DiConfig
         services.AddSingleton<QuotationService>();
         services.AddSingleton<HeaderService>();
         services.AddSingleton<UpdatePipeline>();  // 更新流水线（状态机引擎）
+        services.AddSingleton<FeedbackService>();
 
         // ===== ViewModel 层（Transient — 每次解析新实例，防止状态共享）=====
         services.AddTransient<MainViewModel>();
