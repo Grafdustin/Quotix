@@ -653,16 +653,12 @@ public partial class NewQuotationViewModel : ObservableObject
                     double score = 0;
                     if (!string.IsNullOrEmpty(lower))
                     {
-                        score = System.Math.Max(score, FuzzySearch.Match(o.Name, lower, fuzzy));
-                        score = System.Math.Max(score, FuzzySearch.Match(o.Phone ?? "", lower, fuzzy));
-                        score = System.Math.Max(score, FuzzySearch.Match(o.Tel ?? "", lower, fuzzy));
-                        score = System.Math.Max(score, FuzzySearch.Match(o.Email ?? "", lower, fuzzy));
+                        score = FuzzySearch.Match(o.Name, lower, fuzzy);
                         if (score <= 0) continue;
                     }
-                    var display = JoinDisplayParts(o.Name, o.Phone ?? "");
                     list.Add(new QuickSearchResult
                     {
-                        Title = display,
+                        Title = o.Name,
                         Subtitle = "",
                         RawData = new Dictionary<string, string>
                         {
@@ -673,7 +669,7 @@ public partial class NewQuotationViewModel : ObservableObject
                         },
                         ResultType = "owner",
                         Score = score,
-                        HighlightIndices = FuzzySearch.GetHighlightIndices(display, query ?? "")
+                        HighlightIndices = FuzzySearch.GetHighlightIndices(o.Name, query ?? "")
                     });
                 }
                 list.Sort(CompareQuickResults);
@@ -700,16 +696,12 @@ public partial class NewQuotationViewModel : ObservableObject
                     double score = 0;
                     if (!string.IsNullOrEmpty(lower))
                     {
-                        score = System.Math.Max(score, FuzzySearch.Match(c.CompanyName, lower, fuzzy));
-                        score = System.Math.Max(score, FuzzySearch.Match(c.Contact ?? "", lower, fuzzy));
-                        score = System.Math.Max(score, FuzzySearch.Match(c.Phone ?? "", lower, fuzzy));
-                        score = System.Math.Max(score, FuzzySearch.Match(c.Email ?? "", lower, fuzzy));
+                        score = FuzzySearch.Match(c.CompanyName, lower, fuzzy);
                         if (score <= 0) continue;
                     }
-                    var display = JoinDisplayParts(c.CompanyName, c.Contact ?? "");
                     list.Add(new QuickSearchResult
                     {
-                        Title = display,
+                        Title = c.CompanyName,
                         Subtitle = "",
                         RawData = new Dictionary<string, string>
                         {
@@ -720,7 +712,7 @@ public partial class NewQuotationViewModel : ObservableObject
                         },
                         ResultType = "customer",
                         Score = score,
-                        HighlightIndices = FuzzySearch.GetHighlightIndices(display, query ?? "")
+                        HighlightIndices = FuzzySearch.GetHighlightIndices(c.CompanyName, query ?? "")
                     });
                 }
                 list.Sort(CompareQuickResults);
@@ -890,11 +882,6 @@ public partial class NewQuotationViewModel : ObservableObject
         CancelSearch();
         IsQuickSearchVisible = false;
         QuickSearchResults.Clear();
-    }
-
-    private static string JoinDisplayParts(params string[] parts)
-    {
-        return string.Join("  ", parts.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p.Trim()));
     }
 
     /// <summary>

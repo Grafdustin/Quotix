@@ -1,4 +1,6 @@
+using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -50,6 +52,7 @@ public partial class NewQuotationView : UserControl
         if (_subscribedVm != null)
         {
             _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
+            _subscribedVm.QuickSearchResults.CollectionChanged -= OnQuickSearchResultsChanged;
             _subscribedVm = null;
         }
         SubscribeToVm();
@@ -64,9 +67,13 @@ public partial class NewQuotationView : UserControl
         if (DataContext is NewQuotationViewModel vm && _subscribedVm != vm)
         {
             if (_subscribedVm != null)
+            {
                 _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
+                _subscribedVm.QuickSearchResults.CollectionChanged -= OnQuickSearchResultsChanged;
+            }
             _subscribedVm = vm;
             vm.PropertyChanged += OnVmPropertyChanged;
+            vm.QuickSearchResults.CollectionChanged += OnQuickSearchResultsChanged;
         }
     }
 
@@ -90,6 +97,12 @@ public partial class NewQuotationView : UserControl
                 _subscribedVm?.QuickSearchResults.Clear();
             }
         }
+    }
+
+    private void OnQuickSearchResultsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (!QuickSearchPopup.IsOpen) return;
+        Dispatcher.BeginInvoke(UpdateQuickSearchPopupWidth, DispatcherPriority.Loaded);
     }
 
     private void MainScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
@@ -130,6 +143,7 @@ public partial class NewQuotationView : UserControl
         if (_subscribedVm != null)
         {
             _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
+            _subscribedVm.QuickSearchResults.CollectionChanged -= OnQuickSearchResultsChanged;
             _subscribedVm = null;
         }
         // 离开视图（切换页面）时关闭弹窗并清理候选，避免残留
@@ -365,20 +379,69 @@ public partial class NewQuotationView : UserControl
         if (placementTarget != null)
         {
             QuickSearchPopup.PlacementTarget = placementTarget;
-            QuickSearchPopupBorder.Width = CalculateQuickPopupWidth(placementTarget);
+            QuickSearchPopupBorder.Width = CalculateQuickPopupWidth(placementTarget, vm);
             QuickSearchPopup.HorizontalOffset = 0;
             // Placement=Top 时弹窗在输入框上方；负偏移留出 4px 间距
             QuickSearchPopup.VerticalOffset = -4;
         }
     }
 
-    private static double CalculateQuickPopupWidth(UIElement placementTarget)
+    private void UpdateQuickSearchPopupWidth()
+    {
+        if (DataContext is not NewQuotationViewModel vm || QuickSearchPopup.PlacementTarget is not UIElement target)
+            return;
+
+        QuickSearchPopupBorder.Width = CalculateQuickPopupWidth(target, vm);
+        QuickSearchPopup.HorizontalOffset += 0.01;
+        QuickSearchPopup.HorizontalOffset -= 0.01;
+    }
+
+    private double CalculateQuickPopupWidth(UIElement placementTarget, NewQuotationViewModel vm)
     {
         var targetWidth = placementTarget.RenderSize.Width;
         if (double.IsNaN(targetWidth) || targetWidth <= 0)
             targetWidth = 320;
 
-        return Math.Clamp(targetWidth, 260, 560);
+        var contentWidth = vm.QuickSearchResults.Count == 0
+            ? 420
+            : vm.QuickSearchResults
+                .Select(MeasureQuickSearchResultWidth)
+                .DefaultIfEmpty(0)
+                .Max();
+
+        var screenMax = Math.Max(360, SystemParameters.WorkArea.Width - 96);
+        var desired = Math.Max(targetWidth, contentWidth);
+        return Math.Clamp(desired, 260, Math.Min(960, screenMax));
+    }
+
+    private double MeasureQuickSearchResultWidth(QuickSearchResult result)
+    {
+        var titleWidth = MeasureText(result.Title, 13, FontWeights.SemiBold);
+        var detailWidth = 0d;
+        if (!string.IsNullOrWhiteSpace(result.Subtitle))
+            detailWidth += MeasureText(result.Subtitle, 11, FontWeights.Normal) + 12;
+        if (!string.IsNullOrWhiteSpace(result.PriceText))
+            detailWidth += MeasureText("¥" + result.PriceText, 12, FontWeights.SemiBold);
+
+        return Math.Max(titleWidth, detailWidth) + 48;
+    }
+
+    private double MeasureText(string text, double fontSize, FontWeight fontWeight)
+    {
+        if (string.IsNullOrEmpty(text))
+            return 0;
+
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var formatted = new FormattedText(
+            text,
+            CultureInfo.CurrentUICulture,
+            FlowDirection.LeftToRight,
+            new Typeface(FontFamily, FontStyles.Normal, fontWeight, FontStretches.Normal),
+            fontSize,
+            Brushes.Black,
+            dpi.PixelsPerDip);
+
+        return formatted.WidthIncludingTrailingWhitespace;
     }
 
     /// <summary>
