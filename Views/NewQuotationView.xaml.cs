@@ -27,6 +27,7 @@ public partial class NewQuotationView : UserControl
     /// <summary>已订阅 PropertyChanged 的 VM 引用，用于切换/卸载时退订，避免重复订阅与 view 被 VM 强引用泄漏</summary>
     private NewQuotationViewModel? _subscribedVm;
     private bool _suppressQuickSearchEvents;
+    private bool _quickResultsRefreshQueued;
 
     /// <summary>
     /// 初始化 NewQuotationView 实例。
@@ -102,7 +103,20 @@ public partial class NewQuotationView : UserControl
     private void OnQuickSearchResultsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (!QuickSearchPopup.IsOpen) return;
-        Dispatcher.BeginInvoke(UpdateQuickSearchPopupWidth, DispatcherPriority.Loaded);
+
+        if (_quickResultsRefreshQueued) return;
+        _quickResultsRefreshQueued = true;
+        Dispatcher.BeginInvoke(RefreshQuickSearchResultsView, DispatcherPriority.Loaded);
+    }
+
+    private void RefreshQuickSearchResultsView()
+    {
+        _quickResultsRefreshQueued = false;
+        if (!QuickSearchPopup.IsOpen) return;
+
+        UpdateQuickSearchPopupWidth();
+        QuickResultsList.UpdateLayout();
+        FindVisualChild<ScrollViewer>(QuickResultsList)?.ScrollToTop();
     }
 
     private void MainScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
