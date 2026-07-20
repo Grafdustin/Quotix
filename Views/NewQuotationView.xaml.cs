@@ -318,10 +318,22 @@ public partial class NewQuotationView : UserControl
         }, DispatcherPriority.ContextIdle);
     }
 
-    private void SaveButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
         if (DataContext is not NewQuotationViewModel vm) return;
 
+        CloseQuickSearchForCommand(vm);
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            _suppressQuickSearchEvents = false;
+            if (vm.SaveCommand.CanExecute(null))
+                vm.SaveCommand.Execute(null);
+        }, DispatcherPriority.ContextIdle);
+    }
+
+    private void CloseQuickSearchForCommand(NewQuotationViewModel vm)
+    {
         _suppressQuickSearchEvents = true;
         vm.IsQuickSearchVisible = false;
         vm.QuickSearchResults.Clear();
@@ -329,13 +341,9 @@ public partial class NewQuotationView : UserControl
         _lastCodeBox = null;
         _lastCodeRowIndex = -1;
 
-        Dispatcher.BeginInvoke(() =>
-        {
-            FocusManager.SetFocusedElement(FocusManager.GetFocusScope(this), QuickInputFocusSink);
-            Keyboard.Focus(QuickInputFocusSink);
-            Keyboard.ClearFocus();
-            _suppressQuickSearchEvents = false;
-        }, DispatcherPriority.ContextIdle);
+        FocusManager.SetFocusedElement(FocusManager.GetFocusScope(this), QuickInputFocusSink);
+        Keyboard.Focus(QuickInputFocusSink);
+        Keyboard.ClearFocus();
     }
 
     // ==================== 长文本原地展开 ====================

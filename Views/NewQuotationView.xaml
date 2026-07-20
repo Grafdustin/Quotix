@@ -599,8 +599,7 @@
 
                                     <ui:Button Content="{Binding SaveButtonText}" Appearance="Primary"
                                                Height="34" FontSize="13"
-                                               PreviewMouseLeftButtonDown="SaveButton_PreviewMouseLeftButtonDown"
-                                               Command="{Binding SaveCommand}"/>
+                                               Click="SaveButton_Click"/>
                                 </StackPanel>
 
                                 <!-- 总计 -->
