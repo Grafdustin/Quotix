@@ -586,7 +586,7 @@
                                                Command="{Binding PriceCalculatorCommand}"/>
                                     <ui:Button Content="重置" Appearance="Secondary"
                                                Height="34" FontSize="13" Margin="6,0"
-                                               Command="{Binding ResetFormCommand}"/>
+                                               Click="ResetFormButton_Click"/>
 
                                     <Border Width="1" Margin="14,6"
                                             Background="{DynamicResource CardStrokeColorDefaultBrush}"/>

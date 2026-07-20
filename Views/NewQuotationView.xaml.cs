@@ -265,6 +265,27 @@ public partial class NewQuotationView : UserControl
             vm.HandleQuickSearchTextChanged(tb.Text);
     }
 
+    private void ResetFormButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not NewQuotationViewModel vm) return;
+
+        _suppressQuickSearchEvents = true;
+        vm.IsQuickSearchVisible = false;
+        vm.QuickSearchResults.Clear();
+        QuickSearchPopup.IsOpen = false;
+        vm.ResetFormCommand.Execute(null);
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            _lastCodeBox = null;
+            _lastCodeRowIndex = -1;
+            FocusManager.SetFocusedElement(FocusManager.GetFocusScope(this), QuickInputFocusSink);
+            Keyboard.Focus(QuickInputFocusSink);
+            Keyboard.ClearFocus();
+            _suppressQuickSearchEvents = false;
+        }, DispatcherPriority.ContextIdle);
+    }
+
     // ==================== 失去焦点 ====================
 
     /// <summary>
