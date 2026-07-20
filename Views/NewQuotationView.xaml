@@ -27,7 +27,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- 左侧：快速输入 + 币种 + 文件名 -->
+                        <!-- 左侧：快速输入 + 币种 -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                             <!-- 快速输入 -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
@@ -60,18 +60,6 @@
                                            Appearance="{Binding Currency, Converter={StaticResource CurrencyBg}, ConverterParameter=USD}"/>
                             </StackPanel>
 
-                            <Border Width="1" Margin="0,6" VerticalAlignment="Stretch"
-                                    Background="{DynamicResource CardStrokeColorDefaultBrush}"/>
-
-                            <!-- 文件名 -->
-                            <StackPanel Orientation="Horizontal" Margin="16,0,0,0">
-                                <ui:TextBlock Text="文件名" FontSize="12" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <ui:TextBox Text="{Binding Filename, UpdateSourceTrigger=PropertyChanged}"
-                                            Width="180" Height="34" VerticalContentAlignment="Center"
-                                            FontSize="13"/>
-                            </StackPanel>
                         </StackPanel>
 
                         <!-- 右侧：日期（日历选择） -->
@@ -611,6 +599,7 @@
 
                                     <ui:Button Content="{Binding SaveButtonText}" Appearance="Primary"
                                                Height="34" FontSize="13"
+                                               PreviewMouseLeftButtonDown="SaveButton_PreviewMouseLeftButtonDown"
                                                Command="{Binding SaveCommand}"/>
                                 </StackPanel>
 

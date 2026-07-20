@@ -540,6 +540,7 @@ public partial class MainWindow : FluentWindow
     private void DialogOverlay_CancelClick(object sender, RoutedEventArgs e)
     {
         _dialogResult = false;
+        _dialogInputResult = null;
         DialogOverlay.Visibility = Visibility.Collapsed;
         _dialogFrame!.Continue = false;
     }
@@ -550,11 +551,15 @@ public partial class MainWindow : FluentWindow
     private void DialogOverlay_PrimaryClick(object sender, RoutedEventArgs e)
     {
         _dialogResult = true;
+        _dialogInputResult = DialogInputBox.Visibility == Visibility.Visible
+            ? DialogInputBox.Text
+            : null;
         DialogOverlay.Visibility = Visibility.Collapsed;
         _dialogFrame!.Continue = false;
     }
 
     private bool _dialogResult;
+    private string? _dialogInputResult;
 
     /// <summary>
     /// 程序内嵌弹窗 — 半透明遮罩 + 居中卡片，完全避开 OS 窗口尺寸问题。
@@ -578,6 +583,8 @@ public partial class MainWindow : FluentWindow
         DialogTitle.Text = title;
         DialogMessage.Text = message;
         DialogIcon.Symbol = icon;
+        DialogInputBox.Visibility = Visibility.Collapsed;
+        DialogInputBox.Text = "";
 
         DialogPrimaryBtn.Content = primaryText;
 
@@ -606,6 +613,42 @@ public partial class MainWindow : FluentWindow
         Dispatcher.PushFrame(_dialogFrame);
 
         return _dialogResult;
+    }
+
+    /// <summary>
+    /// 程序内嵌输入弹窗，返回用户确认后的文本；取消时返回 null。
+    /// </summary>
+    public string? ShowInlineInputDialog(
+        string title,
+        string message,
+        string initialValue,
+        SymbolRegular icon,
+        string primaryText,
+        string cancelText)
+    {
+        Dispatcher.VerifyAccess();
+
+        DialogTitle.Text = title;
+        DialogMessage.Text = message;
+        DialogIcon.Symbol = icon;
+        DialogInputBox.Text = initialValue;
+        DialogInputBox.Visibility = Visibility.Visible;
+        DialogPrimaryBtn.Content = primaryText;
+        DialogCancelBtn.Content = cancelText;
+        DialogCancelBtn.Visibility = Visibility.Visible;
+
+        Panel.SetZIndex(DialogOverlay, 1001);
+        DialogOverlay.Visibility = Visibility.Visible;
+        DialogOverlay.UpdateLayout();
+        DialogInputBox.Focus();
+        DialogInputBox.SelectAll();
+
+        _dialogResult = false;
+        _dialogInputResult = null;
+        _dialogFrame = new DispatcherFrame();
+        Dispatcher.PushFrame(_dialogFrame);
+
+        return _dialogResult ? _dialogInputResult : null;
     }
 
 }

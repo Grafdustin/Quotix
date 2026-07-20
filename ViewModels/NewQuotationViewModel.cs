@@ -289,13 +289,29 @@ public partial class NewQuotationViewModel : ObservableObject
     [RelayCommand]
     private void Save()
     {
-        if (string.IsNullOrWhiteSpace(Filename))
+        var wasEditing = IsEditing;
+        var filename = Filename;
+        if (!wasEditing)
         {
-            _dialog.ShowWarning("请输入报价单文件名");
-            return;
+            var suggestion = BuildSuggestedFilename();
+            var input = _dialog.ShowInput("请确认报价单文件名。", suggestion, "保存报价单");
+            if (input == null)
+                return;
+
+            filename = input.Trim();
+            if (string.IsNullOrWhiteSpace(filename))
+            {
+                _dialog.ShowWarning("报价单文件名不能为空");
+                return;
+            }
+            Filename = filename;
+        }
+        else if (string.IsNullOrWhiteSpace(filename))
+        {
+            filename = BuildSuggestedFilename();
+            Filename = filename;
         }
 
-        var wasEditing = IsEditing;
         var quotation = new Quotation
         {
             QuoteNumber = wasEditing ? _editingQuoteNumber : null,
@@ -312,7 +328,7 @@ public partial class NewQuotationViewModel : ObservableObject
             DeliveryTime = DeliveryTime,
             DeliveryMethod = DeliveryMethod,
             QuoteDate = QuoteDate,
-            Filename = Filename,
+            Filename = filename,
             Currency = Currency,
             Items = Items.Select(i => new QuotationItem
             {
@@ -346,6 +362,31 @@ public partial class NewQuotationViewModel : ObservableObject
         {
             _dialog.ShowError($"保存失败：{ex.Message}");
         }
+    }
+
+    private string BuildSuggestedFilename()
+    {
+        var firstItem = Items.FirstOrDefault();
+        var name = firstItem?.ItemName?.Trim() ?? "";
+        var description = firstItem?.Description?.Trim() ?? "";
+        var source = !string.IsNullOrWhiteSpace(name)
+            ? name
+            : SplitBeforePunctuation(description);
+
+        if (string.IsNullOrWhiteSpace(source))
+            source = !string.IsNullOrWhiteSpace(CustomerName) ? CustomerName.Trim() : "新建报价单";
+
+        return SanitizeFilename(source);
+    }
+
+    private static string SanitizeFilename(string value)
+    {
+        var invalid = System.IO.Path.GetInvalidFileNameChars();
+        var cleaned = new string(value
+            .Select(ch => invalid.Contains(ch) ? ' ' : ch)
+            .ToArray());
+        cleaned = string.Join(" ", cleaned.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        return cleaned.Length > 60 ? cleaned[..60].Trim() : cleaned;
     }
 
     /// <summary>

@@ -31,6 +31,7 @@ public partial class DashboardViewModel : ObservableObject
     private readonly QuotationService _quotationService;
 
     private List<Quotation> _cachedQuotations = new();
+    private List<DashboardChartBucket> _currentChartBuckets = new();
 
     [ObservableProperty] private int _customerCount;
     [ObservableProperty] private int _productCount;
@@ -42,6 +43,12 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty] private decimal _chartMaxAmount;
     [ObservableProperty] private string _chartLineData = "";
     [ObservableProperty] private string _chartAreaData = "";
+    [ObservableProperty] private bool _isChartDetailVisible;
+    [ObservableProperty] private double _chartDetailX;
+    [ObservableProperty] private double _chartDetailY;
+    [ObservableProperty] private double _chartDetailLineX;
+    [ObservableProperty] private string _chartDetailDate = "";
+    [ObservableProperty] private string _chartDetailAmount = "";
     [ObservableProperty] private bool _isLoading;
 
     public ObservableCollection<DashboardQuoteItem> RecentQuotations { get; } = new();
@@ -163,6 +170,7 @@ public partial class DashboardViewModel : ObservableObject
     private void RebuildChart()
     {
         var buckets = BuildChartBuckets();
+        _currentChartBuckets = buckets;
         ChartPoints.Clear();
         ChartMarkers.Clear();
         ChartLabels.Clear();
@@ -210,6 +218,38 @@ public partial class DashboardViewModel : ObservableObject
         OnPropertyChanged(nameof(IsYearRange));
     }
 
+    public void ShowChartDetail(double x, double y)
+    {
+        if (_currentChartBuckets.Count == 0 || ChartPoints.Count == 0)
+            return;
+
+        var nearestIndex = 0;
+        var nearestDistance = double.MaxValue;
+        for (var i = 0; i < ChartPoints.Count; i++)
+        {
+            var distance = Math.Abs(ChartPoints[i].X - x);
+            if (distance < nearestDistance)
+            {
+                nearestIndex = i;
+                nearestDistance = distance;
+            }
+        }
+
+        var point = ChartPoints[nearestIndex];
+        var bucket = _currentChartBuckets[nearestIndex];
+        ChartDetailDate = bucket.DetailDate;
+        ChartDetailAmount = FormatCurrency(bucket.Amount);
+        ChartDetailLineX = point.X;
+        ChartDetailX = Math.Clamp(point.X + 16, 70, ChartWidth - 160);
+        ChartDetailY = Math.Clamp(point.Y - 52, 18, ChartHeight - 78);
+        IsChartDetailVisible = true;
+    }
+
+    public void HideChartDetail()
+    {
+        IsChartDetailVisible = false;
+    }
+
     private List<DashboardChartBucket> BuildChartBuckets()
     {
         var now = DateTime.Now;
@@ -219,12 +259,14 @@ public partial class DashboardViewModel : ObservableObject
                 .Select(offset => now.Date.AddDays(-6 + offset))
                 .Select(day => new DashboardChartBucket(
                     day.ToString("M/d"),
+                    day.ToString("yyyy-MM-dd"),
                     SumByDate(q => q.Date.Date == day)))
                 .ToList(),
 
             "year" => Enumerable.Range(1, 12)
                 .Select(month => new DashboardChartBucket(
                     $"{month}月",
+                    $"{now.Year}-{month:00}",
                     SumByDate(q => q.Date.Year == now.Year && q.Date.Month == month)))
                 .ToList(),
 
@@ -232,6 +274,7 @@ public partial class DashboardViewModel : ObservableObject
                 .Select(day => new DateTime(now.Year, now.Month, day))
                 .Select(day => new DashboardChartBucket(
                     day.Day.ToString(CultureInfo.InvariantCulture),
+                    day.ToString("yyyy-MM-dd"),
                     SumByDate(q => q.Date.Date == day.Date)))
                 .ToList()
         };
@@ -436,7 +479,7 @@ public sealed class DashboardChartAxisLabel
     public string Text { get; init; } = "";
 }
 
-internal sealed record DashboardChartBucket(string Label, decimal Amount);
+internal sealed record DashboardChartBucket(string Label, string DetailDate, decimal Amount);
 
 internal sealed class DashboardSnapshot
 {

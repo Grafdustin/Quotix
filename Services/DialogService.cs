@@ -26,6 +26,19 @@ public class DialogService
     public bool ShowConfirm(string message, string title = "提示")
         => Show(title, message, SymbolRegular.QuestionCircle16, "确定", "取消") == WpfMessageBoxResult.Primary;
 
+    /// <summary>显示输入弹窗，确认时返回文本，取消时返回 null。</summary>
+    public string? ShowInput(string message, string initialValue, string title = "命名报价单")
+    {
+        var mainWindow = Application.Current?.MainWindow as MainWindow;
+        return mainWindow?.ShowInlineInputDialog(
+            title,
+            message,
+            initialValue,
+            SymbolRegular.Edit20,
+            "保存",
+            "取消");
+    }
+
     // ============ 私有方法 ============
 
     /// <summary>通过 MainWindow 显示内嵌弹窗</summary>

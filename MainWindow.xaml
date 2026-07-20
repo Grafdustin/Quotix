@@ -228,6 +228,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>  <!-- 标题行 -->
                             <RowDefinition Height="Auto"/>  <!-- 内容行 -->
+                            <RowDefinition Height="Auto"/>  <!-- 输入行 -->
                             <RowDefinition Height="Auto"/>  <!-- 按钮行 -->
                         </Grid.RowDefinitions>
 
@@ -246,8 +247,14 @@
                                       FontSize="14" TextWrapping="Wrap"
                                       Margin="0,4,0,16" Opacity="0.8"/>
 
+                        <ui:TextBox x:Name="DialogInputBox" Grid.Row="2"
+                                    Visibility="Collapsed"
+                                    Height="36" FontSize="13"
+                                    Margin="0,0,0,16"
+                                    VerticalContentAlignment="Center"/>
+
                         <!-- 按钮 -->
-                        <StackPanel x:Name="DialogButtons" Grid.Row="2"
+                        <StackPanel x:Name="DialogButtons" Grid.Row="3"
                                     Orientation="Horizontal"
                                     HorizontalAlignment="Right"
                                     Margin="0,4,0,0">

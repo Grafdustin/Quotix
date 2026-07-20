@@ -6,6 +6,8 @@
              Loaded="OnLoaded">
 
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
         <Style x:Key="MetricCardStyle" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
@@ -225,7 +227,10 @@
                                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                             BorderThickness="1">
                                         <Viewbox Stretch="Fill">
-                                            <Canvas Width="640" Height="180" ClipToBounds="True">
+                                            <Canvas Width="640" Height="180" ClipToBounds="True"
+                                                    MouseMove="ChartCanvas_MouseMove"
+                                                    MouseLeave="ChartCanvas_MouseLeave"
+                                                    MouseLeftButtonDown="ChartCanvas_MouseMove">
                                                 <ItemsControl ItemsSource="{Binding ChartHorizontalGridLines}">
                                                     <ItemsControl.ItemsPanel>
                                                         <ItemsPanelTemplate>
@@ -311,6 +316,36 @@
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
+                                                <Line X1="{Binding ChartDetailLineX}" Y1="18"
+                                                      X2="{Binding ChartDetailLineX}" Y2="162"
+                                                      Stroke="{DynamicResource AccentFillColorDefaultBrush}"
+                                                      StrokeThickness="1"
+                                                      StrokeDashArray="3,4"
+                                                      Visibility="{Binding IsChartDetailVisible, Converter={StaticResource BoolToVis}}"/>
+                                                <Border Width="136" Height="62" CornerRadius="6"
+                                                        Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                                        BorderThickness="1"
+                                                        Visibility="{Binding IsChartDetailVisible, Converter={StaticResource BoolToVis}}">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Canvas.Left" Value="{Binding ChartDetailX}"/>
+                                                            <Setter Property="Canvas.Top" Value="{Binding ChartDetailY}"/>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <StackPanel Margin="12,8">
+                                                        <ui:TextBlock Text="{Binding ChartDetailDate}" FontSize="12"
+                                                                      FontWeight="SemiBold"
+                                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                                            <Ellipse Width="8" Height="8" Fill="#5FB2F2"
+                                                                     VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                            <ui:TextBlock Text="{Binding ChartDetailAmount}" FontSize="13"
+                                                                          FontWeight="SemiBold"
+                                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
                                             </Canvas>
                                         </Viewbox>
                                     </Border>

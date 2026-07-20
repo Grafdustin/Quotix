@@ -318,6 +318,26 @@ public partial class NewQuotationView : UserControl
         }, DispatcherPriority.ContextIdle);
     }
 
+    private void SaveButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is not NewQuotationViewModel vm) return;
+
+        _suppressQuickSearchEvents = true;
+        vm.IsQuickSearchVisible = false;
+        vm.QuickSearchResults.Clear();
+        QuickSearchPopup.IsOpen = false;
+        _lastCodeBox = null;
+        _lastCodeRowIndex = -1;
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            FocusManager.SetFocusedElement(FocusManager.GetFocusScope(this), QuickInputFocusSink);
+            Keyboard.Focus(QuickInputFocusSink);
+            Keyboard.ClearFocus();
+            _suppressQuickSearchEvents = false;
+        }, DispatcherPriority.ContextIdle);
+    }
+
     // ==================== 长文本原地展开 ====================
 
     private void OverflowField_GotFocus(object sender, RoutedEventArgs e)
