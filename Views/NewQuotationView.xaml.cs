@@ -24,6 +24,7 @@ public partial class NewQuotationView : UserControl
     private TextBox? _lastCodeBox;
     /// <summary>已订阅 PropertyChanged 的 VM 引用，用于切换/卸载时退订，避免重复订阅与 view 被 VM 强引用泄漏</summary>
     private NewQuotationViewModel? _subscribedVm;
+    private bool _suppressQuickSearchEvents;
 
     /// <summary>
     /// 初始化 NewQuotationView 实例。
@@ -154,6 +155,7 @@ public partial class NewQuotationView : UserControl
     /// </summary>
     private void CodeBox_GotFocus(object sender, RoutedEventArgs e)
     {
+        if (_suppressQuickSearchEvents) return;
         if (sender is TextBox tb && DataContext is NewQuotationViewModel vm)
         {
             // 记录聚焦的编号文本框，作为弹窗定位锚点
@@ -178,6 +180,7 @@ public partial class NewQuotationView : UserControl
     /// </summary>
     private void CodeBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        if (_suppressQuickSearchEvents) return;
         if (sender is TextBox tb && IsLoaded && DataContext is NewQuotationViewModel vm && vm.ActiveItemIndex >= 0)
             vm.HandleQuickSearchTextChanged(tb.Text);
     }
@@ -189,6 +192,7 @@ public partial class NewQuotationView : UserControl
     /// </summary>
     private void OwnerBox_GotFocus(object sender, RoutedEventArgs e)
     {
+        if (_suppressQuickSearchEvents) return;
         if (!IsLoaded || DataContext is not NewQuotationViewModel vm) return;
         vm.OnOwnerFieldFocused();
         if (sender is TextBox tb && !string.IsNullOrEmpty(tb.Text))
@@ -200,6 +204,7 @@ public partial class NewQuotationView : UserControl
     /// </summary>
     private void CustomerBox_GotFocus(object sender, RoutedEventArgs e)
     {
+        if (_suppressQuickSearchEvents) return;
         if (!IsLoaded || DataContext is not NewQuotationViewModel vm) return;
         vm.OnCustomerFieldFocused();
         if (sender is TextBox tb && !string.IsNullOrEmpty(tb.Text))
@@ -211,6 +216,7 @@ public partial class NewQuotationView : UserControl
     /// </summary>
     private void QuickBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        if (_suppressQuickSearchEvents) return;
         if (sender is TextBox tb && IsLoaded && DataContext is NewQuotationViewModel vm)
             vm.HandleQuickSearchTextChanged(tb.Text);
     }
@@ -327,22 +333,28 @@ public partial class NewQuotationView : UserControl
     /// </summary>
     private void FinishQuickInputSelection(NewQuotationViewModel vm, QuickSearchResult result)
     {
+        _suppressQuickSearchEvents = true;
         vm.OnQuickResultSelected(result);
         _lastCodeBox = null;
         _lastCodeRowIndex = -1;
+        vm.IsQuickSearchVisible = false;
+        vm.QuickSearchResults.Clear();
+        QuickSearchPopup.IsOpen = false;
 
         Dispatcher.BeginInvoke(() =>
         {
             QuickSearchPopup.IsOpen = false;
+            FocusManager.SetFocusedElement(FocusManager.GetFocusScope(this), QuickInputFocusSink);
+            Keyboard.Focus(QuickInputFocusSink);
             Keyboard.ClearFocus();
-            Focus();
-        }, DispatcherPriority.Input);
+            _suppressQuickSearchEvents = false;
+        }, DispatcherPriority.ContextIdle);
     }
 
     /// <summary>
-    /// 快速搜索结果列表鼠标左键释放（隧道阶段）时调用，选择搜索结果。
+    /// 快速搜索结果列表鼠标左键按下（隧道阶段）时调用，选择搜索结果。
     /// </summary>
-    private void QuickResultsList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    private void QuickResultsList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is not NewQuotationViewModel vm) return;
 
