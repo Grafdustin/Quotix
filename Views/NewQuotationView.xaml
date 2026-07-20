@@ -11,7 +11,10 @@
                 Width="0" Height="0"
                 Focusable="True"
                 IsHitTestVisible="False"/>
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="MainScrollViewer"
+                      VerticalScrollBarVisibility="Auto"
+                      ScrollChanged="MainScrollViewer_ScrollChanged"
+                      SizeChanged="MainScrollViewer_SizeChanged">
             <StackPanel Margin="32,28,32,36">
 
                 <!-- ═══════════════ 顶部工具栏 ═══════════════ -->

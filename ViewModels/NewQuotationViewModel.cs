@@ -430,8 +430,7 @@ public partial class NewQuotationViewModel : ObservableObject
 
     /// <summary>
     /// 由 View 调用：文本变化时触发搜索（带防抖）。
-    /// 产品上下文（编号列）下，空文本也展示该列全部内容（预填列表）；
-    /// 负责人/客户上下文空文本则隐藏结果。
+    /// 产品、负责人、客户上下文下，空文本也展示全部候选。
     /// </summary>
     /// <param name="text">搜索文本</param>
     public void HandleQuickSearchTextChanged(string text)
@@ -462,12 +461,9 @@ public partial class NewQuotationViewModel : ObservableObject
 
             IsQuickSearchVisible = true;
         }
-        else if (string.IsNullOrWhiteSpace(text))
+        else
         {
-            CancelSearch();
-            QuickSearchResults.Clear();
-            IsQuickSearchVisible = false;
-            return;
+            IsQuickSearchVisible = true;
         }
 
         _ = TriggerSearch(text, debounce);
@@ -642,6 +638,13 @@ public partial class NewQuotationViewModel : ObservableObject
                     {
                         Title = o.Name,
                         Subtitle = o.Phone ?? "",
+                        RawData = new Dictionary<string, string>
+                        {
+                            ["name"] = o.Name,
+                            ["phone"] = o.Phone ?? "",
+                            ["tel"] = o.Tel ?? "",
+                            ["email"] = o.Email ?? ""
+                        },
                         ResultType = "owner",
                         Score = score,
                         HighlightIndices = FuzzySearch.GetHighlightIndices(o.Name, query ?? "")
@@ -657,7 +660,7 @@ public partial class NewQuotationViewModel : ObservableObject
                 QuickSearchResults.Clear();
                 foreach (var r in results)
                     QuickSearchResults.Add(r);
-                IsQuickSearchVisible = QuickSearchResults.Count > 0;
+                IsQuickSearchVisible = true;
             });
         }
         else if (QuickSearchContext == "customer")
@@ -681,6 +684,13 @@ public partial class NewQuotationViewModel : ObservableObject
                     {
                         Title = c.CompanyName,
                         Subtitle = c.Contact ?? "",
+                        RawData = new Dictionary<string, string>
+                        {
+                            ["company_name"] = c.CompanyName,
+                            ["contact"] = c.Contact ?? "",
+                            ["phone"] = c.Phone ?? "",
+                            ["email"] = c.Email ?? ""
+                        },
                         ResultType = "customer",
                         Score = score,
                         HighlightIndices = FuzzySearch.GetHighlightIndices(c.CompanyName, query ?? "")
@@ -696,7 +706,7 @@ public partial class NewQuotationViewModel : ObservableObject
                 QuickSearchResults.Clear();
                 foreach (var r in results)
                     QuickSearchResults.Add(r);
-                IsQuickSearchVisible = QuickSearchResults.Count > 0;
+                IsQuickSearchVisible = true;
             });
         }
     }
@@ -828,10 +838,22 @@ public partial class NewQuotationViewModel : ObservableObject
         else if (result.ResultType == "owner")
         {
             CompanyContact = result.Title;
+            if (result.RawData != null)
+            {
+                CompanyPhone = result.RawData.TryGetValue("phone", out var phone) ? phone : "";
+                CompanyTel = result.RawData.TryGetValue("tel", out var tel) ? tel : "";
+                CompanyEmail = result.RawData.TryGetValue("email", out var email) ? email : "";
+            }
         }
         else if (result.ResultType == "customer")
         {
             CustomerName = result.Title;
+            if (result.RawData != null)
+            {
+                CustomerContact = result.RawData.TryGetValue("contact", out var contact) ? contact : "";
+                CustomerPhone = result.RawData.TryGetValue("phone", out var phone) ? phone : "";
+                CustomerEmail = result.RawData.TryGetValue("email", out var email) ? email : "";
+            }
         }
 
         CancelSearch();

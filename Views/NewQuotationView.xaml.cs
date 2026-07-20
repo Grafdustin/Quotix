@@ -92,6 +92,25 @@ public partial class NewQuotationView : UserControl
         }
     }
 
+    private void MainScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        RepositionQuickSearchPopup();
+    }
+
+    private void MainScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        RepositionQuickSearchPopup();
+    }
+
+    private void RepositionQuickSearchPopup()
+    {
+        if (!QuickSearchPopup.IsOpen) return;
+
+        PositionQuickSearchPopup();
+        QuickSearchPopup.HorizontalOffset += 0.01;
+        QuickSearchPopup.HorizontalOffset -= 0.01;
+    }
+
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         if (_subscribedVm != null)
@@ -195,7 +214,7 @@ public partial class NewQuotationView : UserControl
         if (_suppressQuickSearchEvents) return;
         if (!IsLoaded || DataContext is not NewQuotationViewModel vm) return;
         vm.OnOwnerFieldFocused();
-        if (sender is TextBox tb && !string.IsNullOrEmpty(tb.Text))
+        if (sender is TextBox tb)
             vm.HandleQuickSearchActivated(tb.Text);
     }
 
@@ -207,7 +226,7 @@ public partial class NewQuotationView : UserControl
         if (_suppressQuickSearchEvents) return;
         if (!IsLoaded || DataContext is not NewQuotationViewModel vm) return;
         vm.OnCustomerFieldFocused();
-        if (sender is TextBox tb && !string.IsNullOrEmpty(tb.Text))
+        if (sender is TextBox tb)
             vm.HandleQuickSearchActivated(tb.Text);
     }
 
