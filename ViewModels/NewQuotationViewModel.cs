@@ -519,6 +519,18 @@ public partial class NewQuotationViewModel : ObservableObject
         StartQuickSearch(text, debounce: false);
     }
 
+    /// <summary>
+    /// 立即关闭快速搜索并取消正在进行的异步搜索，避免旧搜索结果在按钮操作后重新打开弹窗。
+    /// </summary>
+    public void CloseQuickSearch()
+    {
+        CancelSearch();
+        IsQuickSearchVisible = false;
+        QuickSearchResults.Clear();
+        ActiveItemIndex = -1;
+        QuickSearchText = "";
+    }
+
     private void StartQuickSearch(string text, bool debounce)
     {
         QuickSearchText = text;
@@ -683,6 +695,7 @@ public partial class NewQuotationViewModel : ObservableObject
             // UI 线程：一次性填充结果
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
+                if (ct.IsCancellationRequested) return;
                 QuickSearchResults.Clear();
                 foreach (var r in matches)
                     QuickSearchResults.Add(r);
@@ -727,6 +740,7 @@ public partial class NewQuotationViewModel : ObservableObject
 
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
+                if (ct.IsCancellationRequested) return;
                 QuickSearchResults.Clear();
                 foreach (var r in results)
                     QuickSearchResults.Add(r);
@@ -770,6 +784,7 @@ public partial class NewQuotationViewModel : ObservableObject
 
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
+                if (ct.IsCancellationRequested) return;
                 QuickSearchResults.Clear();
                 foreach (var r in results)
                     QuickSearchResults.Add(r);

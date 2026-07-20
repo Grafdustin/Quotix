@@ -326,17 +326,22 @@ public partial class NewQuotationView : UserControl
 
         Dispatcher.BeginInvoke(() =>
         {
-            _suppressQuickSearchEvents = false;
-            if (vm.SaveCommand.CanExecute(null))
-                vm.SaveCommand.Execute(null);
+            try
+            {
+                if (vm.SaveCommand.CanExecute(null))
+                    vm.SaveCommand.Execute(null);
+            }
+            finally
+            {
+                _suppressQuickSearchEvents = false;
+            }
         }, DispatcherPriority.ContextIdle);
     }
 
     private void CloseQuickSearchForCommand(NewQuotationViewModel vm)
     {
         _suppressQuickSearchEvents = true;
-        vm.IsQuickSearchVisible = false;
-        vm.QuickSearchResults.Clear();
+        vm.CloseQuickSearch();
         QuickSearchPopup.IsOpen = false;
         _lastCodeBox = null;
         _lastCodeRowIndex = -1;
