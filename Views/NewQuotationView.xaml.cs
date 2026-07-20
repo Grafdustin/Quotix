@@ -169,7 +169,7 @@ public partial class NewQuotationView : UserControl
                     _lastCodeRowIndex = idx;
                     vm.OnCodeFieldFocused(idx);
                     // 聚焦即自动激活：空文本也展示全部，便于直接点选
-                    vm.HandleQuickSearchTextChanged(tb.Text);
+                    vm.HandleQuickSearchActivated(tb.Text);
                 }
             }
         }
@@ -196,7 +196,7 @@ public partial class NewQuotationView : UserControl
         if (!IsLoaded || DataContext is not NewQuotationViewModel vm) return;
         vm.OnOwnerFieldFocused();
         if (sender is TextBox tb && !string.IsNullOrEmpty(tb.Text))
-            vm.HandleQuickSearchTextChanged(tb.Text);
+            vm.HandleQuickSearchActivated(tb.Text);
     }
 
     /// <summary>
@@ -208,7 +208,7 @@ public partial class NewQuotationView : UserControl
         if (!IsLoaded || DataContext is not NewQuotationViewModel vm) return;
         vm.OnCustomerFieldFocused();
         if (sender is TextBox tb && !string.IsNullOrEmpty(tb.Text))
-            vm.HandleQuickSearchTextChanged(tb.Text);
+            vm.HandleQuickSearchActivated(tb.Text);
     }
 
     /// <summary>

@@ -97,7 +97,7 @@ public partial class NewQuotationViewModel : ObservableObject
 
     // ---- 防抖 + 取消 + 缓存 ----
     private CancellationTokenSource? _searchCts;
-    private static readonly TimeSpan DebounceInterval = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan DebounceInterval = TimeSpan.FromMilliseconds(120);
 
     // 产品搜索索引缓存（只加载一次，切换 NDT/RVI 时清除）
     private List<QuickSearchIndex>? _cachedProductIndex;
@@ -393,8 +393,8 @@ public partial class NewQuotationViewModel : ObservableObject
         QuickInputDatabase = db;
         InvalidateProductSearchCache();
 
-        if (IsQuickSearchVisible && !string.IsNullOrEmpty(QuickSearchText))
-            _ = TriggerDebouncedSearch(QuickSearchText);
+        if (IsQuickSearchVisible)
+            _ = TriggerSearch(QuickSearchText, debounce: false);
     }
 
     /// <summary>
@@ -436,24 +436,41 @@ public partial class NewQuotationViewModel : ObservableObject
     /// <param name="text">搜索文本</param>
     public void HandleQuickSearchTextChanged(string text)
     {
+        StartQuickSearch(text, debounce: true);
+    }
+
+    /// <summary>
+    /// 由 View 调用：输入框获得焦点时立即打开/刷新快速搜索。
+    /// </summary>
+    public void HandleQuickSearchActivated(string text)
+    {
+        StartQuickSearch(text, debounce: false);
+    }
+
+    private void StartQuickSearch(string text, bool debounce)
+    {
         QuickSearchText = text;
-        // 产品快速搜索受总开关控制；关闭后编号列仅作为普通文本框
-        if (QuickSearchContext == "product" && !_quickInputEnabled)
+        if (QuickSearchContext == "product")
+        {
+            if (!_quickInputEnabled)
+            {
+                CancelSearch();
+                QuickSearchResults.Clear();
+                IsQuickSearchVisible = false;
+                return;
+            }
+
+            IsQuickSearchVisible = true;
+        }
+        else if (string.IsNullOrWhiteSpace(text))
         {
             CancelSearch();
             QuickSearchResults.Clear();
             IsQuickSearchVisible = false;
             return;
         }
-        // 负责人/客户上下文：空文本隐藏结果
-        if (string.IsNullOrWhiteSpace(text) && QuickSearchContext != "product")
-        {
-            CancelSearch();
-            QuickSearchResults.Clear();
-            IsQuickSearchVisible = false;
-            return;
-        }
-        _ = TriggerDebouncedSearch(text);
+
+        _ = TriggerSearch(text, debounce);
     }
 
     /// <summary>
@@ -474,30 +491,32 @@ public partial class NewQuotationViewModel : ObservableObject
         }
 
     /// <summary>
-    /// 取消当前搜索并启动 250ms 防抖。
+    /// 取消当前搜索并按需启动防抖。
     /// </summary>
     /// <param name="query">搜索查询字符串</param>
-        private async System.Threading.Tasks.Task TriggerDebouncedSearch(string query)
-        {
-            CancelSearch();
-            _searchCts = new CancellationTokenSource();
-            var token = _searchCts.Token;
+    private async System.Threading.Tasks.Task TriggerSearch(string query, bool debounce)
+    {
+        CancelSearch();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
 
-            try
+        try
+        {
+            if (debounce)
             {
-                // 防抖：等待 250ms，期间如果有新输入，CancelSearch 会被再次调用
                 await System.Threading.Tasks.Task.Delay(DebounceInterval, token);
                 if (token.IsCancellationRequested) return;
+            }
 
-                await QuickSearchAsync(query, token);
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception ex)
-            {
-                // 搜索失败不应中断 UI；记录以便排查
-                System.Diagnostics.Debug.WriteLine($"[Quotix] 快速搜索异常: {ex}");
-            }
+            await QuickSearchAsync(query, token);
         }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            // 搜索失败不应中断 UI；记录以便排查
+            System.Diagnostics.Debug.WriteLine($"[Quotix] 快速搜索异常: {ex}");
+        }
+    }
 
     /// <summary>
     /// 取消当前正在进行的搜索。
@@ -522,7 +541,7 @@ public partial class NewQuotationViewModel : ObservableObject
         if (QuickSearchContext != "product" || !IsQuickSearchVisible)
             return;
 
-        _ = TriggerDebouncedSearch(QuickSearchText);
+        _ = TriggerSearch(QuickSearchText, debounce: false);
     }
 
     /// <summary>
