@@ -42,8 +42,12 @@ public static class FloatingTextPreview
             FrameworkElement.LoadedEvent,
             new RoutedEventHandler((sender, _) =>
             {
-                if (sender is TextBox textBox && GetState(textBox) == null)
+                if (sender is TextBox textBox
+                    && GetState(textBox) == null
+                    && textBox.ReadLocalValue(IsEnabledProperty) == DependencyProperty.UnsetValue)
+                {
                     SetIsEnabled(textBox, true);
+                }
             }));
     }
 

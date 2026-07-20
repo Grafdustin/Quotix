@@ -7,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Quotix.Common;
 using Quotix.Models;
 using Quotix.ViewModels;
 
@@ -402,6 +403,7 @@ public partial class NewQuotationView : UserControl
             CollapseOverflowField(_expandedOverflowBox);
 
         _expandedOverflowBox = sourceBox;
+        FloatingTextPreview.SetIsEnabled(sourceBox, false);
         sourceBox.TextWrapping = TextWrapping.Wrap;
         sourceBox.AcceptsReturn = true;
         sourceBox.VerticalContentAlignment = VerticalAlignment.Top;

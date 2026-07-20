@@ -5,6 +5,7 @@
         xmlns:local="clr-namespace:Quotix"
         xmlns:vm="clr-namespace:Quotix.ViewModels"
         xmlns:views="clr-namespace:Quotix.Views"
+        xmlns:common="clr-namespace:Quotix.Common"
         Title="Quotix"
         Height="860" Width="1300"
         MinHeight="640" MinWidth="1024"
@@ -251,6 +252,7 @@
                                     Visibility="Collapsed"
                                     Height="36" FontSize="13"
                                     Margin="0,0,0,16"
+                                    common:FloatingTextPreview.IsEnabled="False"
                                     VerticalContentAlignment="Center"/>
 
                         <!-- 按钮 -->

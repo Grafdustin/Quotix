@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:local="clr-namespace:Quotix.Views"
+             xmlns:common="clr-namespace:Quotix.Common"
              Background="Transparent"
              Focusable="True">
 
@@ -504,6 +505,7 @@
                                                         TextWrapping="NoWrap"
                                                         AcceptsReturn="False"
                                                         VerticalScrollBarVisibility="Disabled"
+                                                        common:FloatingTextPreview.IsEnabled="False"
                                                         Margin="0,0,8,0"
                                                         Tag="ItemName"
                                                         GotFocus="OverflowField_GotFocus"
@@ -527,6 +529,7 @@
                                                         TextWrapping="NoWrap"
                                                         AcceptsReturn="False"
                                                         VerticalScrollBarVisibility="Disabled"
+                                                        common:FloatingTextPreview.IsEnabled="False"
                                                         Margin="0,0,8,0"
                                                         Tag="Description"
                                                         GotFocus="OverflowField_GotFocus"
