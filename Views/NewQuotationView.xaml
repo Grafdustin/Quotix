@@ -628,32 +628,8 @@
                     <DropShadowEffect ShadowDepth="6" Opacity="0.18" BlurRadius="20" Color="#000000"/>
                 </Border.Effect>
                 <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- 标题栏 -->
-                    <Border Grid.Row="0"
-                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                            CornerRadius="12,12,0,0" Padding="16,11">
-                        <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Search24" FontSize="14"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                            <ui:TextBlock FontSize="12"
-                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                          Margin="8,0,0,0">
-                                <Run Text="搜索 "/>
-                                <Run Text="{Binding QuickInputDatabase}" FontWeight="SemiBold"
-                                     Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                <Run Text=" · "/>
-                                <Run Text="{Binding QuickSearchResults.Count, StringFormat=共 {0} 条, Mode=OneWay}"/>
-                            </ui:TextBlock>
-                        </StackPanel>
-                    </Border>
-
                     <!-- 结果列表 -->
-                    <Grid Grid.Row="1">
+                    <Grid>
                         <ListBox x:Name="QuickResultsList"
                                  ItemsSource="{Binding QuickSearchResults}"
                                  BorderThickness="0" Background="Transparent"
