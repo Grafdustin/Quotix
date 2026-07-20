@@ -5,7 +5,8 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:conv="clr-namespace:Quotix.Converters"
     xmlns:local="clr-namespace:Quotix"
-    Background="Transparent">
+    Background="Transparent"
+    Height="720">
 
     <UserControl.Resources>
         <BitmapImage x:Key="AppIcon" UriSource="pack://application:,,,/Resources/app.ico"/>
@@ -36,8 +37,8 @@
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                         <Setter Property="Padding" Value="0"/>
                         <Setter Property="Margin" Value="0,2"/>
-                        <Setter Property="Height" Value="52"/>
-                        <Setter Property="MinHeight" Value="52"/>
+                        <Setter Property="Height" Value="40"/>
+                        <Setter Property="MinHeight" Value="40"/>
                         <Setter Property="Cursor" Value="Hand"/>
                         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
                         <Setter Property="VerticalContentAlignment" Value="Stretch"/>
