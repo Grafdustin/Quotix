@@ -77,6 +77,8 @@ public static class FloatingTextPreview
         private readonly DispatcherTimer _openTimer;
         private Popup? _popup;
         private TextBlock? _textBlock;
+        private FrameworkElement? _popupRoot;
+        private System.Windows.Shapes.Path? _arrow;
         private Point _lastPoint;
 
         public HoverState(TextBox textBox)
@@ -185,9 +187,10 @@ public static class FloatingTextPreview
                 Foreground = Brushes.White
             };
 
+            var background = new SolidColorBrush(Color.FromArgb(238, 34, 34, 34));
             var border = new Border
             {
-                Background = new SolidColorBrush(Color.FromArgb(238, 34, 34, 34)),
+                Background = background,
                 CornerRadius = new CornerRadius(7),
                 Padding = new Thickness(10, 7, 10, 8),
                 MaxWidth = 460,
@@ -201,6 +204,28 @@ public static class FloatingTextPreview
                 }
             };
 
+            _arrow = new System.Windows.Shapes.Path
+            {
+                Width = 14,
+                Height = 7,
+                Stretch = Stretch.Fill,
+                Fill = background,
+                Data = Geometry.Parse("M 0 0 L 14 0 L 7 7 Z"),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, -1, 0, 0)
+            };
+
+            _popupRoot = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                IsHitTestVisible = false,
+                Children =
+                {
+                    border,
+                    _arrow
+                }
+            };
+
             _popup = new Popup
             {
                 AllowsTransparency = true,
@@ -208,7 +233,7 @@ public static class FloatingTextPreview
                 IsHitTestVisible = false,
                 Placement = PlacementMode.RelativePoint,
                 PlacementTarget = _textBox,
-                Child = border
+                Child = _popupRoot
             };
         }
 
@@ -217,8 +242,22 @@ public static class FloatingTextPreview
             if (_popup == null)
                 return;
 
-            _popup.HorizontalOffset = _lastPoint.X + 16;
-            _popup.VerticalOffset = _lastPoint.Y + 18;
+            if (_popupRoot == null || _arrow == null)
+                return;
+
+            _popupRoot.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var size = _popupRoot.DesiredSize;
+            var screenPoint = _textBox.PointToScreen(_lastPoint);
+            var showAbove = screenPoint.Y - size.Height - 12 > SystemParameters.WorkArea.Top;
+
+            _arrow.Data = Geometry.Parse(showAbove
+                ? "M 0 0 L 14 0 L 7 7 Z"
+                : "M 7 0 L 14 7 L 0 7 Z");
+
+            _popup.HorizontalOffset = _lastPoint.X - (size.Width / 2);
+            _popup.VerticalOffset = showAbove
+                ? _lastPoint.Y - size.Height - 12
+                : _lastPoint.Y + 12;
         }
 
         private void Close()
