@@ -5,6 +5,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Media3D;
 
 namespace Quotix.Common;
 
@@ -50,6 +51,18 @@ public static class SmoothScrollBehavior
             "AnimationGeneration", typeof(int), typeof(SmoothScrollBehavior),
             new PropertyMetadata(0));
 
+    /// <summary>是否正在由平滑滚动动画驱动，避免动画中的 ScrollChanged 反向重置目标。</summary>
+    private static readonly DependencyProperty IsAnimatingProperty =
+        DependencyProperty.RegisterAttached(
+            "IsAnimating", typeof(bool), typeof(SmoothScrollBehavior),
+            new PropertyMetadata(false));
+
+    /// <summary>该 ScrollViewer 是否已完成像素滚动初始化，避免滚轮期间重复遍历视觉树。</summary>
+    private static readonly DependencyProperty PixelScrollInitializedProperty =
+        DependencyProperty.RegisterAttached(
+            "PixelScrollInitialized", typeof(bool), typeof(SmoothScrollBehavior),
+            new PropertyMetadata(false));
+
     /// <summary>在 <c>App.OnStartup</c> 调用一次，全局启用平滑滚动。</summary>
     public static void Register()
     {
@@ -63,6 +76,11 @@ public static class SmoothScrollBehavior
             ScrollViewer.PreviewMouseWheelEvent,
             new MouseWheelEventHandler(OnPreviewMouseWheel),
             true);
+
+        EventManager.RegisterClassHandler(
+            typeof(ScrollViewer),
+            ScrollViewer.ScrollChangedEvent,
+            new ScrollChangedEventHandler(OnScrollChanged));
     }
 
     private static void OnShadowOffsetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -75,6 +93,9 @@ public static class SmoothScrollBehavior
     {
         // 类级注册保证 sender 即 ScrollViewer；若不是则放行
         if (sender is not ScrollViewer sv) return;
+
+        if (GetWheelOwner(e.OriginalSource as DependencyObject, e.Delta) != sv)
+            return;
 
         // 内容不足一屏时不拦截，让事件冒泡给外层可能的滚动容器
         if (sv.ScrollableHeight <= 0) return;
@@ -108,13 +129,14 @@ public static class SmoothScrollBehavior
         // 关键点：目标按 TargetOffset 累加，动画从当前有效位置接管。
         int generation = (int)sv.GetValue(AnimationGenerationProperty) + 1;
         sv.SetValue(AnimationGenerationProperty, generation);
+        sv.SetValue(IsAnimatingProperty, true);
         var anim = new DoubleAnimation
         {
             From = current,
             To = target,
             Duration = TimeSpan.FromMilliseconds(AnimationMs),
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
-            FillBehavior = FillBehavior.Stop
+            FillBehavior = FillBehavior.HoldEnd
         };
 
         anim.Completed += (_, _) =>
@@ -125,9 +147,24 @@ public static class SmoothScrollBehavior
             sv.BeginAnimation(ShadowOffsetProperty, null);
             sv.SetValue(ShadowOffsetProperty, target);
             sv.SetValue(TargetOffsetProperty, target);
+            sv.SetValue(IsAnimatingProperty, false);
         };
 
         sv.BeginAnimation(ShadowOffsetProperty, anim);
+    }
+
+    private static void OnScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (sender is not ScrollViewer sv || Math.Abs(e.VerticalChange) < 0.1)
+            return;
+
+        if ((bool)sv.GetValue(IsAnimatingProperty))
+            return;
+
+        double current = sv.VerticalOffset;
+        sv.BeginAnimation(ShadowOffsetProperty, null);
+        sv.SetValue(ShadowOffsetProperty, current);
+        sv.SetValue(TargetOffsetProperty, current);
     }
 
     private static double Clamp(double value, double min, double max)
@@ -148,6 +185,9 @@ public static class SmoothScrollBehavior
     /// </summary>
     private static void EnsurePixelScroll(ScrollViewer sv)
     {
+        if ((bool)sv.GetValue(PixelScrollInitializedProperty))
+            return;
+
         ItemsControl? ic = sv.TemplatedParent as ItemsControl;
         if (ic == null)
         {
@@ -162,6 +202,44 @@ public static class SmoothScrollBehavior
 
         if (ic != null)
             ApplyPixelScroll(ic);
+
+        sv.SetValue(PixelScrollInitializedProperty, true);
+    }
+
+    private static ScrollViewer? GetWheelOwner(DependencyObject? source, int delta)
+    {
+        DependencyObject? current = source;
+        while (current != null)
+        {
+            if (current is ScrollViewer sv && CanScrollInDirection(sv, delta))
+                return sv;
+
+            current = GetParent(current);
+        }
+
+        return null;
+    }
+
+    private static bool CanScrollInDirection(ScrollViewer sv, int delta)
+    {
+        if (sv.ScrollableHeight <= 0)
+            return false;
+
+        return delta > 0
+            ? sv.VerticalOffset > 0
+            : sv.VerticalOffset < sv.ScrollableHeight;
+    }
+
+    private static DependencyObject? GetParent(DependencyObject current)
+    {
+        if (current is Visual or Visual3D)
+        {
+            DependencyObject? visualParent = VisualTreeHelper.GetParent(current);
+            if (visualParent != null)
+                return visualParent;
+        }
+
+        return LogicalTreeHelper.GetParent(current);
     }
 
     private static void ApplyPixelScroll(ItemsControl ic)
