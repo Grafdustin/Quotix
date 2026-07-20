@@ -167,8 +167,6 @@
                         <StackPanel Orientation="Horizontal"
                                     Visibility="{Binding IsNDT, Converter={StaticResource InverseBool}}"
                                     VerticalAlignment="Center" Margin="0,0,12,0">
-                            <ui:TextBlock Text="数据表" VerticalAlignment="Center" FontSize="12"
-                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
                             <ui:Button Content="价表" Height="30" FontSize="12" MinWidth="56"
                                        Command="{Binding SwitchRviTableCommand}" CommandParameter="change">
                                 <ui:Button.Style>
