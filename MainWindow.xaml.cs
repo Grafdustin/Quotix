@@ -58,6 +58,10 @@ public partial class MainWindow : FluentWindow
             m.Reply(true);
             Dispatcher.Invoke(() => ShowUpdateOverlay());
         });
+        WeakReferenceMessenger.Default.Register<EditQuotationMessage>(this, (r, m) =>
+            Dispatcher.Invoke(() => SyncNavSelection("new-quotation")));
+        WeakReferenceMessenger.Default.Register<OpenTabMessage>(this, (r, m) =>
+            Dispatcher.Invoke(() => SyncNavSelection(m.Value)));
     }
 
     /// <summary>

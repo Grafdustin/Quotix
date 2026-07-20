@@ -74,6 +74,7 @@ public partial class NewQuotationViewModel : ObservableObject
 
     // 编辑状态
     [ObservableProperty] private string? _editingId;
+    private string? _editingQuoteNumber;
     [ObservableProperty] private string _saveButtonText = "保存报价单";
     [ObservableProperty] private bool _isEditing;
 
@@ -277,6 +278,7 @@ public partial class NewQuotationViewModel : ObservableObject
         Items.Clear();
         AddItem();
         EditingId = null;
+        _editingQuoteNumber = null;
         IsEditing = false;
         SaveButtonText = "保存报价单";
     }
@@ -293,8 +295,10 @@ public partial class NewQuotationViewModel : ObservableObject
             return;
         }
 
+        var wasEditing = IsEditing;
         var quotation = new Quotation
         {
+            QuoteNumber = wasEditing ? _editingQuoteNumber : null,
             CompanyContact = CompanyContact,
             CompanyPhone = CompanyPhone,
             CompanyTel = CompanyTel,
@@ -335,6 +339,8 @@ public partial class NewQuotationViewModel : ObservableObject
 
             _dialog.ShowInfo("报价单已保存！", "成功");
             ResetForm();
+            if (wasEditing)
+                WeakReferenceMessenger.Default.Send(new OpenTabMessage("history"));
         }
         catch (Exception ex)
         {
@@ -370,6 +376,7 @@ public partial class NewQuotationViewModel : ObservableObject
         if (q == null) return;
 
         EditingId = q.Id;
+        _editingQuoteNumber = q.QuoteNumber;
         IsEditing = true;
         SaveButtonText = "更新报价单";
 

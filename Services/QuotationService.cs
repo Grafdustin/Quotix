@@ -23,13 +23,31 @@ public class QuotationService
     // ============ 查询（委托 Repository）============
 
     /// <summary>获取当前用户的所有报价单</summary>
-    public List<Quotation> GetQuotations() => _repo.GetAll(Constants.LocalUserId);
+    public List<Quotation> GetQuotations()
+    {
+        var quotations = _repo.GetAll(Constants.LocalUserId);
+        foreach (var q in quotations)
+            EnsureQuoteNumber(q);
+        return quotations;
+    }
 
     /// <summary>获取所有报价单及其明细项</summary>
-    public List<Quotation> GetAllQuotationsWithItems() => _repo.GetAllWithItems();
+    public List<Quotation> GetAllQuotationsWithItems()
+    {
+        var quotations = _repo.GetAllWithItems();
+        foreach (var q in quotations)
+            EnsureQuoteNumber(q);
+        return quotations;
+    }
 
     /// <summary>根据 ID 获取报价单（含明细项）</summary>
-    public Quotation? GetQuotation(string id) => _repo.GetById(id);
+    public Quotation? GetQuotation(string id)
+    {
+        var quotation = _repo.GetById(id);
+        if (quotation != null)
+            EnsureQuoteNumber(quotation);
+        return quotation;
+    }
 
     // ============ 创建 ============
 
@@ -103,6 +121,10 @@ public class QuotationService
     /// <summary>更新报价单，重新计算金额并替换所有明细项</summary>
     public void UpdateQuotation(Quotation q)
     {
+        if (string.IsNullOrWhiteSpace(q.QuoteNumber))
+            q.QuoteNumber = GetQuotation(q.Id)?.QuoteNumber;
+        EnsureQuoteNumber(q);
+
         q.UpdatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         q.TotalAmount = q.Items.Sum(i => i.TotalPrice);
 
@@ -162,5 +184,12 @@ public class QuotationService
             date = DateTime.Now;
         }
         return $"CDC{date:yyyyMMdd}";
+    }
+
+    /// <summary>旧数据若缺少报价编号，则按报价日期补齐，避免历史导出空编号。</summary>
+    private static void EnsureQuoteNumber(Quotation q)
+    {
+        if (string.IsNullOrWhiteSpace(q.QuoteNumber))
+            q.QuoteNumber = GenerateQuoteNumber(q.QuoteDate);
     }
 }

@@ -94,6 +94,8 @@ public partial class MainViewModel : ObservableObject
         });
         WeakReferenceMessenger.Default.Register<EditQuotationMessage>(this, (r, m) =>
             EditQuotation(m.Value));
+        WeakReferenceMessenger.Default.Register<OpenTabMessage>(this, (r, m) =>
+            OpenTab(m.Value));
         WeakReferenceMessenger.Default.Register<ProgressMessage>(this, (r, m) =>
         {
             var s = m.Value;
@@ -143,6 +145,7 @@ public partial class MainViewModel : ObservableObject
         if (existing != null)
         {
             ActivateTab(existing);
+            _ = _historyVM.RefreshAsync();
             return;
         }
 
@@ -157,6 +160,7 @@ public partial class MainViewModel : ObservableObject
         };
         Tabs.Add(tab);
         ActivateTab(tab);
+        _ = _historyVM.RefreshAsync();
     }
 
     /// <summary>打开产品列表标签页（已存在则激活，并刷新数据）</summary>
@@ -266,6 +270,26 @@ public partial class MainViewModel : ObservableObject
     {
         _newQuotationVM.LoadQuotation(quotationId);
         OpenNewQuotationTab();
+    }
+
+    /// <summary>按标签页 ID 打开对应页面。</summary>
+    private void OpenTab(string tabId)
+    {
+        switch (tabId)
+        {
+            case "new-quotation":
+                OpenNewQuotationTab();
+                break;
+            case "history":
+                OpenHistoryTab();
+                break;
+            case "product-db":
+                OpenProductDatabaseTab();
+                break;
+            case "header-db":
+                OpenHeaderDatabaseTab();
+                break;
+        }
     }
 
     // ============ 命令 ============
