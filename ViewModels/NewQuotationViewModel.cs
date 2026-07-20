@@ -348,30 +348,31 @@ public partial class NewQuotationViewModel : ObservableObject
         IsEditing = true;
         SaveButtonText = "更新报价单";
 
-        CompanyContact = q.CompanyContact;
-        CompanyPhone = q.CompanyPhone;
-        CompanyTel = q.CompanyTel;
-        CompanyEmail = q.CompanyEmail;
-        CustomerName = q.CustomerName;
-        CustomerContact = q.CustomerContact;
-        CustomerPhone = q.CustomerPhone;
-        CustomerEmail = q.CustomerEmail;
-        Validity = q.Validity;
-        Payment = q.Payment;
-        DeliveryTime = q.DeliveryTime;
-        DeliveryMethod = q.DeliveryMethod;
-        QuoteDate = q.QuoteDate;
-        Filename = q.Filename;
-        Currency = q.Currency;
+        CompanyContact = q.CompanyContact ?? "";
+        CompanyPhone = q.CompanyPhone ?? "";
+        CompanyTel = q.CompanyTel ?? "";
+        CompanyEmail = q.CompanyEmail ?? "";
+        CustomerName = q.CustomerName ?? "";
+        CustomerContact = q.CustomerContact ?? "";
+        CustomerPhone = q.CustomerPhone ?? "";
+        CustomerEmail = q.CustomerEmail ?? "";
+        Validity = q.Validity ?? "";
+        Payment = q.Payment ?? "";
+        DeliveryTime = q.DeliveryTime ?? "";
+        DeliveryMethod = q.DeliveryMethod ?? "";
+        QuoteDate = q.QuoteDate ?? $"{DateTime.Now.Year}年{DateTime.Now.Month}月{DateTime.Now.Day}日";
+        Filename = q.Filename ?? "";
+        Currency = string.IsNullOrWhiteSpace(q.Currency) ? "RMB" : q.Currency;
+        CurrencySymbol = Currency == "USD" ? "$" : "¥";
 
         Items.Clear();
         foreach (var item in q.Items)
         {
             Items.Add(new QuotationItemViewModel
             {
-                ItemName = item.ItemName,
-                Code = item.Code,
-                Description = item.Description,
+                ItemName = item.ItemName ?? "",
+                Code = item.Code ?? "",
+                Description = item.Description ?? "",
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice
             });

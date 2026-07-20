@@ -21,10 +21,25 @@
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Remove="bin\**\*.cs" />
+    <Compile Remove="obj\**\*.cs" />
+    <Compile Remove=".workbuddy\**\*.cs" />
+    <Page Remove="bin\**\*.xaml" />
+    <Page Remove="obj\**\*.xaml" />
+    <Page Remove=".workbuddy\**\*.xaml" />
+    <ApplicationDefinition Remove="bin\**\*.xaml" />
+    <ApplicationDefinition Remove="obj\**\*.xaml" />
+    <ApplicationDefinition Remove=".workbuddy\**\*.xaml" />
+    <EmbeddedResource Remove="bin\**\*" />
+    <EmbeddedResource Remove="obj\**\*" />
+    <EmbeddedResource Remove=".workbuddy\**\*" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.4" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>

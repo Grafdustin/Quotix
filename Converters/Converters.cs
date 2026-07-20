@@ -14,7 +14,7 @@ public class BoolToVisibilityConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         => value is true ? Visibility.Visible : Visibility.Collapsed;
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) 
-        => throw new NotImplementedException();
+        => Binding.DoNothing;
 }
 
 /// <summary>
@@ -25,7 +25,7 @@ public class InverseBoolConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         => value is true ? Visibility.Collapsed : Visibility.Visible;
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotImplementedException();
+        => Binding.DoNothing;
 }
 
 /// <summary>
@@ -40,7 +40,7 @@ public class MultiplyConverter : IMultiValueConverter
         return "0.00";
     }
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        => throw new NotImplementedException();
+        => targetTypes.Select(_ => Binding.DoNothing).ToArray();
 }
 
 /// <summary>
@@ -51,7 +51,7 @@ public class StringToVisibilityConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         => string.IsNullOrEmpty(value?.ToString()) ? Visibility.Collapsed : Visibility.Visible;
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotImplementedException();
+        => Binding.DoNothing;
 }
 
 /// <summary>
@@ -68,7 +68,7 @@ public class CountToVisibilityConverter : IValueConverter
                             : (count > 0 ? Visibility.Visible : Visibility.Collapsed);
     }
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotImplementedException();
+        => Binding.DoNothing;
 }
 
 /// <summary>
@@ -84,7 +84,7 @@ public class CurrencyBgConverter : IValueConverter
             : ControlAppearance.Secondary;
     }
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotImplementedException();
+        => Binding.DoNothing;
 }
 
 /// <summary>
@@ -100,7 +100,7 @@ public class QuickDbAppearanceConverter : IValueConverter
             : ControlAppearance.Secondary;
     }
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotImplementedException();
+        => Binding.DoNothing;
 }
 
 /// <summary>
@@ -119,7 +119,7 @@ public class IndexConverter : IValueConverter
         return "?";
     }
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotImplementedException();
+        => Binding.DoNothing;
 }
 
 /// <summary>
@@ -132,7 +132,7 @@ public class CategoryToVisibilityConverter : IValueConverter
             ? Visibility.Visible
             : Visibility.Collapsed;
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotImplementedException();
+        => Binding.DoNothing;
 }
 
 /// <summary>
