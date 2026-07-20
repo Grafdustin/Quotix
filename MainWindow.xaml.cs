@@ -441,6 +441,10 @@ public partial class MainWindow : FluentWindow
         ThemeToggleButton.Visibility = RootNavView.IsPaneOpen
             ? System.Windows.Visibility.Visible
             : System.Windows.Visibility.Collapsed;
+
+        HeaderButtonsPanel.Margin = RootNavView.IsPaneOpen
+            ? new Thickness(0, 4, 0, 0)
+            : new Thickness(-7, 4, 0, 0);
     }
 
     /// <summary>
