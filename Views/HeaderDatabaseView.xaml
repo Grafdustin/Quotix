@@ -51,8 +51,8 @@
                         <ColumnDefinition Width="169*"/>
                         <ColumnDefinition Width="169*"/>
                         <ColumnDefinition Width="169*"/>
-                        <ColumnDefinition Width="251*"/>
-                        <ColumnDefinition Width="220*"/>
+                        <ColumnDefinition Width="221*"/>
+                        <ColumnDefinition Width="250*"/>
                     </Grid.ColumnDefinitions>
 
                     <ui:TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="13"
@@ -78,7 +78,7 @@
                     <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right"
                                 Margin="0,0,8,0">
                         <ui:Button Content="{Binding DefaultButtonText}"
-                                   Height="28" FontSize="12" MinWidth="48"
+                                   Height="28" Width="92" FontSize="12"
                                    Click="SetDefaultOwnerButton_Click">
                             <ui:Button.Style>
                                 <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
@@ -183,6 +183,15 @@
                                   FontSize="16" FontWeight="SemiBold"
                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                   VerticalAlignment="Center" Margin="0,0,18,0">
+                        <ui:TextBlock.Style>
+                            <Style TargetType="ui:TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsQuotationDescriptionTab}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ui:TextBlock.Style>
                         <Run x:Name="RecordCountRun" Text="0"
                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                         <Run Text="条记录"
@@ -328,8 +337,8 @@
                             <ColumnDefinition Width="169*"/>
                             <ColumnDefinition Width="169*"/>
                             <ColumnDefinition Width="169*"/>
-                            <ColumnDefinition Width="251*"/>
-                            <ColumnDefinition Width="220*"/>
+                            <ColumnDefinition Width="221*"/>
+                            <ColumnDefinition Width="250*"/>
                         </Grid.ColumnDefinitions>
                         <ui:TextBlock Grid.Column="0" Text="姓名" FontSize="11" FontWeight="SemiBold"
                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
