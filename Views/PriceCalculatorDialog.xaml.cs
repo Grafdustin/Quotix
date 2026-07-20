@@ -33,6 +33,7 @@ public partial class PriceCalculatorDialog : FluentWindow
         _items = items.Select(i => new CalculatorItem
         {
             ItemName = i.ItemName,
+            Quantity = i.Quantity,
             UnitPrice = i.UnitPrice,
             OriginalPrice = i.OriginalPrice
         }).ToList();
@@ -40,12 +41,14 @@ public partial class PriceCalculatorDialog : FluentWindow
         _backup = _items.Select(i => new CalculatorItem
         {
             ItemName = i.ItemName,
+            Quantity = i.Quantity,
             UnitPrice = i.UnitPrice,
             OriginalPrice = i.OriginalPrice
         }).ToList();
 
         ResultItems = new List<CalculatorItem>(_items);
         ItemsControl.ItemsSource = new ObservableCollection<CalculatorItem>(_items);
+        RefreshTotals();
     }
 
     /// <summary>
@@ -134,6 +137,7 @@ public partial class PriceCalculatorDialog : FluentWindow
         // 刷新显示
         ItemsControl.ItemsSource = null;
         ItemsControl.ItemsSource = new ObservableCollection<CalculatorItem>(_items);
+        RefreshTotals();
     }
 
     /// <summary>
@@ -149,6 +153,16 @@ public partial class PriceCalculatorDialog : FluentWindow
 
         ItemsControl.ItemsSource = null;
         ItemsControl.ItemsSource = new ObservableCollection<CalculatorItem>(_items);
+        RefreshTotals();
+    }
+
+    private void RefreshTotals()
+    {
+        var originalTotal = _items.Sum(i => i.Quantity * i.GetOriginalUnitPriceForTotal());
+        var newTotal = _items.Sum(i => i.Quantity * i.UnitPrice);
+
+        OriginalTotalText.Text = originalTotal.ToString("N2", CultureInfo.CurrentCulture);
+        NewTotalText.Text = newTotal.ToString("N2", CultureInfo.CurrentCulture);
     }
 
     /// <summary>
@@ -178,6 +192,7 @@ public class CalculatorItem : INotifyPropertyChanged
 {
     private string _itemName = "";
     private decimal _unitPrice;
+    private int _quantity = 1;
     private string _originalPrice = "";
 
     /// <summary>
@@ -199,12 +214,28 @@ public class CalculatorItem : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 数量。
+    /// </summary>
+    public int Quantity
+    {
+        get => _quantity;
+        set { _quantity = value; OnPropertyChanged(nameof(Quantity)); }
+    }
+
+    /// <summary>
     /// 原始价格（计算前）。
     /// </summary>
     public string OriginalPrice
     {
         get => _originalPrice;
         set { _originalPrice = value; OnPropertyChanged(nameof(OriginalPrice)); }
+    }
+
+    public decimal GetOriginalUnitPriceForTotal()
+    {
+        return decimal.TryParse(OriginalPrice, NumberStyles.Number, CultureInfo.CurrentCulture, out var price)
+            ? price
+            : UnitPrice;
     }
 
     /// <summary>

@@ -115,10 +115,10 @@
                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
                                     <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
                                             CornerRadius="6" Padding="10,6" MinWidth="120">
-                                        <ui:TextBox Text="{Binding OriginalPrice, UpdateSourceTrigger=PropertyChanged}"                                                    FontSize="13" VerticalContentAlignment="Center"
-                                                    IsReadOnly="True" Height="28"
-                                                    BorderThickness="0" Background="Transparent"
-                                                    HorizontalContentAlignment="Right"/>
+                                        <ui:TextBlock Text="{Binding OriginalPrice}"
+                                                      FontSize="13" Height="28"
+                                                      VerticalAlignment="Center"
+                                                      TextAlignment="Right"/>
                                     </Border>
                                 </StackPanel>
 
@@ -136,12 +136,12 @@
                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
                                     <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
                                             CornerRadius="6" Padding="10,6" MinWidth="120">
-                                        <ui:TextBox Text="{Binding UnitPrice, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F2}}"                                                    FontSize="13" VerticalContentAlignment="Center"
-                                                    IsReadOnly="True" Height="28"
-                                                    FontWeight="SemiBold"
-                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                    BorderThickness="0" Background="Transparent"
-                                                    HorizontalContentAlignment="Right"/>
+                                        <ui:TextBlock Text="{Binding UnitPrice, StringFormat={}{0:F2}}"
+                                                      FontSize="13" Height="28"
+                                                      FontWeight="SemiBold"
+                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                      VerticalAlignment="Center"
+                                                      TextAlignment="Right"/>
                                     </Border>
                                 </StackPanel>
                             </Grid>
@@ -155,12 +155,31 @@
         <Border Grid.Row="2" Margin="0,16,0,0"
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                 BorderThickness="0,1,0,0" Padding="0,16,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <ui:Button Content="取消" Appearance="Secondary" Height="36" Width="100"
-                           Click="CancelClick"/>
-                <ui:Button Content="应用" Appearance="Primary" Height="36" Width="100"
-                           Margin="8,0,0,0" Click="ApplyClick"/>
-            </StackPanel>
+            <Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <ui:TextBlock Text="原总价" FontSize="12"
+                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                  VerticalAlignment="Center"/>
+                    <ui:TextBlock x:Name="OriginalTotalText" Text="0.00" FontSize="15"
+                                  FontWeight="SemiBold"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  Margin="8,0,24,0" VerticalAlignment="Center"/>
+                    <ui:TextBlock Text="新总价" FontSize="12"
+                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                  VerticalAlignment="Center"/>
+                    <ui:TextBlock x:Name="NewTotalText" Text="0.00" FontSize="15"
+                                  FontWeight="SemiBold"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  Margin="8,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <ui:Button Content="取消" Appearance="Secondary" Height="36" Width="100"
+                               Click="CancelClick"/>
+                    <ui:Button Content="应用" Appearance="Primary" Height="36" Width="100"
+                               Margin="8,0,0,0" Click="ApplyClick"/>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </ui:FluentWindow>
