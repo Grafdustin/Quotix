@@ -35,6 +35,21 @@ public static class SmoothScrollBehavior
             "ShadowOffset", typeof(double), typeof(SmoothScrollBehavior),
             new PropertyMetadata(0.0, OnShadowOffsetChanged));
 
+    /// <summary>
+    /// 最近一次滚轮输入累计出的目标偏移。连续滚动时若只按动画中的当前位置计算，
+    /// 高频滚轮输入会反复落在相近目标上，表现为后续滚动不生效。
+    /// </summary>
+    private static readonly DependencyProperty TargetOffsetProperty =
+        DependencyProperty.RegisterAttached(
+            "TargetOffset", typeof(double), typeof(SmoothScrollBehavior),
+            new PropertyMetadata(double.NaN));
+
+    /// <summary>当前滚动动画代号，用于避免旧动画完成回调清理新动画。</summary>
+    private static readonly DependencyProperty AnimationGenerationProperty =
+        DependencyProperty.RegisterAttached(
+            "AnimationGeneration", typeof(int), typeof(SmoothScrollBehavior),
+            new PropertyMetadata(0));
+
     /// <summary>在 <c>App.OnStartup</c> 调用一次，全局启用平滑滚动。</summary>
     public static void Register()
     {
@@ -67,22 +82,57 @@ public static class SmoothScrollBehavior
         // 确保虚拟化容器按像素滚动（动画连贯且保留虚拟化）
         EnsurePixelScroll(sv);
 
-        e.Handled = true;
-
         double current = sv.VerticalOffset;
-        double target = Math.Max(0, Math.Min(sv.ScrollableHeight, current - e.Delta));
+        double previousTarget = (double)sv.GetValue(TargetOffsetProperty);
+        if (double.IsNaN(previousTarget) ||
+            previousTarget < 0 ||
+            previousTarget > sv.ScrollableHeight)
+        {
+            previousTarget = current;
+        }
 
-        // 关键点：用 FillBehavior.HoldEnd + 显式 From=current，
-        // 新动画自动从当前有效值接管，连续快速滚动时平滑衔接、无回弹、无跳变。
+        double target = Clamp(previousTarget - e.Delta, 0, sv.ScrollableHeight);
+
+        // 已在当前 ScrollViewer 边界时放行，避免内层滚动容器吞掉外层页面的滚轮。
+        if (Math.Abs(target - current) < 0.1 &&
+            ((e.Delta > 0 && current <= 0) ||
+             (e.Delta < 0 && current >= sv.ScrollableHeight)))
+        {
+            sv.SetValue(TargetOffsetProperty, current);
+            return;
+        }
+
+        e.Handled = true;
+        sv.SetValue(TargetOffsetProperty, target);
+
+        // 关键点：目标按 TargetOffset 累加，动画从当前有效位置接管。
+        int generation = (int)sv.GetValue(AnimationGenerationProperty) + 1;
+        sv.SetValue(AnimationGenerationProperty, generation);
         var anim = new DoubleAnimation
         {
             From = current,
             To = target,
             Duration = TimeSpan.FromMilliseconds(AnimationMs),
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
-            FillBehavior = FillBehavior.HoldEnd
+            FillBehavior = FillBehavior.Stop
         };
+
+        anim.Completed += (_, _) =>
+        {
+            if ((int)sv.GetValue(AnimationGenerationProperty) != generation)
+                return;
+
+            sv.BeginAnimation(ShadowOffsetProperty, null);
+            sv.SetValue(ShadowOffsetProperty, target);
+            sv.SetValue(TargetOffsetProperty, target);
+        };
+
         sv.BeginAnimation(ShadowOffsetProperty, anim);
+    }
+
+    private static double Clamp(double value, double min, double max)
+    {
+        return Math.Max(min, Math.Min(max, value));
     }
 
     private static void OnItemsControlLoaded(object sender, RoutedEventArgs e)
