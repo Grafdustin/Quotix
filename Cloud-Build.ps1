@@ -174,9 +174,18 @@ try {
     $remoteTag = $null
 }
 
-# 守卫：本次没有文件变动、且远程 tag 已存在时，无需重复创建/推送，避免触发冗余构建
-if (-not $hasChanges -and $remoteTag) {
-    Write-Host "版本 $Version 未变更且远程 tag v$Version 已存在，跳过 tag 推送（如需强制重新触发，请先删除该 tag）。" -ForegroundColor Green
+# 同版本已经发布过时，询问是否重新触发构建。
+if ($remoteTag -and -not $Redeploy) {
+    Write-Host "远程 tag v$Version 已存在。" -ForegroundColor Yellow
+    $redeployAnswer = Read-Host "是否删除旧 tag 并重新触发同版本构建？输入 y 表示是，直接回车跳过"
+    if ($redeployAnswer -match '^(y|yes)$') {
+        $Redeploy = $true
+    }
+}
+
+# 守卫：本次没有文件变动、远程 tag 已存在、且用户没有选择重构建时，跳过 tag 推送
+if (-not $hasChanges -and $remoteTag -and -not $Redeploy) {
+    Write-Host "版本 $Version 未变更且远程 tag v$Version 已存在，已跳过 tag 推送。" -ForegroundColor Green
 } else {
     Write-Host "Creating tag v$Version to trigger GitHub Actions..." -ForegroundColor Yellow
 
@@ -186,8 +195,7 @@ if (-not $hasChanges -and $remoteTag) {
         Write-Host "Tag v$Version already exists locally, removing..." -ForegroundColor Yellow
         git tag -d "v$Version" 2>&1 | Out-Null
     }
-    # 仅重新触发模式（-Redeploy）才删除已存在的远程 tag：避免“删除成功但
-    # 新建 tag 失败”时留下不一致的 GitHub release 状态。正常发布不删除已有 tag。
+    # 仅重新触发模式（-Redeploy 或用户确认）才删除已存在的远程 tag。
     if ($remoteTag -and $Redeploy) {
         Write-Host "Tag v$Version exists on remote, removing (redeploy mode)..." -ForegroundColor Yellow
         git push origin --delete "v$Version" 2>&1 | Out-Null

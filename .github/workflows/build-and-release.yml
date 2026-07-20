@@ -159,5 +159,6 @@ jobs:
         body_path: release_notes.md
         draft: false
         prerelease: false
+        overwrite_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
