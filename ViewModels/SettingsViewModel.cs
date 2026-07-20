@@ -474,10 +474,7 @@ public partial class SettingsViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(SendFeedbackCommand))]
     private string _feedbackDescription = "";
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FeedbackScreenshotName))]
-    private string? _feedbackScreenshotPath;
-
+    public ObservableCollection<string> FeedbackScreenshotPaths { get; } = new();
     [ObservableProperty] private bool _feedbackAttachErrorLog = true;
     [ObservableProperty] private bool _isFeedbackSending;
     [ObservableProperty] private string _feedbackErrorLogStatus = "未找到错误日志";
@@ -487,9 +484,9 @@ public partial class SettingsViewModel : ObservableObject
     public bool IsFeedbackDataError => FeedbackProblemType == "数据错误";
     public bool IsFeedbackSuggestion => FeedbackProblemType == "功能建议";
 
-    public string FeedbackScreenshotName => string.IsNullOrWhiteSpace(FeedbackScreenshotPath)
+    public string FeedbackScreenshotName => FeedbackScreenshotPaths.Count == 0
         ? "未添加截图"
-        : Path.GetFileName(FeedbackScreenshotPath);
+        : $"已添加 {FeedbackScreenshotPaths.Count} 张：{string.Join("、", FeedbackScreenshotPaths.Select(Path.GetFileName))}";
 
     private bool CanSendFeedback()
         => !IsFeedbackSending && !string.IsNullOrWhiteSpace(FeedbackDescription);
@@ -514,17 +511,25 @@ public partial class SettingsViewModel : ObservableObject
         {
             Title = "选择反馈截图",
             Filter = "图片文件|*.png;*.jpg;*.jpeg;*.bmp;*.webp|所有文件|*.*",
-            Multiselect = false
+            Multiselect = true
         };
 
         if (dialog.ShowDialog() == true)
-            FeedbackScreenshotPath = dialog.FileName;
+        {
+            foreach (var fileName in dialog.FileNames)
+            {
+                if (!FeedbackScreenshotPaths.Contains(fileName))
+                    FeedbackScreenshotPaths.Add(fileName);
+            }
+            OnPropertyChanged(nameof(FeedbackScreenshotName));
+        }
     }
 
     [RelayCommand]
     private void ClearFeedbackScreenshot()
     {
-        FeedbackScreenshotPath = null;
+        FeedbackScreenshotPaths.Clear();
+        OnPropertyChanged(nameof(FeedbackScreenshotName));
     }
 
     [RelayCommand(CanExecute = nameof(CanSendFeedback))]
@@ -538,14 +543,15 @@ public partial class SettingsViewModel : ObservableObject
             {
                 ProblemType = FeedbackProblemType,
                 Description = FeedbackDescription.Trim(),
-                ScreenshotPath = FeedbackScreenshotPath,
+                ScreenshotPaths = FeedbackScreenshotPaths.ToList(),
                 AttachErrorLog = FeedbackAttachErrorLog,
                 ErrorLogPath = errorLogPath
             };
 
             await _feedbackService.SendAsync(request);
             FeedbackDescription = "";
-            FeedbackScreenshotPath = null;
+            FeedbackScreenshotPaths.Clear();
+            OnPropertyChanged(nameof(FeedbackScreenshotName));
             RefreshFeedbackErrorLog();
             _dialog.ShowInfo("反馈已发送，感谢你的记录。", "发送成功");
         }
