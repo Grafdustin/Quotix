@@ -40,11 +40,16 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty] private string _selectedChartRange = "month";
     [ObservableProperty] private decimal _chartTotalAmount;
     [ObservableProperty] private decimal _chartMaxAmount;
+    [ObservableProperty] private string _chartLineData = "";
+    [ObservableProperty] private string _chartAreaData = "";
     [ObservableProperty] private bool _isLoading;
 
     public ObservableCollection<DashboardQuoteItem> RecentQuotations { get; } = new();
     public ObservableCollection<DashboardChartMarker> ChartMarkers { get; } = new();
     public ObservableCollection<DashboardChartLabel> ChartLabels { get; } = new();
+    public ObservableCollection<DashboardChartGridLine> ChartHorizontalGridLines { get; } = new();
+    public ObservableCollection<DashboardChartGridLine> ChartVerticalGridLines { get; } = new();
+    public ObservableCollection<DashboardChartAxisLabel> ChartYAxisLabels { get; } = new();
 
     public PointCollection ChartPoints { get; } = new();
 
@@ -161,13 +166,17 @@ public partial class DashboardViewModel : ObservableObject
         ChartPoints.Clear();
         ChartMarkers.Clear();
         ChartLabels.Clear();
+        ChartHorizontalGridLines.Clear();
+        ChartVerticalGridLines.Clear();
+        ChartYAxisLabels.Clear();
 
         ChartTotalAmount = buckets.Sum(b => b.Amount);
         ChartMaxAmount = buckets.Count > 0 ? buckets.Max(b => b.Amount) : 0;
-        var max = Math.Max(ChartMaxAmount, 1);
+        var max = GetNiceChartMax(ChartMaxAmount);
         var usableWidth = ChartWidth - ChartPadding * 2;
         var usableHeight = ChartHeight - ChartPadding * 2;
         var step = buckets.Count > 1 ? usableWidth / (buckets.Count - 1) : 0;
+        var pathPoints = new List<Point>(buckets.Count);
 
         for (var i = 0; i < buckets.Count; i++)
         {
@@ -175,6 +184,7 @@ public partial class DashboardViewModel : ObservableObject
             var y = ChartPadding + usableHeight - (double)(buckets[i].Amount / max) * usableHeight;
             var point = new Point(x, y);
             ChartPoints.Add(point);
+            pathPoints.Add(point);
             ChartMarkers.Add(new DashboardChartMarker
             {
                 X = x - 3,
@@ -188,6 +198,10 @@ public partial class DashboardViewModel : ObservableObject
             var x = buckets.Count > 1 ? ChartPadding + step * index : ChartPadding;
             ChartLabels.Add(new DashboardChartLabel { X = Math.Max(0, x - 20), Text = text });
         }
+
+        BuildChartGridLines(buckets, max, step, usableHeight);
+        ChartLineData = BuildSmoothPath(pathPoints);
+        ChartAreaData = BuildAreaPath(pathPoints);
 
         OnPropertyChanged(nameof(ChartPoints));
         OnPropertyChanged(nameof(ChartTitle));
@@ -252,6 +266,116 @@ public partial class DashboardViewModel : ObservableObject
             yield return (index, buckets[index].Label);
     }
 
+    private static decimal GetNiceChartMax(decimal value)
+    {
+        if (value <= 0)
+            return 100;
+
+        var raw = (double)value * 1.12;
+        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+        var normalized = raw / magnitude;
+        var nice = normalized switch
+        {
+            <= 1 => 1,
+            <= 2 => 2,
+            <= 5 => 5,
+            _ => 10
+        };
+
+        return (decimal)(nice * magnitude);
+    }
+
+    private void BuildChartGridLines(IReadOnlyList<DashboardChartBucket> buckets, decimal max, double step, double usableHeight)
+    {
+        const int horizontalParts = 4;
+        var left = ChartPadding;
+        var right = ChartWidth - ChartPadding;
+
+        for (var i = 0; i <= horizontalParts; i++)
+        {
+            var y = ChartPadding + usableHeight / horizontalParts * i;
+            var value = max - max / horizontalParts * i;
+            ChartHorizontalGridLines.Add(new DashboardChartGridLine
+            {
+                X1 = left,
+                Y1 = y,
+                X2 = right,
+                Y2 = y
+            });
+            ChartYAxisLabels.Add(new DashboardChartAxisLabel
+            {
+                X = 0,
+                Y = Math.Max(0, y - 8),
+                Text = FormatAxisNumber(value)
+            });
+        }
+
+        var verticalIndexes = buckets.Count <= 12
+            ? Enumerable.Range(0, buckets.Count)
+            : Enumerable.Range(0, 13).Select(i => (int)Math.Round((buckets.Count - 1) / 12.0 * i));
+
+        foreach (var index in verticalIndexes.Distinct())
+        {
+            var x = buckets.Count > 1 ? ChartPadding + step * index : ChartPadding;
+            ChartVerticalGridLines.Add(new DashboardChartGridLine
+            {
+                X1 = x,
+                Y1 = ChartPadding,
+                X2 = x,
+                Y2 = ChartHeight - ChartPadding
+            });
+        }
+    }
+
+    private static string BuildSmoothPath(IReadOnlyList<Point> points)
+    {
+        if (points.Count == 0)
+            return "";
+
+        if (points.Count == 1)
+            return FormattableString.Invariant($"M {points[0].X:F2},{points[0].Y:F2}");
+
+        var path = FormattableString.Invariant($"M {points[0].X:F2},{points[0].Y:F2}");
+        for (var i = 0; i < points.Count - 1; i++)
+        {
+            var current = points[i];
+            var next = points[i + 1];
+            var previous = i > 0 ? points[i - 1] : current;
+            var following = i + 2 < points.Count ? points[i + 2] : next;
+            var cp1 = new Point(
+                current.X + (next.X - previous.X) / 6,
+                current.Y + (next.Y - previous.Y) / 6);
+            var cp2 = new Point(
+                next.X - (following.X - current.X) / 6,
+                next.Y - (following.Y - current.Y) / 6);
+
+            path += FormattableString.Invariant($" C {cp1.X:F2},{cp1.Y:F2} {cp2.X:F2},{cp2.Y:F2} {next.X:F2},{next.Y:F2}");
+        }
+
+        return path;
+    }
+
+    private static string BuildAreaPath(IReadOnlyList<Point> points)
+    {
+        if (points.Count == 0)
+            return "";
+
+        var baseline = ChartHeight - ChartPadding;
+        var path = BuildSmoothPath(points);
+        var last = points[^1];
+        var first = points[0];
+        return FormattableString.Invariant($"{path} L {last.X:F2},{baseline:F2} L {first.X:F2},{baseline:F2} Z");
+    }
+
+    private static string FormatAxisNumber(decimal value)
+    {
+        if (value >= 1_000_000)
+            return $"{value / 1_000_000:N1}M";
+        if (value >= 10_000)
+            return $"{value / 1000:N0}k";
+        return value.ToString("N0", CultureInfo.InvariantCulture);
+    }
+
     partial void OnCustomerCountChanged(int value) => OnPropertyChanged(nameof(CustomerCountText));
     partial void OnProductCountChanged(int value) => OnPropertyChanged(nameof(ProductCountText));
     partial void OnQuotationCountChanged(int value) => OnPropertyChanged(nameof(QuotationCountText));
@@ -294,6 +418,21 @@ public sealed class DashboardChartMarker
 public sealed class DashboardChartLabel
 {
     public double X { get; init; }
+    public string Text { get; init; } = "";
+}
+
+public sealed class DashboardChartGridLine
+{
+    public double X1 { get; init; }
+    public double Y1 { get; init; }
+    public double X2 { get; init; }
+    public double Y2 { get; init; }
+}
+
+public sealed class DashboardChartAxisLabel
+{
+    public double X { get; init; }
+    public double Y { get; init; }
     public string Text { get; init; } = "";
 }
 

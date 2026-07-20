@@ -221,20 +221,75 @@
                                     </Grid.RowDefinitions>
 
                                     <Border Height="180" CornerRadius="8"
-                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="1">
                                         <Viewbox Stretch="Fill">
                                             <Canvas Width="640" Height="180" ClipToBounds="True">
-                                                <Line X1="18" Y1="18" X2="18" Y2="162"
-                                                      Stroke="{DynamicResource CardStrokeColorDefaultBrush}" StrokeThickness="1"/>
-                                                <Line X1="18" Y1="162" X2="622" Y2="162"
-                                                      Stroke="{DynamicResource CardStrokeColorDefaultBrush}" StrokeThickness="1"/>
-                                                <Line X1="18" Y1="90" X2="622" Y2="90"
-                                                      Stroke="{DynamicResource CardStrokeColorDefaultBrush}" StrokeThickness="1"
-                                                      StrokeDashArray="3,4"/>
-                                                <Polyline Points="{Binding ChartPoints}"
-                                                          Stroke="{DynamicResource AccentFillColorDefaultBrush}"
-                                                          StrokeThickness="3"
-                                                          StrokeLineJoin="Round"/>
+                                                <ItemsControl ItemsSource="{Binding ChartHorizontalGridLines}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <Canvas/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Line X1="{Binding X1}" Y1="{Binding Y1}"
+                                                                  X2="{Binding X2}" Y2="{Binding Y2}"
+                                                                  Stroke="{DynamicResource CardStrokeColorDefaultBrush}"
+                                                                  StrokeThickness="1"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <ItemsControl ItemsSource="{Binding ChartVerticalGridLines}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <Canvas/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Line X1="{Binding X1}" Y1="{Binding Y1}"
+                                                                  X2="{Binding X2}" Y2="{Binding Y2}"
+                                                                  Stroke="{DynamicResource CardStrokeColorDefaultBrush}"
+                                                                  StrokeThickness="1"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <ItemsControl ItemsSource="{Binding ChartYAxisLabels}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <Canvas/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemContainerStyle>
+                                                        <Style TargetType="ContentPresenter">
+                                                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                                                        </Style>
+                                                    </ItemsControl.ItemContainerStyle>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <ui:TextBlock Text="{Binding Text}" Width="54"
+                                                                          FontSize="11" TextAlignment="Right"
+                                                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <Path Data="{Binding ChartAreaData}" Opacity="0.36">
+                                                    <Path.Fill>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                            <GradientStop Color="#5FB2F2" Offset="0"/>
+                                                            <GradientStop Color="#145FB2F2" Offset="1"/>
+                                                        </LinearGradientBrush>
+                                                    </Path.Fill>
+                                                </Path>
+                                                <Path Data="{Binding ChartLineData}"
+                                                      Stroke="#5FB2F2"
+                                                      StrokeThickness="3"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      StrokeLineJoin="Round"/>
                                                 <ItemsControl ItemsSource="{Binding ChartMarkers}">
                                                     <ItemsControl.ItemsPanel>
                                                         <ItemsPanelTemplate>
@@ -249,8 +304,10 @@
                                                     </ItemsControl.ItemContainerStyle>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <Ellipse Width="6" Height="6"
-                                                                     Fill="{DynamicResource AccentFillColorDefaultBrush}"/>
+                                                            <Ellipse Width="7" Height="7"
+                                                                     Stroke="#5FB2F2"
+                                                                     StrokeThickness="2"
+                                                                     Fill="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
