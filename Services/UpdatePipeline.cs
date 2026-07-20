@@ -354,6 +354,11 @@ namespace Quotix.Services
         /// <returns>更新信息，无更新则返回 null</returns>
         public async Task<UpdateInfo?> CheckForUpdatesAsync()
         {
+            var directResult = await TryCheckForUpdatesFromLatestYamlAsync();
+            if (directResult.success)
+                return directResult.updateInfo;
+
+            // 直链不可用时再回退 GitHub API。API 有未认证限流，不能作为主路径。
             try
             {
                 // 调用 GitHub API 获取最新 Release（无 CDN 缓存）
@@ -453,6 +458,67 @@ namespace Quotix.Services
             catch
             {
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// 优先通过 Release 固定直链读取 latest.yml，避开 GitHub API 未认证限流。
+        /// </summary>
+        private async Task<(bool success, UpdateInfo? updateInfo)> TryCheckForUpdatesFromLatestYamlAsync()
+        {
+            try
+            {
+                var latestYmlUrl = $"https://github.com/{_repoOwner}/{_repoName}/releases/latest/download/latest.yml";
+                var ymlContent = await _httpClient.GetStringAsync(latestYmlUrl);
+                var (version, ymlChangelog) = ParseLatestYaml(ymlContent);
+
+                if (string.IsNullOrWhiteSpace(version))
+                    return (false, null);
+
+                var downloadUrl = $"https://github.com/{_repoOwner}/{_repoName}/releases/download/v{version}/Quotix_Setup_{version}.exe";
+                var fileSize = await TryGetRemoteFileSizeAsync(downloadUrl);
+                var updateInfo = new UpdateInfo
+                {
+                    Version     = version,
+                    Build       = int.TryParse(version.Replace(".", ""), out var b) ? b : 0,
+                    ReleaseDate = DateTime.Now.ToString("yyyy-MM-dd"),
+                    DownloadUrl = downloadUrl,
+                    FileSize    = fileSize,
+                    Mandatory   = false,
+                    Changelog   = ParseChangelog(ymlChangelog)
+                };
+
+                _currentUpdateInfo = updateInfo;
+                var currentVersion = new Version(AppInfo.Version);
+                var latestVersion  = new Version(version);
+
+                if (latestVersion > currentVersion)
+                    return (true, updateInfo);
+
+                _currentUpdateInfo = null;
+                return (true, null);
+            }
+            catch
+            {
+                return (false, null);
+            }
+        }
+
+        /// <summary>
+        /// 尝试读取远程安装包大小；失败时返回 0，不影响更新检测。
+        /// </summary>
+        private async Task<long> TryGetRemoteFileSizeAsync(string url)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Head, url);
+                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+                return response.Content.Headers.ContentLength ?? 0;
+            }
+            catch
+            {
+                return 0;
             }
         }
 
