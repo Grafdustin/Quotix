@@ -39,6 +39,12 @@ public class Owner
 
     /// <summary>电子邮箱</summary>
     public string? Email { get; set; }
+
+    /// <summary>是否为新建报价单默认负责人，仅用于界面显示，不写入数据库。</summary>
+    public bool IsDefault { get; set; }
+
+    /// <summary>默认负责人操作按钮文本。</summary>
+    public string DefaultButtonText => IsDefault ? "已默认" : "设为默认";
 }
 
 /// <summary>客户模型（需求方公司信息）</summary>

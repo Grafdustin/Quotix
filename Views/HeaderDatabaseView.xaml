@@ -25,13 +25,23 @@
         <!-- 负责人行模板 -->
         <DataTemplate x:Key="OwnerRowTemplate">
             <Border Height="42" CornerRadius="8" Margin="0,1"
-                    Background="Transparent">
+                    Background="Transparent" BorderThickness="0">
                 <Border.Style>
                     <Style TargetType="Border">
                         <Setter Property="Background" Value="Transparent"/>
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex)}" Value="1">
-                                <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                             <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex)}" Value="1">
+                                 <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                             </DataTrigger>
+                             <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                 <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}"/>
+                                 <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorPrimaryBrush}"/>
+                                 <Setter Property="BorderThickness" Value="1"/>
+                             </DataTrigger>
+                             <DataTrigger Binding="{Binding IsDefault}" Value="True">
+                                 <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                                 <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorPrimaryBrush}"/>
+                                <Setter Property="BorderThickness" Value="1"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -42,7 +52,7 @@
                         <ColumnDefinition Width="169*"/>
                         <ColumnDefinition Width="169*"/>
                         <ColumnDefinition Width="281*"/>
-                        <ColumnDefinition Width="100*"/>
+                        <ColumnDefinition Width="190*"/>
                     </Grid.ColumnDefinitions>
 
                     <ui:TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="13"
@@ -66,9 +76,24 @@
                                   TextTrimming="CharacterEllipsis"
                                   Margin="4,0"/>
                     <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center">
-                        <ui:Button Content="默认" Appearance="Secondary"
+                        <ui:Button Content="修改" Appearance="Secondary"
                                    Height="28" FontSize="12" MinWidth="48"
-                                   Click="SetDefaultOwnerButton_Click"/>
+                                   Click="EditOwnerButton_Click"/>
+                        <ui:Button Content="{Binding DefaultButtonText}"
+                                   Height="28" FontSize="12" MinWidth="48"
+                                   Margin="6,0,0,0"
+                                   Click="SetDefaultOwnerButton_Click">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                    <Setter Property="Appearance" Value="Secondary"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsDefault}" Value="True">
+                                            <Setter Property="Appearance" Value="Primary"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Button.Style>
+                        </ui:Button>
                         <ui:Button Content="删除" Appearance="Danger"
                                    Height="28" FontSize="12" MinWidth="48"
                                    Margin="6,0,0,0"
@@ -86,10 +111,13 @@
                     <Style TargetType="Border">
                         <Setter Property="Background" Value="Transparent"/>
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex)}" Value="1">
-                                <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
-                            </DataTrigger>
-                        </Style.Triggers>
+                             <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex)}" Value="1">
+                                 <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                             </DataTrigger>
+                             <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                 <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}"/>
+                             </DataTrigger>
+                         </Style.Triggers>
                     </Style>
                 </Border.Style>
                 <Grid>
@@ -98,7 +126,7 @@
                         <ColumnDefinition Width="158*"/>
                         <ColumnDefinition Width="158*"/>
                         <ColumnDefinition Width="263*"/>
-                        <ColumnDefinition Width="100*"/>
+                        <ColumnDefinition Width="140*"/>
                     </Grid.ColumnDefinitions>
 
                     <ui:TextBlock Grid.Column="0" Text="{Binding CompanyName}" FontSize="13"
@@ -121,10 +149,12 @@
                                   VerticalAlignment="Center"
                                   TextTrimming="CharacterEllipsis"
                                   Margin="4,0"/>
-                    <ui:Button Grid.Column="4" Content="删除" Appearance="Danger"
-                               Height="28" FontSize="12"
-                               HorizontalAlignment="Center"
-                               Click="DeleteCustomerButton_Click"/>
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <ui:Button Content="修改" Appearance="Secondary" Height="28" FontSize="12"
+                                   MinWidth="48" Click="EditCustomerButton_Click"/>
+                        <ui:Button Content="删除" Appearance="Danger" Height="28" FontSize="12"
+                                   MinWidth="48" Margin="6,0,0,0" Click="DeleteCustomerButton_Click"/>
+                    </StackPanel>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -272,12 +302,18 @@
                         </StackPanel>
                     </Border>
 
-                    <ui:Button Grid.Column="1" x:Name="NewButton"
-                               Content="新建" Appearance="Primary"
-                               Height="32" MinWidth="80" Padding="16,0"
-                               HorizontalAlignment="Right"
-                               Visibility="{Binding IsQuotationDescriptionTab, Converter={StaticResource InverseBool}}"
-                               Click="NewButton_Click"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right"
+                                Visibility="{Binding IsQuotationDescriptionTab, Converter={StaticResource InverseBool}}">
+                        <ui:Button x:Name="EditSelectedButton"
+                                   Content="修改选中" Appearance="Secondary"
+                                   Height="32" MinWidth="88" Padding="16,0"
+                                   Click="EditSelectedButton_Click"/>
+                        <ui:Button x:Name="NewButton"
+                                   Content="新建" Appearance="Primary"
+                                   Height="32" MinWidth="80" Padding="16,0"
+                                   Margin="8,0,0,0"
+                                   Click="NewButton_Click"/>
+                    </StackPanel>
                 </Grid>
 
                 <!-- ═══ Row 2：自定义表头 ═══ -->
@@ -296,7 +332,7 @@
                             <ColumnDefinition Width="169*"/>
                             <ColumnDefinition Width="169*"/>
                             <ColumnDefinition Width="281*"/>
-                            <ColumnDefinition Width="100*"/>
+                            <ColumnDefinition Width="190*"/>
                         </Grid.ColumnDefinitions>
                         <ui:TextBlock Grid.Column="0" Text="姓名" FontSize="11" FontWeight="SemiBold"
                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
@@ -331,7 +367,7 @@
                             <ColumnDefinition Width="158*"/>
                             <ColumnDefinition Width="158*"/>
                             <ColumnDefinition Width="263*"/>
-                            <ColumnDefinition Width="100*"/>
+                            <ColumnDefinition Width="140*"/>
                         </Grid.ColumnDefinitions>
                         <ui:TextBlock Grid.Column="0" Text="公司名称" FontSize="11" FontWeight="SemiBold"
                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
@@ -358,6 +394,7 @@
                 <ListBox Grid.Row="3"
                          x:Name="OwnerList"
                          ItemsSource="{Binding Owners}"
+                         SelectedItem="{Binding SelectedOwner, Mode=TwoWay}"
                          ItemContainerStyle="{StaticResource TableRowContainer}"
                          ItemTemplate="{StaticResource OwnerRowTemplate}"
                          AlternationCount="2"
@@ -372,6 +409,7 @@
                 <ListBox Grid.Row="3"
                          x:Name="CustomerList"
                          ItemsSource="{Binding Customers}"
+                         SelectedItem="{Binding SelectedCustomer, Mode=TwoWay}"
                          ItemContainerStyle="{StaticResource TableRowContainer}"
                          ItemTemplate="{StaticResource CustomerRowTemplate}"
                          AlternationCount="2"
@@ -442,8 +480,8 @@
                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                           VerticalAlignment="Top" Margin="0,8,0,0"/>
                             <ui:TextBox Grid.Column="1" Text="{Binding DefaultDeliveryMethod, UpdateSourceTrigger=PropertyChanged}"
-                                        MinHeight="72" TextWrapping="Wrap" AcceptsReturn="True"
-                                        VerticalScrollBarVisibility="Auto"/>
+                                        Height="36" TextWrapping="NoWrap" AcceptsReturn="False"
+                                        VerticalContentAlignment="Center"/>
                         </Grid>
 
                         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
@@ -483,7 +521,7 @@
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
                             <ui:SymbolIcon Symbol="PersonAdd20" FontSize="20" Margin="0,0,10,0"
                                            Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
-                            <ui:TextBlock Text="新建负责人" FontSize="16" FontWeight="SemiBold"
+                            <ui:TextBlock Text="{Binding OwnerDialogTitle}" FontSize="16" FontWeight="SemiBold"
                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                           VerticalAlignment="Center"/>
                         </StackPanel>
@@ -542,7 +580,7 @@
                         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
                             <ui:Button Content="取消" Appearance="Secondary" MinWidth="90" Margin="0,0,10,0"
                                        Click="PopupCancel_Click"/>
-                            <ui:Button Content="添加" Appearance="Primary" MinWidth="90"
+                            <ui:Button Content="{Binding OwnerDialogPrimaryText}" Appearance="Primary" MinWidth="90"
                                        Click="PopupAddOwner_Click"/>
                         </StackPanel>
                     </Grid>
@@ -558,7 +596,7 @@
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
                             <ui:SymbolIcon Symbol="Building20" FontSize="20" Margin="0,0,10,0"
                                            Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
-                            <ui:TextBlock Text="新建客户" FontSize="16" FontWeight="SemiBold"
+                            <ui:TextBlock Text="{Binding CustomerDialogTitle}" FontSize="16" FontWeight="SemiBold"
                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                           VerticalAlignment="Center"/>
                         </StackPanel>
@@ -617,7 +655,7 @@
                         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
                             <ui:Button Content="取消" Appearance="Secondary" MinWidth="90" Margin="0,0,10,0"
                                        Click="PopupCancel_Click"/>
-                            <ui:Button Content="添加" Appearance="Primary" MinWidth="90"
+                            <ui:Button Content="{Binding CustomerDialogPrimaryText}" Appearance="Primary" MinWidth="90"
                                        Click="PopupAddCustomer_Click"/>
                         </StackPanel>
                     </Grid>

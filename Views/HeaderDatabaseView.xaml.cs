@@ -294,6 +294,16 @@ public partial class HeaderDatabaseView : UserControl
         }
     }
 
+    /// <summary>打开负责人编辑弹窗。</summary>
+    private void EditOwnerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: Owner owner })
+        {
+            VM.BeginEditOwner(owner);
+            AddDialogOverlay.Visibility = Visibility.Visible;
+        }
+    }
+
     /// <summary>
     /// 删除客户按钮点击事件。
     /// </summary>
@@ -302,6 +312,16 @@ public partial class HeaderDatabaseView : UserControl
         if (sender is Button btn && btn.DataContext is Customer customer)
         {
             VM.DeleteCustomerCommand.Execute(customer.Id);
+        }
+    }
+
+    /// <summary>打开客户编辑弹窗。</summary>
+    private void EditCustomerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: Customer customer })
+        {
+            VM.BeginEditCustomer(customer);
+            AddDialogOverlay.Visibility = Visibility.Visible;
         }
     }
 
@@ -314,11 +334,19 @@ public partial class HeaderDatabaseView : UserControl
     /// </summary>
     private void NewButton_Click(object sender, RoutedEventArgs e)
     {
-        // 清空上次填写的内容
-        VM.NewOwnerName = VM.NewOwnerPhone = VM.NewOwnerTel = VM.NewOwnerEmail = "";
-        VM.NewCustomerName = VM.NewCustomerContact = VM.NewCustomerPhone = VM.NewCustomerEmail = "";
+        if (VM.IsOwnerTab)
+            VM.BeginNewOwner();
+        else
+            VM.BeginNewCustomer();
 
         AddDialogOverlay.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>修改当前选中的负责人或客户。</summary>
+    private void EditSelectedButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (VM.BeginEditSelectedEntry())
+            AddDialogOverlay.Visibility = Visibility.Visible;
     }
 
     /// <summary>
@@ -326,6 +354,7 @@ public partial class HeaderDatabaseView : UserControl
     /// </summary>
     private void PopupCancel_Click(object sender, RoutedEventArgs e)
     {
+        VM.CancelEntryEditing();
         AddDialogOverlay.Visibility = Visibility.Collapsed;
     }
 
@@ -334,8 +363,23 @@ public partial class HeaderDatabaseView : UserControl
     /// </summary>
     private async void PopupAddOwner_Click(object sender, RoutedEventArgs e)
     {
+        if (VM.IsEditingOwner)
+        {
+            await VM.UpdateOwnerCommand.ExecuteAsync(new Owner
+            {
+                Id = VM.EditingOwnerId,
+                Name = VM.NewOwnerName,
+                Phone = VM.NewOwnerPhone,
+                Tel = VM.NewOwnerTel,
+                Email = VM.NewOwnerEmail
+            });
+        }
+        else
+        {
+            await VM.AddOwnerCommand.ExecuteAsync(null);
+        }
+
         AddDialogOverlay.Visibility = Visibility.Collapsed;
-        await VM.AddOwnerCommand.ExecuteAsync(null);
 
         CacheAllOwners(VM);
         UpdateRecordCount();
@@ -346,8 +390,23 @@ public partial class HeaderDatabaseView : UserControl
     /// </summary>
     private async void PopupAddCustomer_Click(object sender, RoutedEventArgs e)
     {
+        if (VM.IsEditingCustomer)
+        {
+            await VM.UpdateCustomerCommand.ExecuteAsync(new Customer
+            {
+                Id = VM.EditingCustomerId,
+                CompanyName = VM.NewCustomerName,
+                Contact = VM.NewCustomerContact,
+                Phone = VM.NewCustomerPhone,
+                Email = VM.NewCustomerEmail
+            });
+        }
+        else
+        {
+            await VM.AddCustomerCommand.ExecuteAsync(null);
+        }
+
         AddDialogOverlay.Visibility = Visibility.Collapsed;
-        await VM.AddCustomerCommand.ExecuteAsync(null);
 
         CacheAllCustomers(VM);
         UpdateRecordCount();

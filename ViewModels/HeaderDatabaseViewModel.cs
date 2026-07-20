@@ -53,6 +53,36 @@ public partial class HeaderDatabaseViewModel : ObservableObject
     [ObservableProperty] private bool _isCustomerTab;
     [ObservableProperty] private bool _isQuotationDescriptionTab;
     [ObservableProperty] private string _defaultOwnerId = "";
+    [ObservableProperty] private Owner? _selectedOwner;
+    [ObservableProperty] private Customer? _selectedCustomer;
+    [ObservableProperty] private bool _isEditingOwner;
+    [ObservableProperty] private bool _isEditingCustomer;
+    [ObservableProperty] private string _editingOwnerId = "";
+    [ObservableProperty] private string _editingCustomerId = "";
+
+    /// <summary>负责人编辑弹窗标题。</summary>
+    public string OwnerDialogTitle => IsEditingOwner ? "修改负责人" : "新建负责人";
+
+    /// <summary>负责人编辑弹窗主按钮文字。</summary>
+    public string OwnerDialogPrimaryText => IsEditingOwner ? "保存修改" : "添加";
+
+    /// <summary>客户编辑弹窗标题。</summary>
+    public string CustomerDialogTitle => IsEditingCustomer ? "修改客户" : "新建客户";
+
+    /// <summary>客户编辑弹窗主按钮文字。</summary>
+    public string CustomerDialogPrimaryText => IsEditingCustomer ? "保存修改" : "添加";
+
+    partial void OnIsEditingOwnerChanged(bool value)
+    {
+        OnPropertyChanged(nameof(OwnerDialogTitle));
+        OnPropertyChanged(nameof(OwnerDialogPrimaryText));
+    }
+
+    partial void OnIsEditingCustomerChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CustomerDialogTitle));
+        OnPropertyChanged(nameof(CustomerDialogPrimaryText));
+    }
 
     // 负责人字段
     /// <summary>
@@ -119,7 +149,10 @@ public partial class HeaderDatabaseViewModel : ObservableObject
         var list = await Task.Run(() => _headerService.GetOwners());
         Owners.Clear();
         foreach (var o in list)
+        {
+            o.IsDefault = o.Id == DefaultOwnerId;
             Owners.Add(o);
+        }
     }
 
     /// <summary>
@@ -189,7 +222,7 @@ public partial class HeaderDatabaseViewModel : ObservableObject
             Email = NewOwnerEmail
         });
 
-        NewOwnerName = NewOwnerPhone = NewOwnerTel = NewOwnerEmail = "";
+        ClearOwnerEditor();
         await RefreshOwnersAsync();
     }
 
@@ -200,7 +233,14 @@ public partial class HeaderDatabaseViewModel : ObservableObject
     [RelayCommand]
     private async Task UpdateOwner(Owner owner)
     {
+        if (string.IsNullOrWhiteSpace(owner.Id) || string.IsNullOrWhiteSpace(owner.Name))
+        {
+            _dialog.ShowWarning("请输入负责人姓名");
+            return;
+        }
+
         _headerService.UpdateOwner(owner);
+        ClearOwnerEditor();
         await RefreshOwnersAsync();
     }
 
@@ -227,12 +267,14 @@ public partial class HeaderDatabaseViewModel : ObservableObject
     /// 设置默认负责人，用于新建报价单自动填入报价方信息。
     /// </summary>
     [RelayCommand]
-    private void SetDefaultOwner(string id)
+    private async Task SetDefaultOwner(string id)
     {
+        if (DefaultOwnerId == id)
+            return;
+
         DefaultOwnerId = id;
         _settingsService.DefaultOwnerId = id;
-        var owner = Owners.FirstOrDefault(o => o.Id == id);
-        _dialog.ShowInfo($"已设为默认负责人：{owner?.Name ?? "当前负责人"}", "成功");
+        await RefreshOwnersAsync();
     }
 
     /// <summary>
@@ -282,7 +324,7 @@ public partial class HeaderDatabaseViewModel : ObservableObject
             Email = NewCustomerEmail
         });
 
-        NewCustomerName = NewCustomerContact = NewCustomerPhone = NewCustomerEmail = "";
+        ClearCustomerEditor();
         await RefreshCustomersAsync();
     }
 
@@ -293,9 +335,103 @@ public partial class HeaderDatabaseViewModel : ObservableObject
     [RelayCommand]
     private async Task UpdateCustomer(Customer customer)
     {
+        if (string.IsNullOrWhiteSpace(customer.Id) || string.IsNullOrWhiteSpace(customer.CompanyName))
+        {
+            _dialog.ShowWarning("请输入客户名称");
+            return;
+        }
+
         _headerService.UpdateCustomer(customer);
+        ClearCustomerEditor();
         await RefreshCustomersAsync();
     }
+
+    /// <summary>准备新建负责人表单。</summary>
+    public void BeginNewOwner()
+    {
+        IsEditingOwner = false;
+        EditingOwnerId = "";
+        ClearOwnerEditor();
+    }
+
+    /// <summary>将负责人加载到编辑表单。</summary>
+    public void BeginEditOwner(Owner owner)
+    {
+        SelectedOwner = owner;
+        IsEditingOwner = true;
+        EditingOwnerId = owner.Id;
+        NewOwnerName = owner.Name;
+        NewOwnerPhone = owner.Phone ?? "";
+        NewOwnerTel = owner.Tel ?? "";
+        NewOwnerEmail = owner.Email ?? "";
+    }
+
+    /// <summary>准备新建客户表单。</summary>
+    public void BeginNewCustomer()
+    {
+        IsEditingCustomer = false;
+        EditingCustomerId = "";
+        ClearCustomerEditor();
+    }
+
+    /// <summary>将客户加载到编辑表单。</summary>
+    public void BeginEditCustomer(Customer customer)
+    {
+        SelectedCustomer = customer;
+        IsEditingCustomer = true;
+        EditingCustomerId = customer.Id;
+        NewCustomerName = customer.CompanyName;
+        NewCustomerContact = customer.Contact ?? "";
+        NewCustomerPhone = customer.Phone ?? "";
+        NewCustomerEmail = customer.Email ?? "";
+    }
+
+    /// <summary>将当前选中的负责人或客户加载到编辑表单。</summary>
+    public bool BeginEditSelectedEntry()
+    {
+        if (IsOwnerTab)
+        {
+            if (SelectedOwner == null)
+            {
+                _dialog.ShowWarning("请先选择要修改的负责人");
+                return false;
+            }
+
+            BeginEditOwner(SelectedOwner);
+            return true;
+        }
+
+        if (IsCustomerTab)
+        {
+            if (SelectedCustomer == null)
+            {
+                _dialog.ShowWarning("请先选择要修改的客户");
+                return false;
+            }
+
+            BeginEditCustomer(SelectedCustomer);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>关闭编辑弹窗时清理临时状态。</summary>
+    public void CancelEntryEditing()
+    {
+        IsEditingOwner = false;
+        IsEditingCustomer = false;
+        EditingOwnerId = "";
+        EditingCustomerId = "";
+        ClearOwnerEditor();
+        ClearCustomerEditor();
+    }
+
+    private void ClearOwnerEditor() =>
+        NewOwnerName = NewOwnerPhone = NewOwnerTel = NewOwnerEmail = "";
+
+    private void ClearCustomerEditor() =>
+        NewCustomerName = NewCustomerContact = NewCustomerPhone = NewCustomerEmail = "";
 
     /// <summary>
     /// 删除指定客户。

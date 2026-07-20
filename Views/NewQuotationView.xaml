@@ -415,7 +415,9 @@
                                 <ui:TextBlock Text="交货方式" FontSize="12" FontWeight="Medium"
                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                               Margin="0,0,0,6"/>
-                                <ui:TextBox Text="{Binding DeliveryMethod, UpdateSourceTrigger=PropertyChanged}"/>
+                                <ui:TextBox Text="{Binding DeliveryMethod, UpdateSourceTrigger=PropertyChanged}"
+                                            TextWrapping="NoWrap" AcceptsReturn="False"
+                                            VerticalContentAlignment="Center"/>
                             </StackPanel>
                         </Grid>
                     </StackPanel>
@@ -511,7 +513,10 @@
                                             <ui:TextBox Grid.Column="1"
                                                         Text="{Binding ItemName, UpdateSourceTrigger=PropertyChanged}"
                                                         FontSize="13" Height="34" VerticalContentAlignment="Center"
-                                                        Margin="0,0,8,0"/>
+                                                        Margin="0,0,8,0"
+                                                        Tag="ItemName"
+                                                        GotFocus="OverflowField_GotFocus"
+                                                        TextChanged="OverflowField_TextChanged"/>
 
                                             <!-- 编号 -->
                                             <ui:TextBox Grid.Column="2"
@@ -526,7 +531,10 @@
                                             <ui:TextBox Grid.Column="3"
                                                         Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
                                                         FontSize="13" Height="34" VerticalContentAlignment="Center"
-                                                        Margin="0,0,8,0"/>
+                                                        Margin="0,0,8,0"
+                                                        Tag="Description"
+                                                        GotFocus="OverflowField_GotFocus"
+                                                        TextChanged="OverflowField_TextChanged"/>
 
                                             <!-- 数量 -->
                                             <ui:TextBox Grid.Column="4"
@@ -695,6 +703,44 @@
                                       TextWrapping="Wrap" HorizontalAlignment="Center"
                                       Margin="16,24" Visibility="{Binding QuickSearchResults.Count, Converter={StaticResource CountToVis}, ConverterParameter=Zero}"/>
                     </Grid>
+                </Grid>
+            </Border>
+        </Popup>
+
+        <!-- 长产品名称/说明编辑抽屉：仅在文本超出原输入框可见范围时打开 -->
+        <Popup x:Name="OverflowEditorPopup" Placement="Bottom" StaysOpen="False"
+               AllowsTransparency="True" PopupAnimation="Fade"
+               Closed="OverflowEditorPopup_Closed">
+            <Border x:Name="OverflowEditorPopupBorder"
+                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="14,12">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="6" Opacity="0.18" BlurRadius="20" Color="#000000"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBlock x:Name="OverflowEditorTitle" FontSize="13" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                      VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="X" Width="28" Height="28" Padding="0"
+                                Background="Transparent" BorderThickness="0"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                ToolTip="关闭" Click="OverflowEditorClose_Click"/>
+                    </Grid>
+                     <ui:TextBox x:Name="OverflowEditorTextBox" Grid.Row="1"
+                                 MinHeight="84" MaxHeight="220" FontSize="13"
+                                 TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                 VerticalContentAlignment="Top"
+                                 TextChanged="OverflowEditorTextBox_TextChanged"/>
                 </Grid>
             </Border>
         </Popup>
