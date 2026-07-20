@@ -28,8 +28,9 @@ public partial class NewQuotationView : UserControl
     private NewQuotationViewModel? _subscribedVm;
     private bool _suppressQuickSearchEvents;
     private bool _quickResultsRefreshQueued;
-    private TextBox? _overflowSourceBox;
-    private bool _syncingOverflowEditor;
+    private TextBox? _expandedOverflowBox;
+    private const double CollapsedOverflowFieldHeight = 34;
+    private const double ExpandedOverflowFieldMaxHeight = 150;
 
     /// <summary>
     /// 初始化 NewQuotationView 实例。
@@ -164,7 +165,7 @@ public partial class NewQuotationView : UserControl
         }
         // 离开视图（切换页面）时关闭弹窗并清理候选，避免残留
         QuickSearchPopup.IsOpen = false;
-        OverflowEditorPopup.IsOpen = false;
+        CollapseOverflowField(_expandedOverflowBox);
         if (DataContext is NewQuotationViewModel vm)
             vm.QuickSearchResults.Clear();
     }
@@ -317,33 +318,38 @@ public partial class NewQuotationView : UserControl
         }, DispatcherPriority.ContextIdle);
     }
 
-    // ==================== 长文本抽屉编辑 ====================
+    // ==================== 长文本原地展开 ====================
 
     private void OverflowField_GotFocus(object sender, RoutedEventArgs e)
     {
         if (sender is TextBox tb)
-            QueueOverflowEditor(tb);
+            QueueOverflowExpansion(tb);
     }
 
     private void OverflowField_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (_syncingOverflowEditor) return;
         if (sender is not TextBox tb) return;
 
-        if (_overflowSourceBox == tb && OverflowEditorPopup.IsOpen)
-        {
-            _syncingOverflowEditor = true;
-            OverflowEditorTextBox.Text = tb.Text;
-            OverflowEditorTextBox.CaretIndex = OverflowEditorTextBox.Text.Length;
-            _syncingOverflowEditor = false;
-            return;
-        }
-
         if (tb.IsKeyboardFocusWithin)
-            QueueOverflowEditor(tb);
+            QueueOverflowExpansion(tb);
     }
 
-    private void QueueOverflowEditor(TextBox sourceBox)
+    private void OverflowField_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is TextBox tb)
+            CollapseOverflowField(tb);
+    }
+
+    private void OverflowField_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || sender is not TextBox tb) return;
+
+        CollapseOverflowField(tb);
+        Keyboard.ClearFocus();
+        e.Handled = true;
+    }
+
+    private void QueueOverflowExpansion(TextBox sourceBox)
     {
         Dispatcher.BeginInvoke(() =>
         {
@@ -351,59 +357,56 @@ public partial class NewQuotationView : UserControl
                 return;
 
             if (IsTextOverflowing(sourceBox))
-                OpenOverflowEditor(sourceBox);
-            else if (_overflowSourceBox == sourceBox)
-                CloseOverflowEditor();
+                ExpandOverflowField(sourceBox);
+            else
+                CollapseOverflowField(sourceBox);
         }, DispatcherPriority.Loaded);
     }
 
-    private void OpenOverflowEditor(TextBox sourceBox)
+    private void ExpandOverflowField(TextBox sourceBox)
     {
-        _overflowSourceBox = sourceBox;
-        OverflowEditorTitle.Text = (sourceBox.Tag as string) == "Description" ? "说明" : "产品名称";
-        OverflowEditorPopup.PlacementTarget = MainScrollViewer;
-        OverflowEditorPopupBorder.Width = Math.Min(Math.Max(MainScrollViewer.ViewportWidth - 48, 420), 920);
-        OverflowEditorPopupBorder.MaxHeight = Math.Min(260, Math.Max(160, ActualHeight * 0.35));
-        OverflowEditorPopup.HorizontalOffset = 24;
-        OverflowEditorPopup.VerticalOffset = -OverflowEditorPopupBorder.MaxHeight - 24;
+        if (_expandedOverflowBox != null && _expandedOverflowBox != sourceBox)
+            CollapseOverflowField(_expandedOverflowBox);
 
-        _syncingOverflowEditor = true;
-        OverflowEditorTextBox.Text = sourceBox.Text;
-        OverflowEditorTextBox.CaretIndex = OverflowEditorTextBox.Text.Length;
-        _syncingOverflowEditor = false;
+        _expandedOverflowBox = sourceBox;
+        sourceBox.TextWrapping = TextWrapping.Wrap;
+        sourceBox.AcceptsReturn = true;
+        sourceBox.VerticalContentAlignment = VerticalAlignment.Top;
+        sourceBox.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+        sourceBox.Height = CalculateExpandedFieldHeight(sourceBox);
 
-        OverflowEditorPopup.IsOpen = true;
-        Dispatcher.BeginInvoke(() =>
+        Dispatcher.BeginInvoke(() => sourceBox.BringIntoView(), DispatcherPriority.Loaded);
+    }
+
+    private void CollapseOverflowField(TextBox? sourceBox)
+    {
+        if (sourceBox == null) return;
+
+        sourceBox.Height = CollapsedOverflowFieldHeight;
+        sourceBox.TextWrapping = TextWrapping.NoWrap;
+        sourceBox.AcceptsReturn = false;
+        sourceBox.VerticalContentAlignment = VerticalAlignment.Center;
+        sourceBox.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+
+        if (_expandedOverflowBox == sourceBox)
+            _expandedOverflowBox = null;
+    }
+
+    private double CalculateExpandedFieldHeight(TextBox textBox)
+    {
+        var availableWidth = textBox.ActualWidth - textBox.Padding.Left - textBox.Padding.Right - 10;
+        if (availableWidth <= 0)
+            return CollapsedOverflowFieldHeight;
+
+        var lines = Math.Max(2, 1 + (int)Math.Ceiling(MeasureText(textBox.Text, textBox.FontSize, textBox.FontWeight) / availableWidth));
+        if (textBox.Text.Contains('\n'))
         {
-            OverflowEditorTextBox.Focus();
-            OverflowEditorTextBox.CaretIndex = OverflowEditorTextBox.Text.Length;
-        }, DispatcherPriority.Input);
-    }
+            var explicitLines = textBox.Text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).Length;
+            lines = Math.Max(lines, explicitLines);
+        }
 
-    private void CloseOverflowEditor()
-    {
-        OverflowEditorPopup.IsOpen = false;
-        _overflowSourceBox = null;
-    }
-
-    private void OverflowEditorTextBox_TextChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_syncingOverflowEditor || _overflowSourceBox == null) return;
-
-        _syncingOverflowEditor = true;
-        _overflowSourceBox.Text = OverflowEditorTextBox.Text;
-        _overflowSourceBox.CaretIndex = _overflowSourceBox.Text.Length;
-        _syncingOverflowEditor = false;
-    }
-
-    private void OverflowEditorClose_Click(object sender, RoutedEventArgs e)
-    {
-        CloseOverflowEditor();
-    }
-
-    private void OverflowEditorPopup_Closed(object? sender, EventArgs e)
-    {
-        _overflowSourceBox = null;
+        var desired = 18 + lines * (textBox.FontSize + 7);
+        return Math.Clamp(desired, 68, ExpandedOverflowFieldMaxHeight);
     }
 
     private bool IsTextOverflowing(TextBox textBox)
