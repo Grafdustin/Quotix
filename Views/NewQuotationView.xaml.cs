@@ -323,6 +323,23 @@ public partial class NewQuotationView : UserControl
     // ==================== 选择结果 ====================
 
     /// <summary>
+    /// 快速输入提交后释放当前输入框焦点，避免录入完成后输入框继续处于激活状态。
+    /// </summary>
+    private void FinishQuickInputSelection(NewQuotationViewModel vm, QuickSearchResult result)
+    {
+        vm.OnQuickResultSelected(result);
+        _lastCodeBox = null;
+        _lastCodeRowIndex = -1;
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            QuickSearchPopup.IsOpen = false;
+            Keyboard.ClearFocus();
+            Focus();
+        }, DispatcherPriority.Input);
+    }
+
+    /// <summary>
     /// 快速搜索结果列表鼠标左键释放（隧道阶段）时调用，选择搜索结果。
     /// </summary>
     private void QuickResultsList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -341,7 +358,10 @@ public partial class NewQuotationView : UserControl
                 : LogicalTreeHelper.GetParent(dep);
         }
         if (dep is ListBoxItem item && item.DataContext is QuickSearchResult result)
-            vm.OnQuickResultSelected(result);
+        {
+            FinishQuickInputSelection(vm, result);
+            e.Handled = true;
+        }
     }
 
     /// <summary>
@@ -352,7 +372,7 @@ public partial class NewQuotationView : UserControl
         if (DataContext is not NewQuotationViewModel vm) return;
         if (e.Key == Key.Enter && QuickResultsList.SelectedItem is QuickSearchResult result)
         {
-            vm.OnQuickResultSelected(result);
+            FinishQuickInputSelection(vm, result);
             e.Handled = true;
         }
         else if (e.Key == Key.Escape)
