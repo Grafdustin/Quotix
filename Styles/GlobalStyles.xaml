@@ -20,6 +20,52 @@
     <conv:IndexConverter x:Key="Index"/>
     <conv:ZeroToEmptyConverter x:Key="ZeroToEmpty"/>
 
+    <!-- ===== 全局按钮：克制、清晰、偏桌面工具质感 ===== -->
+    <SolidColorBrush x:Key="AppButtonPrimaryForegroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="AppButtonDangerBackgroundBrush" Color="#B42318"/>
+    <SolidColorBrush x:Key="AppButtonDangerHoverBrush" Color="#A61E14"/>
+    <SolidColorBrush x:Key="AppButtonDangerPressedBrush" Color="#871B14"/>
+
+    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        <Setter Property="MouseOverBackground" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+        <Setter Property="MouseOverBorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="PressedBackground" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="PressedBorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        <Style.Triggers>
+            <Trigger Property="Appearance" Value="Primary">
+                <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource AppButtonPrimaryForegroundBrush}"/>
+                <Setter Property="MouseOverBackground" Value="{DynamicResource AccentFillColorSecondaryBrush}"/>
+                <Setter Property="MouseOverBorderBrush" Value="{DynamicResource AccentFillColorSecondaryBrush}"/>
+                <Setter Property="PressedBackground" Value="{DynamicResource AccentFillColorTertiaryBrush}"/>
+                <Setter Property="PressedBorderBrush" Value="{DynamicResource AccentFillColorTertiaryBrush}"/>
+                <Setter Property="PressedForeground" Value="{StaticResource AppButtonPrimaryForegroundBrush}"/>
+            </Trigger>
+            <Trigger Property="Appearance" Value="Danger">
+                <Setter Property="Background" Value="{StaticResource AppButtonDangerBackgroundBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource AppButtonDangerBackgroundBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource AppButtonPrimaryForegroundBrush}"/>
+                <Setter Property="MouseOverBackground" Value="{StaticResource AppButtonDangerHoverBrush}"/>
+                <Setter Property="MouseOverBorderBrush" Value="{StaticResource AppButtonDangerHoverBrush}"/>
+                <Setter Property="PressedBackground" Value="{StaticResource AppButtonDangerPressedBrush}"/>
+                <Setter Property="PressedBorderBrush" Value="{StaticResource AppButtonDangerPressedBrush}"/>
+                <Setter Property="PressedForeground" Value="{StaticResource AppButtonPrimaryForegroundBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- ===== 现代化卡片样式 ===== -->
     <Style x:Key="AppCardModern" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
