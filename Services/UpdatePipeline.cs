@@ -553,63 +553,93 @@ namespace Quotix.Services
         }
 
         /// <summary>
-        /// 安装更新包：创建批处理脚本负责等待旧进程退出 → 静默安装 → 重启应用。
+        /// 安装更新包：创建 PowerShell 脚本负责等待旧进程退出 → 静默安装 → 检查退出码 → 重启应用。
         /// </summary>
         private void InstallUpdate(string installerPath)
         {
             var currentExePath = GetCurrentExecutablePath();
             var exeDir        = Path.GetDirectoryName(currentExePath) ?? "";
+            var installRoot    = Directory.GetParent(exeDir)?.FullName ?? exeDir;
+            var currentPid     = Process.GetCurrentProcess().Id;
+            var updateDir      = Path.GetDirectoryName(installerPath)!;
+            var logPath        = Path.Combine(updateDir, "update-install.log");
 
-            var batchScriptPath = Path.Combine(
-                Path.GetDirectoryName(installerPath)!,
-                "install_and_restart.bat"
-            );
-
-            var batchLines = new List<string>
+            var scriptPath = Path.Combine(updateDir, "install_and_restart.ps1");
+            var scriptLines = new List<string>
             {
-                "@echo off",
-                "chcp 65001 > nul",
-                "title Quotix Update",
+                "$ErrorActionPreference = 'Stop'",
+                $"$installer = {ToPowerShellLiteral(installerPath)}",
+                $"$currentExe = {ToPowerShellLiteral(currentExePath)}",
+                $"$exeDir = {ToPowerShellLiteral(exeDir)}",
+                $"$installRoot = {ToPowerShellLiteral(installRoot)}",
+                $"$pidToWait = {currentPid}",
+                $"$logPath = {ToPowerShellLiteral(logPath)}",
+                "function Write-InstallLog([string]$message) {",
+                "    $line = '[' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + '] ' + $message",
+                "    Add-Content -Path $logPath -Value $line -Encoding UTF8",
+                "}",
                 "",
-                "REM 等待当前应用关闭（最多等待 5 秒）",
-                "timeout /t 5 /nobreak > nul",
+                "try {",
+                "    Write-InstallLog 'Update script started.'",
+                "    $oldProcess = Get-Process -Id $pidToWait -ErrorAction SilentlyContinue",
+                "    if ($oldProcess) {",
+                "        Write-InstallLog \"Waiting for Quotix process $pidToWait to exit.\"",
+                "        Wait-Process -Id $pidToWait -Timeout 60 -ErrorAction SilentlyContinue",
+                "    }",
                 "",
-                "REM 运行安装程序（静默安装）",
-                "echo Installing update...",
-                $"\"{installerPath}\" /SILENT",
+                "    if (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue) {",
+                "        throw \"Quotix process $pidToWait did not exit within 60 seconds.\"",
+                "    }",
                 "",
-                "REM 等待安装完成并验证新 exe 存在",
-                "echo Waiting for installation to complete...",
-                ":wait_loop",
-                $"if exist \"{currentExePath}\" goto start_app",
-                "timeout /t 2 /nobreak > nul",
-                "goto wait_loop",
+                "    if (-not (Test-Path -LiteralPath $installer)) {",
+                "        throw \"Installer not found: $installer\"",
+                "    }",
                 "",
-                ":start_app",
-                "REM 确保新文件完全写入后再启动",
-                "timeout /t 3 /nobreak > nul",
+                "    $arguments = @(",
+                "        '/VERYSILENT',",
+                "        '/SUPPRESSMSGBOXES',",
+                "        '/NORESTART',",
+                "        '/CLOSEAPPLICATIONS',",
+                "        ('/DIR=\"' + $installRoot + '\"')",
+                "    )",
+                "    Write-InstallLog ('Starting installer: ' + $installer)",
+                "    $installProcess = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru",
+                "    Write-InstallLog ('Installer exit code: ' + $installProcess.ExitCode)",
+                "    if ($installProcess.ExitCode -notin 0, 3010) {",
+                "        throw \"Installer failed with exit code $($installProcess.ExitCode).\"",
+                "    }",
                 "",
-                "REM 启动新版本的应用（指定工作目录）",
-                "echo Starting Quotix...",
-                $"start \"\" /d \"{exeDir}\" \"{currentExePath}\"",
+                "    if (-not (Test-Path -LiteralPath $currentExe)) {",
+                "        throw \"Updated executable not found: $currentExe\"",
+                "    }",
                 "",
-                "REM 删除安装包",
-                "echo Cleaning up...",
-                $"del \"{installerPath}\" /Q 2>nul",
+                "    Start-Sleep -Seconds 1",
+                "    Write-InstallLog 'Starting updated Quotix.'",
+                "    Start-Process -FilePath $currentExe -WorkingDirectory $exeDir",
                 "",
-                "REM 延迟删除此批处理脚本自身",
-                $"(goto) 2>nul & del \"%~f0\"",
-                "",
-                "exit"
+                "    Remove-Item -LiteralPath $installer -Force -ErrorAction SilentlyContinue",
+                "    Write-InstallLog 'Update script completed.'",
+                "}",
+                "catch {",
+                "    Write-InstallLog ('Update failed: ' + $_.Exception.Message)",
+                "    if (Test-Path -LiteralPath $currentExe) {",
+                "        Start-Process -FilePath $currentExe -WorkingDirectory $exeDir",
+                "    }",
+                "    exit 1",
+                "}",
+                "finally {",
+                "    Start-Sleep -Milliseconds 300",
+                "    Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue",
+                "}"
             };
 
-            var batchContent = string.Join(Environment.NewLine, batchLines);
-            File.WriteAllText(batchScriptPath, batchContent, Encoding.UTF8);
+            var scriptContent = string.Join(Environment.NewLine, scriptLines);
+            File.WriteAllText(scriptPath, scriptContent, new UTF8Encoding(false));
 
             var processStartInfo = new ProcessStartInfo
             {
-                FileName      = "cmd.exe",
-                Arguments      = $"/c \"{batchScriptPath}\"",
+                FileName      = "powershell.exe",
+                Arguments      = $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\"",
                 UseShellExecute = true,
                 CreateNoWindow = true,
                 WindowStyle    = ProcessWindowStyle.Hidden
@@ -618,6 +648,9 @@ namespace Quotix.Services
             Process.Start(processStartInfo);
             System.Windows.Application.Current.Shutdown();
         }
+
+        private static string ToPowerShellLiteral(string value)
+            => "'" + value.Replace("'", "''") + "'";
 
         /// <summary>
         /// 获取当前可执行文件路径。
