@@ -7,6 +7,12 @@
     <!-- ===== 全局 ui:TextBox 隐式样式 ===== -->
     <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
         <Setter Property="ClearButtonEnabled" Value="False"/>
+        <Setter Property="common:FloatingTextPreview.IsEnabled" Value="True"/>
+    </Style>
+
+    <!-- ===== 全局原生 TextBox 漂浮文本预览 ===== -->
+    <Style TargetType="TextBox">
+        <Setter Property="common:FloatingTextPreview.IsEnabled" Value="True"/>
     </Style>
 
     <!-- ===== Converters ===== -->

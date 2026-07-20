@@ -96,6 +96,7 @@ public partial class App : Application
     {
         // 全局滚动优化：列表类控件按像素滚动，滚轮事件交回 WPF 原生处理。
         SmoothScrollBehavior.Register();
+        FloatingTextPreview.RegisterGlobal();
 
         // 构建 DI 容器
         _serviceProvider = DiConfig.Build();

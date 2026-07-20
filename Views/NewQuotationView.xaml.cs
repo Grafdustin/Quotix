@@ -365,10 +365,20 @@ public partial class NewQuotationView : UserControl
         if (placementTarget != null)
         {
             QuickSearchPopup.PlacementTarget = placementTarget;
+            QuickSearchPopupBorder.Width = CalculateQuickPopupWidth(placementTarget);
             QuickSearchPopup.HorizontalOffset = 0;
             // Placement=Top 时弹窗在输入框上方；负偏移留出 4px 间距
             QuickSearchPopup.VerticalOffset = -4;
         }
+    }
+
+    private static double CalculateQuickPopupWidth(UIElement placementTarget)
+    {
+        var targetWidth = placementTarget.RenderSize.Width;
+        if (double.IsNaN(targetWidth) || targetWidth <= 0)
+            targetWidth = 320;
+
+        return Math.Clamp(targetWidth, 260, 560);
     }
 
     /// <summary>
