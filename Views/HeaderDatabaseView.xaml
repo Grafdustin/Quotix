@@ -51,8 +51,8 @@
                         <ColumnDefinition Width="169*"/>
                         <ColumnDefinition Width="169*"/>
                         <ColumnDefinition Width="169*"/>
-                        <ColumnDefinition Width="281*"/>
-                        <ColumnDefinition Width="190*"/>
+                        <ColumnDefinition Width="251*"/>
+                        <ColumnDefinition Width="220*"/>
                     </Grid.ColumnDefinitions>
 
                     <ui:TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="13"
@@ -75,7 +75,8 @@
                                   VerticalAlignment="Center"
                                   TextTrimming="CharacterEllipsis"
                                   Margin="4,0"/>
-                    <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right"
+                                Margin="0,0,8,0">
                         <ui:Button Content="{Binding DefaultButtonText}"
                                    Height="28" FontSize="12" MinWidth="48"
                                    Click="SetDefaultOwnerButton_Click">
@@ -149,7 +150,8 @@
                                   VerticalAlignment="Center"
                                   TextTrimming="CharacterEllipsis"
                                   Margin="4,0"/>
-                    <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right"
+                                Margin="0,0,14,0">
                         <ui:Button Content="修改" Appearance="Secondary" Height="28" FontSize="12"
                                    MinWidth="48" Click="EditCustomerButton_Click"/>
                         <ui:Button Content="删除" Appearance="Danger" Height="28" FontSize="12"
@@ -326,8 +328,8 @@
                             <ColumnDefinition Width="169*"/>
                             <ColumnDefinition Width="169*"/>
                             <ColumnDefinition Width="169*"/>
-                            <ColumnDefinition Width="281*"/>
-                            <ColumnDefinition Width="190*"/>
+                            <ColumnDefinition Width="251*"/>
+                            <ColumnDefinition Width="220*"/>
                         </Grid.ColumnDefinitions>
                         <ui:TextBlock Grid.Column="0" Text="姓名" FontSize="11" FontWeight="SemiBold"
                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
