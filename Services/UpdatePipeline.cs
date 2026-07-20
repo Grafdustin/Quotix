@@ -190,54 +190,57 @@ namespace Quotix.Services
                         if (totalBytes <= 0) totalBytes = updateInfo.FileSize;
                         State.TotalBytes = totalBytes > 0 ? totalBytes : 0;
 
-                        using var contentStream = await response.Content.ReadAsStreamAsync(token);
-                        using var fileStream = new FileStream(
-                            tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-
                         var totalRead = 0L;
                         var buffer = new byte[8192];
 
-                        while (true)
+                        using (var contentStream = await response.Content.ReadAsStreamAsync(token))
+                        using (var fileStream = new FileStream(
+                            tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
                         {
-                            token.ThrowIfCancellationRequested();
-
-                            var read = await contentStream.ReadAsync(buffer, 0, buffer.Length, token);
-                            if (read == 0) break;
-
-                            await fileStream.WriteAsync(buffer, 0, read, token);
-                            totalRead += read;
-                            State.ReceivedBytes = totalRead;
-
-                            // 计算进度
-                            if (totalBytes > 0)
-                                State.Progress = totalRead * 100.0 / totalBytes;
-
-                            // 每 0.5 秒更新一次网速（避免闪烁）
-                            var now = DateTime.Now;
-                            var elapsed = (now - lastReportTime).TotalSeconds;
-                            if (elapsed >= 0.5)
+                            while (true)
                             {
-                                var bytesInInterval = totalRead - lastReportedBytes;
-                                State.SpeedBytesPerSec = elapsed > 0 ? bytesInInterval / elapsed : 0;
-                                lastReportTime = now;
-                                lastReportedBytes = totalRead;
-                            }
+                                token.ThrowIfCancellationRequested();
 
-                            // 预估剩余时间（基于整体平均速度）
-                            var totalElapsed = (now - downloadStartTime).TotalSeconds;
-                            if (totalElapsed > 0 && totalRead > 0 && totalBytes > 0)
-                            {
-                                var avgSpeed = totalRead / totalElapsed;
-                                if (avgSpeed > 0)
+                                var read = await contentStream.ReadAsync(buffer, 0, buffer.Length, token);
+                                if (read == 0) break;
+
+                                await fileStream.WriteAsync(buffer, 0, read, token);
+                                totalRead += read;
+                                State.ReceivedBytes = totalRead;
+
+                                // 计算进度
+                                if (totalBytes > 0)
+                                    State.Progress = totalRead * 100.0 / totalBytes;
+
+                                // 每 0.5 秒更新一次网速（避免闪烁）
+                                var now = DateTime.Now;
+                                var elapsed = (now - lastReportTime).TotalSeconds;
+                                if (elapsed >= 0.5)
                                 {
-                                    var remainingBytes = totalBytes - totalRead;
-                                    State.Eta = TimeSpan.FromSeconds(remainingBytes / avgSpeed);
+                                    var bytesInInterval = totalRead - lastReportedBytes;
+                                    State.SpeedBytesPerSec = elapsed > 0 ? bytesInInterval / elapsed : 0;
+                                    lastReportTime = now;
+                                    lastReportedBytes = totalRead;
+                                }
+
+                                // 预估剩余时间（基于整体平均速度）
+                                var totalElapsed = (now - downloadStartTime).TotalSeconds;
+                                if (totalElapsed > 0 && totalRead > 0 && totalBytes > 0)
+                                {
+                                    var avgSpeed = totalRead / totalElapsed;
+                                    if (avgSpeed > 0)
+                                    {
+                                        var remainingBytes = totalBytes - totalRead;
+                                        State.Eta = TimeSpan.FromSeconds(remainingBytes / avgSpeed);
+                                    }
                                 }
                             }
+
+                            await fileStream.FlushAsync(token);
                         }
 
-                        if (updateInfo.FileSize > 0 && totalRead != updateInfo.FileSize)
-                            throw new IOException($"下载大小不完整：{totalRead} / {updateInfo.FileSize}");
+                        if (totalBytes > 0 && totalRead != totalBytes)
+                            throw new IOException($"下载大小不完整：{totalRead} / {totalBytes}");
 
                         if (!IsWindowsExecutable(tempFilePath))
                             throw new IOException("下载内容不是有效的 Windows 安装程序");
@@ -546,12 +549,29 @@ namespace Quotix.Services
         private string? TryRestoreDownloadedInstaller(UpdateInfo updateInfo)
         {
             var filePath = GetInstallerPath(updateInfo);
+            var tempFilePath = filePath + ".download";
+            if (!File.Exists(filePath) && File.Exists(tempFilePath) && IsWindowsExecutable(tempFilePath))
+            {
+                try
+                {
+                    PromoteDownloadedInstaller(tempFilePath, filePath);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
             if (!File.Exists(filePath))
                 return null;
 
             var fileInfo = new FileInfo(filePath);
-            if (updateInfo.FileSize > 0 && fileInfo.Length != updateInfo.FileSize)
+            if (updateInfo.FileSize > 0
+                && fileInfo.Length != updateInfo.FileSize
+                && !IsWindowsExecutable(filePath))
+            {
                 return null;
+            }
 
             if (fileInfo.Length <= 0)
                 return null;
