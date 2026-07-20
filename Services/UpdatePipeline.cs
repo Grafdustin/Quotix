@@ -252,16 +252,13 @@ namespace Quotix.Services
                     catch (Exception ex)
                     {
                         lastDownloadError = ex;
-                        TryDeleteFile(tempFilePath);
                     }
                 }
 
                 if (lastDownloadError != null)
                     throw new IOException("下载更新包失败，请稍后重试", lastDownloadError);
 
-                if (File.Exists(filePath))
-                    File.Delete(filePath);
-                File.Move(tempFilePath, filePath);
+                PromoteDownloadedInstaller(tempFilePath, filePath);
 
                 _downloadedInstallerPath = filePath;
                 State.Stage  = UpdateStage.ReadyToInstall;
@@ -290,7 +287,6 @@ namespace Quotix.Services
                 State.Message = "下载失败，点击重试";
                 State.Error  = ex.Message;
                 State.IsCancelVisible = false;
-                DeleteTempInstaller(updateInfo);
                 return false;
             }
             finally
@@ -588,6 +584,36 @@ namespace Quotix.Services
         }
 
         /// <summary>
+        /// 将下载完成的 .download 文件提升为正式安装包。
+        /// </summary>
+        private static void PromoteDownloadedInstaller(string tempFilePath, string filePath)
+        {
+            if (!File.Exists(tempFilePath))
+                throw new FileNotFoundException("下载临时文件不存在，无法生成安装包", tempFilePath);
+
+            try
+            {
+                File.Move(tempFilePath, filePath, true);
+                return;
+            }
+            catch (Exception moveEx)
+            {
+                try
+                {
+                    File.Copy(tempFilePath, filePath, true);
+                    TryDeleteFile(tempFilePath);
+                    return;
+                }
+                catch (Exception copyEx)
+                {
+                    throw new IOException(
+                        $"下载完成但无法生成安装包：{copyEx.Message}（临时文件已保留：{tempFilePath}）",
+                        moveEx);
+                }
+            }
+        }
+
+        /// <summary>
         /// 安装更新包：创建 PowerShell 脚本负责等待旧进程退出 → 静默安装 → 检查退出码 → 重启应用。
         /// </summary>
         private void InstallUpdate(string installerPath)
@@ -652,7 +678,7 @@ namespace Quotix.Services
                 "    Write-InstallLog 'Starting updated Quotix.'",
                 "    Start-Process -FilePath $currentExe -WorkingDirectory $exeDir",
                 "",
-                "    Write-InstallLog ('Keeping downloaded installer: ' + $installer)",
+                "    Remove-Item -LiteralPath $installer -Force -ErrorAction SilentlyContinue",
                 "    Write-InstallLog 'Update script completed.'",
                 "}",
                 "catch {",
