@@ -546,7 +546,6 @@
                                 <CheckBox Grid.Column="0"
                                           Content="自动附加错误日志（如果存在）"
                                           IsChecked="{Binding FeedbackAttachErrorLog}"
-                                          IsEnabled="{Binding IsFeedbackErrorLogSelectable}"
                                           VerticalAlignment="Center"/>
 
                                 <ui:TextBlock Grid.Column="1" Text="{Binding FeedbackErrorLogStatus}"

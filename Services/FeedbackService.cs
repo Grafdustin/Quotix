@@ -51,7 +51,7 @@ public sealed class FeedbackService
     /// <summary>查找当前程序可附加的错误日志。</summary>
     public string? FindErrorLogPath()
     {
-        var candidates = new List<string>
+        var candidates = new[]
         {
             AppPaths.ErrorLogPath,
             Path.Combine(AppPaths.DataDir, "logs", "error.log"),
@@ -59,20 +59,7 @@ public sealed class FeedbackService
             Path.Combine(AppContext.BaseDirectory, "error.log")
         };
 
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            candidates.Add(Path.Combine(dir.FullName, "Data", "error.log"));
-            candidates.Add(Path.Combine(dir.FullName, "error.log"));
-            dir = dir.Parent;
-        }
-
-        return candidates
-            .Where(File.Exists)
-            .Select(path => new FileInfo(path))
-            .OrderByDescending(file => file.LastWriteTimeUtc)
-            .Select(file => file.FullName)
-            .FirstOrDefault();
+        return candidates.FirstOrDefault(File.Exists);
     }
 
     private static string BuildBody(FeedbackRequest request)
