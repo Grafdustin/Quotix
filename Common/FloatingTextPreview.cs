@@ -236,7 +236,7 @@ public static class FloatingTextPreview
                 AllowsTransparency = true,
                 Focusable = false,
                 IsHitTestVisible = false,
-                Placement = PlacementMode.RelativePoint,
+                Placement = PlacementMode.Top,
                 PlacementTarget = _textBox,
                 Child = _popupRoot
             };
@@ -252,33 +252,17 @@ public static class FloatingTextPreview
 
             _popupRoot.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             var size = _popupRoot.DesiredSize;
-            var workArea = SystemParameters.WorkArea;
             if (_textBox.ActualWidth <= 0 || _textBox.ActualHeight <= 0)
                 return;
-
-            var anchorPoint = new Point(_textBox.ActualWidth / 2, 0);
-            var screenPoint = _textBox.PointToScreen(anchorPoint);
 
             Grid.SetRow(_bubbleBorder, 0);
             Grid.SetRow(_arrow, 1);
             _arrow.Data = Geometry.Parse("M 0 0 L 14 0 L 7 7 Z");
 
-            var desiredScreenX = screenPoint.X - (size.Width / 2);
-            var desiredScreenY = screenPoint.Y - size.Height - 8;
+            _popup.HorizontalOffset = (_textBox.ActualWidth - size.Width) / 2;
+            _popup.VerticalOffset = -8;
 
-            var clampedScreenX = Math.Clamp(
-                desiredScreenX,
-                workArea.Left + 8,
-                Math.Max(workArea.Left + 8, workArea.Right - size.Width - 8));
-            var clampedScreenY = Math.Clamp(
-                desiredScreenY,
-                workArea.Top + 8,
-                Math.Max(workArea.Top + 8, workArea.Bottom - size.Height - 8));
-
-            _popup.HorizontalOffset = anchorPoint.X + (clampedScreenX - screenPoint.X);
-            _popup.VerticalOffset = anchorPoint.Y + (clampedScreenY - screenPoint.Y);
-
-            var arrowLeft = Math.Clamp(screenPoint.X - clampedScreenX - (_arrow.Width / 2), 8, Math.Max(8, size.Width - _arrow.Width - 8));
+            var arrowLeft = Math.Clamp((size.Width - _arrow.Width) / 2, 8, Math.Max(8, size.Width - _arrow.Width - 8));
             _arrow.Margin = new Thickness(arrowLeft, -1, 0, 0);
         }
 
