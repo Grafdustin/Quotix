@@ -143,52 +143,9 @@ jobs:
 
     - name: Generate Release Notes
       run: |
-        # Release Notes 只从 latest.yml 读取；不再从 commit body 提取发布日志。
-        $latestYmlPath = "Installer/Out/latest.yml"
+        # GitHub Release 正文只显示纯版本号；完整更新内容保留在 latest.yml 中供程序读取。
         $version = "${{ steps.meta.outputs.VERSION }}"
-        $changelog = ""
-
-        if (Test-Path $latestYmlPath) {
-          $lines = Get-Content $latestYmlPath -Encoding UTF8
-          $inChangelog = $false
-          $items = New-Object System.Collections.Generic.List[string]
-
-          foreach ($line in $lines) {
-            $trimmedStart = $line.TrimStart()
-            if (-not $inChangelog -and $trimmedStart.StartsWith("changelog:")) {
-              $inChangelog = $true
-              $afterColon = $trimmedStart.Substring($trimmedStart.IndexOf(":") + 1).Trim()
-              if ($afterColon -and $afterColon -notin @("|", "|-", "|+")) {
-                $items.Add($afterColon)
-              }
-              continue
-            }
-
-            if ($inChangelog) {
-              if ($line.Trim() -eq "") {
-                $items.Add("")
-              } else {
-                $items.Add($line.TrimStart())
-              }
-            }
-          }
-
-          $changelog = ($items -join "`n").Trim()
-        }
-
-        $notes = ""
-        if ($changelog) {
-          foreach ($line in ($changelog -split "`n")) {
-            $trimmed = $line.TrimStart()
-            if ($trimmed.StartsWith("##")) {
-              $notes += "### " + $trimmed.Substring(2).Trim() + "`n"
-            } else {
-              $notes += $line + "`n"
-            }
-          }
-        }
-        if (-not $notes) { $notes = $version }
-        Set-Content -Path "release_notes.md" -Value $notes -Encoding UTF8
+        Set-Content -Path "release_notes.md" -Value $version -Encoding UTF8
         Write-Host "Release notes generated:"
         Get-Content "release_notes.md"
       shell: pwsh
