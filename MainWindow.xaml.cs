@@ -290,12 +290,24 @@ public partial class MainWindow : FluentWindow
         switch (_updatePipeline.State.Stage)
         {
             case UpdateStage.UpdateAvailable:
-            case UpdateStage.Failed:
                 // 开始下载
                 UpdateNavItem.Visibility = Visibility.Visible;
                 await _updatePipeline.DownloadAsync();
 
                 // 下载完成后，弹窗仍然打开，用户可点击「安装更新」
+                break;
+
+            case UpdateStage.Failed:
+                // 如果安装包已经存在，失败后的“重试”应优先重试安装，而不是重新下载。
+                if (_updatePipeline.IsInstallerDownloaded)
+                {
+                    _updatePipeline.Install();
+                }
+                else
+                {
+                    UpdateNavItem.Visibility = Visibility.Visible;
+                    await _updatePipeline.DownloadAsync();
+                }
                 break;
 
             case UpdateStage.Downloading:

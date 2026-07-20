@@ -162,67 +162,102 @@ namespace Quotix.Services
                     return true;
                 }
 
-                var mirroredUrl = AccelerateGitHubUrl(updateInfo.DownloadUrl);
                 var filePath = GetInstallerPath(updateInfo);
                 var tempFilePath = filePath + ".download";
-                TryDeleteFile(tempFilePath);
 
-                using var response = await _httpClient.GetAsync(
-                    mirroredUrl, HttpCompletionOption.ResponseHeadersRead, token);
-                response.EnsureSuccessStatusCode();
-
-                var totalBytes = response.Content.Headers.ContentLength ?? updateInfo.FileSize;
-                if (totalBytes <= 0) totalBytes = updateInfo.FileSize;
-                State.TotalBytes = totalBytes > 0 ? totalBytes : 0;
-
-                using var contentStream = await response.Content.ReadAsStreamAsync(token);
-                using var fileStream = new FileStream(
-                    tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-
-                var totalRead = 0L;
-                var buffer    = new byte[8192];
-
-                while (true)
+                Exception? lastDownloadError = null;
+                foreach (var downloadUrl in GetDownloadUrls(updateInfo.DownloadUrl))
                 {
-                    token.ThrowIfCancellationRequested();
+                    TryDeleteFile(tempFilePath);
+                    State.Message = downloadUrl == updateInfo.DownloadUrl
+                        ? "正在下载更新包..."
+                        : "正在下载更新包（加速线路）...";
+                    State.Progress = 0;
+                    State.ReceivedBytes = 0;
+                    State.SpeedBytesPerSec = 0;
+                    State.Eta = null;
+                    downloadStartTime = DateTime.Now;
+                    lastReportTime = downloadStartTime;
+                    lastReportedBytes = 0;
 
-                    var read = await contentStream.ReadAsync(buffer, 0, buffer.Length, token);
-                    if (read == 0) break;
-
-                    await fileStream.WriteAsync(buffer, 0, read, token);
-                    totalRead += read;
-                    State.ReceivedBytes = totalRead;
-
-                    // 计算进度
-                    if (totalBytes > 0)
-                        State.Progress = totalRead * 100.0 / totalBytes;
-
-                    // 每 0.5 秒更新一次网速（避免闪烁）
-                    var now     = DateTime.Now;
-                    var elapsed = (now - lastReportTime).TotalSeconds;
-                    if (elapsed >= 0.5)
+                    try
                     {
-                        var bytesInInterval = totalRead - lastReportedBytes;
-                        State.SpeedBytesPerSec = elapsed > 0 ? bytesInInterval / elapsed : 0;
-                        lastReportTime      = now;
-                        lastReportedBytes   = totalRead;
-                    }
+                        using var response = await _httpClient.GetAsync(
+                            downloadUrl, HttpCompletionOption.ResponseHeadersRead, token);
+                        response.EnsureSuccessStatusCode();
 
-                    // 预估剩余时间（基于整体平均速度）
-                    var totalElapsed = (now - downloadStartTime).TotalSeconds;
-                    if (totalElapsed > 0 && totalRead > 0 && totalBytes > 0)
-                    {
-                        var avgSpeed = totalRead / totalElapsed;
-                        if (avgSpeed > 0)
+                        var totalBytes = response.Content.Headers.ContentLength ?? updateInfo.FileSize;
+                        if (totalBytes <= 0) totalBytes = updateInfo.FileSize;
+                        State.TotalBytes = totalBytes > 0 ? totalBytes : 0;
+
+                        using var contentStream = await response.Content.ReadAsStreamAsync(token);
+                        using var fileStream = new FileStream(
+                            tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+
+                        var totalRead = 0L;
+                        var buffer = new byte[8192];
+
+                        while (true)
                         {
-                            var remainingBytes = totalBytes - totalRead;
-                            State.Eta = TimeSpan.FromSeconds(remainingBytes / avgSpeed);
+                            token.ThrowIfCancellationRequested();
+
+                            var read = await contentStream.ReadAsync(buffer, 0, buffer.Length, token);
+                            if (read == 0) break;
+
+                            await fileStream.WriteAsync(buffer, 0, read, token);
+                            totalRead += read;
+                            State.ReceivedBytes = totalRead;
+
+                            // 计算进度
+                            if (totalBytes > 0)
+                                State.Progress = totalRead * 100.0 / totalBytes;
+
+                            // 每 0.5 秒更新一次网速（避免闪烁）
+                            var now = DateTime.Now;
+                            var elapsed = (now - lastReportTime).TotalSeconds;
+                            if (elapsed >= 0.5)
+                            {
+                                var bytesInInterval = totalRead - lastReportedBytes;
+                                State.SpeedBytesPerSec = elapsed > 0 ? bytesInInterval / elapsed : 0;
+                                lastReportTime = now;
+                                lastReportedBytes = totalRead;
+                            }
+
+                            // 预估剩余时间（基于整体平均速度）
+                            var totalElapsed = (now - downloadStartTime).TotalSeconds;
+                            if (totalElapsed > 0 && totalRead > 0 && totalBytes > 0)
+                            {
+                                var avgSpeed = totalRead / totalElapsed;
+                                if (avgSpeed > 0)
+                                {
+                                    var remainingBytes = totalBytes - totalRead;
+                                    State.Eta = TimeSpan.FromSeconds(remainingBytes / avgSpeed);
+                                }
+                            }
                         }
+
+                        if (updateInfo.FileSize > 0 && totalRead != updateInfo.FileSize)
+                            throw new IOException($"下载大小不完整：{totalRead} / {updateInfo.FileSize}");
+
+                        if (!IsWindowsExecutable(tempFilePath))
+                            throw new IOException("下载内容不是有效的 Windows 安装程序");
+
+                        lastDownloadError = null;
+                        break;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        lastDownloadError = ex;
+                        TryDeleteFile(tempFilePath);
                     }
                 }
 
-                if (updateInfo.FileSize > 0 && totalRead != updateInfo.FileSize)
-                    throw new IOException($"下载大小不完整：{totalRead} / {updateInfo.FileSize}");
+                if (lastDownloadError != null)
+                    throw new IOException("下载更新包失败，请稍后重试", lastDownloadError);
 
                 if (File.Exists(filePath))
                     File.Delete(filePath);
@@ -645,7 +680,10 @@ namespace Quotix.Services
                 WindowStyle    = ProcessWindowStyle.Hidden
             };
 
-            Process.Start(processStartInfo);
+            var updateProcess = Process.Start(processStartInfo);
+            if (updateProcess == null)
+                throw new InvalidOperationException("无法启动更新安装脚本");
+
             System.Windows.Application.Current.Shutdown();
         }
 
@@ -680,6 +718,41 @@ namespace Quotix.Services
                 return $"https://ghfast.top/{url}";
 
             return url;
+        }
+
+        /// <summary>
+        /// 下载地址列表：优先使用加速线路，失败后自动回退 GitHub 原始地址。
+        /// </summary>
+        private static IEnumerable<string> GetDownloadUrls(string url)
+        {
+            var acceleratedUrl = AccelerateGitHubUrl(url);
+            if (!string.IsNullOrWhiteSpace(acceleratedUrl))
+                yield return acceleratedUrl;
+
+            if (!string.IsNullOrWhiteSpace(url)
+                && !string.Equals(acceleratedUrl, url, StringComparison.OrdinalIgnoreCase))
+            {
+                yield return url;
+            }
+        }
+
+        /// <summary>
+        /// 校验下载内容是否为 Windows 可执行文件，避免加速线路返回 HTML 错误页却被当成安装包。
+        /// </summary>
+        private static bool IsWindowsExecutable(string path)
+        {
+            try
+            {
+                using var stream = File.OpenRead(path);
+                if (stream.Length < 2)
+                    return false;
+
+                return stream.ReadByte() == 'M' && stream.ReadByte() == 'Z';
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public void Dispose()
