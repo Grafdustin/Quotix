@@ -94,6 +94,19 @@ public sealed class QuickInputFuzzyChangedMessage : ValueChangedMessage<bool>
 }
 
 /// <summary>
+/// 快捷输入字段映射变更消息，携带当前变更的数据库类型（NDT / RVI）。
+/// 用于通知报价单页清理快速输入缓存并立即使用最新映射。
+/// </summary>
+public sealed class QuickInputMappingChangedMessage : ValueChangedMessage<string>
+{
+    /// <summary>
+    /// 初始化 QuickInputMappingChangedMessage 实例。
+    /// </summary>
+    /// <param name="dbType">发生映射变更的数据库类型</param>
+    public QuickInputMappingChangedMessage(string dbType) : base(dbType) { }
+}
+
+/// <summary>
 /// 产品数据变更消息，携带发生变更的表名（如 products_ndt / products_rvi_change）。
 /// 用于在产品导入、清空后，通知设置页快捷输入卡片刷新可用的表头下拉项。
 /// </summary>

@@ -20,10 +20,12 @@ public class AppSettingsService
 
     public AppSettingsService()
     {
+        var settingsExists = File.Exists(SettingsPath);
         _current = LoadFromDisk();
         // 确保默认配置（如"快捷输入默认开启"）在首次运行或旧文件缺失时落盘。
         // 若用户已显式关闭，反序列化后 _current.QuickInput.Enabled 即为 false，写入不会覆盖其选择。
-        SaveToDisk();
+        if (!settingsExists)
+            SaveToDisk();
     }
 
     /// <summary>当前设置（读取即最新值）</summary>

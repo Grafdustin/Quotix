@@ -169,7 +169,7 @@
                                     VerticalAlignment="Center" Margin="0,0,12,0">
                             <ui:TextBlock Text="数据表" VerticalAlignment="Center" FontSize="12"
                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
-                            <ui:Button Content="Change" Height="30" FontSize="12" MinWidth="56"
+                            <ui:Button Content="价表" Height="30" FontSize="12" MinWidth="56"
                                        Command="{Binding SwitchRviTableCommand}" CommandParameter="change">
                                 <ui:Button.Style>
                                     <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
@@ -182,7 +182,7 @@
                                     </Style>
                                 </ui:Button.Style>
                             </ui:Button>
-                            <ui:Button Content="OT" Height="30" FontSize="12" MinWidth="56"
+                            <ui:Button Content="货期" Height="30" FontSize="12" MinWidth="56"
                                        Margin="4,0,0,0"
                                        Command="{Binding SwitchRviTableCommand}" CommandParameter="ot">
                                 <ui:Button.Style>
@@ -202,6 +202,7 @@
 
                 <!-- ═══ Row 2：DataGrid ═══ -->
                 <DataGrid Grid.Row="2" x:Name="ProductsGrid" Style="{StaticResource ModernDataGrid}"
+                          ItemsSource="{Binding Products}"
                           AlternationCount="2"
                           EnableRowVirtualization="True"
                           EnableColumnVirtualization="True"

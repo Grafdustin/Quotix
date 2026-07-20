@@ -57,10 +57,6 @@ public partial class ProductDatabaseView : UserControl
             vm.AfterCollectionUpdate += OnAfterCollectionUpdate;
             RebuildColumns();
 
-            // 切换标签页时会重建 View，已有数据的 VM 需要恢复 ItemsSource
-            if (vm.Products.Count > 0)
-                ProductsGrid.ItemsSource = vm.Products;
-
             ProductsGrid.UpdateLayout();
         }
     }
@@ -90,7 +86,6 @@ public partial class ProductDatabaseView : UserControl
     /// </summary>
     private void OnBeforeCollectionUpdate()
     {
-        ProductsGrid.ItemsSource = null;
     }
 
     /// <summary>
@@ -101,7 +96,6 @@ public partial class ProductDatabaseView : UserControl
         if (_currentVM == null) return;
 
         RebuildColumns();
-        ProductsGrid.ItemsSource = _currentVM.Products;
         ProductsGrid.UpdateLayout();
     }
 

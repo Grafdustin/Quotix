@@ -148,6 +148,24 @@ public partial class NewQuotationViewModel : ObservableObject
         WeakReferenceMessenger.Default.Register<QuickInputFuzzyChangedMessage>(this, (r, m) =>
         {
             _quickInputFuzzyEnabled = m.Value;
+            RefreshQuickSearchIfVisible();
+        });
+
+        WeakReferenceMessenger.Default.Register<QuickInputMappingChangedMessage>(this, (r, m) =>
+        {
+            if (m.Value != QuickInputDatabase) return;
+
+            InvalidateProductSearchCache();
+            RefreshQuickSearchIfVisible();
+        });
+
+        WeakReferenceMessenger.Default.Register<ProductDataChangedMessage>(this, (r, m) =>
+        {
+            var currentTable = QuickInputDatabase == "NDT" ? "products_ndt" : "products_rvi_change";
+            if (m.Value != currentTable) return;
+
+            InvalidateProductSearchCache();
+            RefreshQuickSearchIfVisible();
         });
 
         // 统一管理报价项属性变更订阅，避免 Add/Remove/加载已有报价时悬空回调与内存泄漏（见 OnItemsCollectionChanged）
@@ -305,7 +323,10 @@ public partial class NewQuotationViewModel : ObservableObject
     [RelayCommand]
     private void PriceCalculator()
     {
-        var dialog = new PriceCalculatorDialog(Items.ToList());
+        var dialog = new PriceCalculatorDialog(Items.ToList())
+        {
+            Owner = System.Windows.Application.Current?.MainWindow
+        };
         if (dialog.ShowDialog() == true && dialog.ResultItems != null)
         {
             for (int i = 0; i < Math.Min(Items.Count, dialog.ResultItems.Count); i++)
@@ -369,9 +390,7 @@ public partial class NewQuotationViewModel : ObservableObject
     private void SwitchQuickDatabase(string db)
     {
         QuickInputDatabase = db;
-        // 清除缓存，下次搜索重新加载
-        _cachedProductIndex = null;
-        _cachedDatabaseType = "";
+        InvalidateProductSearchCache();
 
         if (IsQuickSearchVisible && !string.IsNullOrEmpty(QuickSearchText))
             _ = TriggerDebouncedSearch(QuickSearchText);
@@ -487,6 +506,22 @@ public partial class NewQuotationViewModel : ObservableObject
         _searchCts?.Cancel();
         _searchCts?.Dispose();
         _searchCts = null;
+    }
+
+    /// <summary>清理产品快速搜索索引缓存，下次搜索会按最新数据和映射重建。</summary>
+    private void InvalidateProductSearchCache()
+    {
+        _cachedProductIndex = null;
+        _cachedDatabaseType = "";
+    }
+
+    /// <summary>快捷输入弹窗打开时按当前文本重新搜索，使设置变更实时生效。</summary>
+    private void RefreshQuickSearchIfVisible()
+    {
+        if (QuickSearchContext != "product" || !IsQuickSearchVisible)
+            return;
+
+        _ = TriggerDebouncedSearch(QuickSearchText);
     }
 
     /// <summary>

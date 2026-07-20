@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using Wpf.Ui.Controls;
 
 namespace Quotix.Views;
@@ -47,11 +49,58 @@ public partial class PriceCalculatorDialog : FluentWindow
     }
 
     /// <summary>
+    /// 在窗口空白区域按住左键时拖动计算器窗口。
+    /// </summary>
+    private void DragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState != MouseButtonState.Pressed || IsInteractiveElement(e.OriginalSource as DependencyObject))
+            return;
+
+        try
+        {
+            DragMove();
+        }
+        catch (InvalidOperationException)
+        {
+            // 鼠标状态在拖动开始前变化时忽略，避免影响弹窗操作。
+        }
+    }
+
+    /// <summary>
     /// 限制输入只能为数字和小数点。
     /// </summary>
     private void NumberPreviewTextInput(object sender, TextCompositionEventArgs e)
     {
-        e.Handled = !decimal.TryParse(e.Text, out _);
+        if (sender is not System.Windows.Controls.TextBox tb)
+            return;
+
+        var text = tb.Text.Remove(tb.SelectionStart, tb.SelectionLength)
+            .Insert(tb.SelectionStart, e.Text);
+        e.Handled = !IsValidNumberText(text);
+    }
+
+    private static bool IsValidNumberText(string text)
+    {
+        return string.IsNullOrWhiteSpace(text) ||
+               text == "." ||
+               decimal.TryParse(text, NumberStyles.Number, CultureInfo.CurrentCulture, out _);
+    }
+
+    private static bool IsInteractiveElement(DependencyObject? source)
+    {
+        while (source != null)
+        {
+            if (source is System.Windows.Controls.Primitives.ButtonBase ||
+                source is System.Windows.Controls.TextBox ||
+                source is ComboBox)
+            {
+                return true;
+            }
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -59,9 +108,13 @@ public partial class PriceCalculatorDialog : FluentWindow
     /// </summary>
     private void CalculateClick(object sender, RoutedEventArgs e)
     {
-        if (!decimal.TryParse(ValueInput.Text, out var value) || value == 0) return;
+        if (!decimal.TryParse(ValueInput.Text, out var value))
+            return;
 
         var isMultiply = OperationCombo.SelectedIndex == 0;
+        if (!isMultiply && value == 0)
+            return;
+
         var roundMode = RoundModeCombo.SelectedIndex; // 0=无取整, 1=向上取整, 2=向下取整, 3=四舍五入
         foreach (var item in _items)
         {

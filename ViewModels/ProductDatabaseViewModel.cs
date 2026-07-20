@@ -30,6 +30,12 @@ public partial class ProductDatabaseViewModel : ObservableObject
         _productService = productService;
         _importService = importService;
         _dialog = dialog;
+
+        WeakReferenceMessenger.Default.Register<ProductDataChangedMessage>(this, (r, m) =>
+        {
+            if (m.Value == GetCurrentTableName())
+                _ = LoadPageAsync(CurrentPage);
+        });
     }
 
     private int _pendingSearchToken;
@@ -165,14 +171,15 @@ public partial class ProductDatabaseViewModel : ObservableObject
 
         CurrentTableLabel = IsNDT
             ? (IsMainTable ? "NDT - 价表" : "NDT - 货期")
-            : (IsMainTable ? "RVI - Change" : "RVI - OT Code");
+            : (IsMainTable ? "RVI - 价表" : "RVI - 货期");
 
         // 后台线程：DB 分页查询 + JSON 解析
         var (rows, columnHeaders, totalCount) = await Task.Run(() =>
         {
             var (products, total) = _productService.GetProductsPaged(tableName, keyword, localPage, localPageSize);
 
-            var allKeys = new HashSet<string>();
+            var allKeys = new List<string>();
+            var seenKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var rowVms = new List<ProductRowViewModel>(products.Count);
 
             foreach (var p in products)
@@ -188,7 +195,8 @@ public partial class ProductDatabaseViewModel : ObservableObject
                         {
                             var val = kv.Value ?? "";
                             row.Data[kv.Key] = val;
-                            allKeys.Add(kv.Key);
+                            if (seenKeys.Add(kv.Key))
+                                allKeys.Add(kv.Key);
                         }
                     }
                 }
@@ -197,7 +205,7 @@ public partial class ProductDatabaseViewModel : ObservableObject
                 rowVms.Add(row);
             }
 
-            return (rowVms, allKeys.ToList(), total);
+            return (rowVms, allKeys, total);
         });
 
         // 若已有更新的加载请求发起，丢弃本次结果，避免旧数据覆盖新数据
@@ -371,6 +379,7 @@ public partial class ProductDatabaseViewModel : ObservableObject
     private async Task DeleteProduct(string id)
     {
         _productService.DeleteProduct(id, GetCurrentTableName());
+        WeakReferenceMessenger.Default.Send(new ProductDataChangedMessage(GetCurrentTableName()));
         await LoadPageAsync(CurrentPage);
     }
 }

@@ -58,8 +58,8 @@ public partial class SettingsViewModel : ObservableObject
         {
             new("NDT - 价表", "products_ndt"),
             new("NDT - 货期", "products_ndt_delivery"),
-            new("RVI - Change", "products_rvi_change"),
-            new("RVI - OT Code", "products_rvi_ot"),
+            new("RVI - 价表", "products_rvi_change"),
+            new("RVI - 货期", "products_rvi_ot"),
         };
 
         // 订阅 State 变化以刷新显示文字
@@ -246,6 +246,7 @@ public partial class SettingsViewModel : ObservableObject
 
             resultMsg = $"成功导入 {count} 条产品数据到 {SelectedDatabase.Label}";
             RefreshQuickInputColumns(tableName);
+            WeakReferenceMessenger.Default.Send(new ProductDataChangedMessage(tableName));
         }
         catch (Exception ex)
         {
@@ -280,6 +281,7 @@ public partial class SettingsViewModel : ObservableObject
         {
             _productService.ClearProducts(SelectedDatabase.TableName);
             RefreshQuickInputColumns(SelectedDatabase.TableName);
+            WeakReferenceMessenger.Default.Send(new ProductDataChangedMessage(SelectedDatabase.TableName));
         }
         finally
         {
@@ -356,6 +358,7 @@ public partial class SettingsViewModel : ObservableObject
                 snapshot[row.TargetKey] = row.SelectedColumn;
         _settingsService.QuickInput.Mappings[QuickInputDb] = snapshot;
         _settingsService.SaveQuickInputSettings();
+        WeakReferenceMessenger.Default.Send(new QuickInputMappingChangedMessage(QuickInputDb));
 
         // 2️⃣ 断开所有旧行的 PropertyChanged 订阅，防止后续 ItemsSource 切换
         //    导致 ComboBox 异步回写空值 → 再次触发 PersistMapping 覆盖快照
@@ -449,6 +452,7 @@ public partial class SettingsViewModel : ObservableObject
 
         _settingsService.QuickInput.Mappings[QuickInputDb] = dict;
         _settingsService.SaveQuickInputSettings();
+        WeakReferenceMessenger.Default.Send(new QuickInputMappingChangedMessage(QuickInputDb));
     }
 
 }

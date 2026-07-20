@@ -92,7 +92,7 @@ public partial class App : Application
     }
 
     /// <summary>执行应用程序主启动流程</summary>
-    private async Task StartApplicationAsync()
+    private Task StartApplicationAsync()
     {
         // 全局滚动优化：列表类控件按像素滚动，滚轮事件交回 WPF 原生处理。
         SmoothScrollBehavior.Register();
@@ -132,9 +132,6 @@ public partial class App : Application
                 LogException(ex);
         };
 
-        // 数据库初始化
-        await InitializeDatabaseAsync();
-
         // 数据库迁移
         _serviceProvider.GetRequiredService<Services.MigrationService>().Run();
 
@@ -150,6 +147,8 @@ public partial class App : Application
 
         // 主窗口关闭时退出应用
         mainWindow.Closed += (_, _) => Shutdown();
+
+        return Task.CompletedTask;
     }
 
     /// <summary>应用程序退出时释放资源</summary>
@@ -158,12 +157,6 @@ public partial class App : Application
         _serviceProvider?.Dispose();
         _singleInstanceMutex?.Dispose();
         base.OnExit(e);
-    }
-
-    /// <summary>模拟数据库初始化（后续可替换为实际加载逻辑）</summary>
-    private static async Task InitializeDatabaseAsync()
-    {
-        await Task.Delay(600);
     }
 
     /// <summary>获取异常的最内层消息</summary>
