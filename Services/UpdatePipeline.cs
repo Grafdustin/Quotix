@@ -81,13 +81,19 @@ namespace Quotix.Services
 
                 if (updateInfo != null)
                 {
-                    State.Stage         = UpdateStage.UpdateAvailable;
+                    var cachedInstallerPath = TryRestoreDownloadedInstaller(updateInfo);
+
+                    State.Stage         = cachedInstallerPath != null
+                        ? UpdateStage.ReadyToInstall
+                        : UpdateStage.UpdateAvailable;
                     State.CurrentVersion = AppInfo.Version;
                     State.NewVersion    = updateInfo.Version;
                     State.FileSize      = updateInfo.FileSize;
                     State.ReleaseDate  = updateInfo.ReleaseDate;
                     State.Changelog    = updateInfo.Changelog;
-                    State.Message       = $"发现新版本 v{updateInfo.Version}";
+                    State.Message       = cachedInstallerPath != null
+                        ? "下载完成，点击安装即可更新"
+                        : $"发现新版本 v{updateInfo.Version}";
                     State.IsCancelVisible = false;
                     return updateInfo;
                 }
@@ -144,16 +150,22 @@ namespace Quotix.Services
 
             try
             {
+                var cachedInstallerPath = TryRestoreDownloadedInstaller(updateInfo);
+                if (cachedInstallerPath != null)
+                {
+                    State.Stage  = UpdateStage.ReadyToInstall;
+                    State.Message = "下载完成，点击安装即可更新";
+                    State.Progress = 100;
+                    State.ReceivedBytes = updateInfo.FileSize;
+                    State.TotalBytes = updateInfo.FileSize;
+                    State.IsCancelVisible = false;
+                    return true;
+                }
+
                 var mirroredUrl = AccelerateGitHubUrl(updateInfo.DownloadUrl);
-                var appDir    = AppContext.BaseDirectory;
-                var updateDir = Path.Combine(appDir, "Updates");
-                Directory.CreateDirectory(updateDir);
-
-                var fileName = Path.GetFileName(new Uri(mirroredUrl).LocalPath);
-                if (string.IsNullOrEmpty(fileName))
-                    fileName = $"Quotix_Setup_{DateTime.Now:yyyyMMdd_HHmmss}.exe";
-
-                var filePath = Path.Combine(updateDir, fileName);
+                var filePath = GetInstallerPath(updateInfo);
+                var tempFilePath = filePath + ".download";
+                TryDeleteFile(tempFilePath);
 
                 using var response = await _httpClient.GetAsync(
                     mirroredUrl, HttpCompletionOption.ResponseHeadersRead, token);
@@ -165,7 +177,7 @@ namespace Quotix.Services
 
                 using var contentStream = await response.Content.ReadAsStreamAsync(token);
                 using var fileStream = new FileStream(
-                    filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+                    tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
                 var totalRead = 0L;
                 var buffer    = new byte[8192];
@@ -209,6 +221,13 @@ namespace Quotix.Services
                     }
                 }
 
+                if (updateInfo.FileSize > 0 && totalRead != updateInfo.FileSize)
+                    throw new IOException($"下载大小不完整：{totalRead} / {updateInfo.FileSize}");
+
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
+                File.Move(tempFilePath, filePath);
+
                 _downloadedInstallerPath = filePath;
                 State.Stage  = UpdateStage.ReadyToInstall;
                 State.Message = "下载完成，点击安装即可更新";
@@ -226,9 +245,7 @@ namespace Quotix.Services
                 State.Eta              = null;
                 State.IsCancelVisible  = false;
 
-                // 删除不完整文件
-                try { if (File.Exists(_downloadedInstallerPath)) File.Delete(_downloadedInstallerPath); }
-                catch { }
+                DeleteTempInstaller(updateInfo);
                 _downloadedInstallerPath = null;
                 return false;
             }
@@ -238,6 +255,7 @@ namespace Quotix.Services
                 State.Message = "下载失败，点击重试";
                 State.Error  = ex.Message;
                 State.IsCancelVisible = false;
+                DeleteTempInstaller(updateInfo);
                 return false;
             }
             finally
@@ -468,6 +486,70 @@ namespace Quotix.Services
                 })
                 .Where(e => !string.IsNullOrEmpty(e.Text))
                 .ToArray();
+        }
+
+        /// <summary>
+        /// 根据更新信息获取本地安装包保存路径。
+        /// </summary>
+        private static string GetInstallerPath(UpdateInfo updateInfo)
+        {
+            var updateDir = Path.Combine(AppContext.BaseDirectory, "Updates");
+            Directory.CreateDirectory(updateDir);
+
+            var fileName = "";
+            try
+            {
+                fileName = Path.GetFileName(new Uri(updateInfo.DownloadUrl).LocalPath);
+            }
+            catch { }
+
+            if (string.IsNullOrWhiteSpace(fileName))
+                fileName = $"Quotix_Setup_{updateInfo.Version}.exe";
+
+            return Path.Combine(updateDir, fileName);
+        }
+
+        /// <summary>
+        /// 若目标版本安装包已完整存在，则恢复下载完成状态，避免重启后重复下载。
+        /// </summary>
+        private string? TryRestoreDownloadedInstaller(UpdateInfo updateInfo)
+        {
+            var filePath = GetInstallerPath(updateInfo);
+            if (!File.Exists(filePath))
+                return null;
+
+            var fileInfo = new FileInfo(filePath);
+            if (updateInfo.FileSize > 0 && fileInfo.Length != updateInfo.FileSize)
+                return null;
+
+            if (fileInfo.Length <= 0)
+                return null;
+
+            _downloadedInstallerPath = filePath;
+            return filePath;
+        }
+
+        /// <summary>
+        /// 删除指定更新对应的临时下载文件。
+        /// </summary>
+        /// <param name="updateInfo">更新信息</param>
+        private static void DeleteTempInstaller(UpdateInfo updateInfo)
+        {
+            TryDeleteFile(GetInstallerPath(updateInfo) + ".download");
+        }
+
+        /// <summary>
+        /// 尝试删除文件，删除失败时静默忽略。
+        /// </summary>
+        /// <param name="path">文件路径</param>
+        private static void TryDeleteFile(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+            catch { }
         }
 
         /// <summary>
