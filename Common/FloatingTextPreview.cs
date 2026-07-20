@@ -8,7 +8,7 @@ using System.Windows.Threading;
 namespace Quotix.Common;
 
 /// <summary>
-/// Shows a small floating text preview for text boxes while the mouse is hovering.
+/// Shows a small floating text preview fixed to the related text box.
 /// </summary>
 public static class FloatingTextPreview
 {
@@ -80,7 +80,6 @@ public static class FloatingTextPreview
         private FrameworkElement? _popupRoot;
         private Border? _bubbleBorder;
         private System.Windows.Shapes.Path? _arrow;
-        private Point _anchorPoint;
 
         public HoverState(TextBox textBox)
         {
@@ -99,7 +98,6 @@ public static class FloatingTextPreview
         public void Attach()
         {
             _textBox.MouseEnter += OnMouseEnter;
-            _textBox.MouseMove += OnMouseMove;
             _textBox.MouseLeave += OnCloseRequested;
             _textBox.GotKeyboardFocus += OnKeyboardFocus;
             _textBox.LostKeyboardFocus += OnCloseRequested;
@@ -115,7 +113,6 @@ public static class FloatingTextPreview
             Close();
             _openTimer.Stop();
             _textBox.MouseEnter -= OnMouseEnter;
-            _textBox.MouseMove -= OnMouseMove;
             _textBox.MouseLeave -= OnCloseRequested;
             _textBox.GotKeyboardFocus -= OnKeyboardFocus;
             _textBox.LostKeyboardFocus -= OnCloseRequested;
@@ -128,24 +125,12 @@ public static class FloatingTextPreview
 
         private void OnMouseEnter(object sender, MouseEventArgs e)
         {
-            _anchorPoint = e.GetPosition(_textBox);
             if (HasPreviewText())
                 _openTimer.Start();
         }
 
-        private void OnMouseMove(object sender, MouseEventArgs e)
-        {
-            if (_popup?.IsOpen == true)
-                return;
-
-            _anchorPoint = e.GetPosition(_textBox);
-        }
-
         private void OnKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            if (!_textBox.IsMouseOver)
-                _anchorPoint = new Point(_textBox.ActualWidth / 2, 0);
-
             if (HasPreviewText())
                 _openTimer.Start();
         }
@@ -268,19 +253,18 @@ public static class FloatingTextPreview
             _popupRoot.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             var size = _popupRoot.DesiredSize;
             var workArea = SystemParameters.WorkArea;
-            var screenPoint = _textBox.PointToScreen(_anchorPoint);
-            var showAbove = screenPoint.Y - size.Height - 12 > SystemParameters.WorkArea.Top;
+            if (_textBox.ActualWidth <= 0 || _textBox.ActualHeight <= 0)
+                return;
 
-            Grid.SetRow(_bubbleBorder, showAbove ? 0 : 1);
-            Grid.SetRow(_arrow, showAbove ? 1 : 0);
-            _arrow.Data = Geometry.Parse(showAbove
-                ? "M 0 0 L 14 0 L 7 7 Z"
-                : "M 7 0 L 14 7 L 0 7 Z");
+            var anchorPoint = new Point(_textBox.ActualWidth / 2, 0);
+            var screenPoint = _textBox.PointToScreen(anchorPoint);
+
+            Grid.SetRow(_bubbleBorder, 0);
+            Grid.SetRow(_arrow, 1);
+            _arrow.Data = Geometry.Parse("M 0 0 L 14 0 L 7 7 Z");
 
             var desiredScreenX = screenPoint.X - (size.Width / 2);
-            var desiredScreenY = showAbove
-                ? screenPoint.Y - size.Height - 12
-                : screenPoint.Y + 12;
+            var desiredScreenY = screenPoint.Y - size.Height - 8;
 
             var clampedScreenX = Math.Clamp(
                 desiredScreenX,
@@ -291,13 +275,11 @@ public static class FloatingTextPreview
                 workArea.Top + 8,
                 Math.Max(workArea.Top + 8, workArea.Bottom - size.Height - 8));
 
-            _popup.HorizontalOffset = _anchorPoint.X + (clampedScreenX - screenPoint.X);
-            _popup.VerticalOffset = _anchorPoint.Y + (clampedScreenY - screenPoint.Y);
+            _popup.HorizontalOffset = anchorPoint.X + (clampedScreenX - screenPoint.X);
+            _popup.VerticalOffset = anchorPoint.Y + (clampedScreenY - screenPoint.Y);
 
             var arrowLeft = Math.Clamp(screenPoint.X - clampedScreenX - (_arrow.Width / 2), 8, Math.Max(8, size.Width - _arrow.Width - 8));
-            _arrow.Margin = showAbove
-                ? new Thickness(arrowLeft, -1, 0, 0)
-                : new Thickness(arrowLeft, 0, 0, -1);
+            _arrow.Margin = new Thickness(arrowLeft, -1, 0, 0);
         }
 
         private void Close()
