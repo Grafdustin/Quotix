@@ -63,7 +63,7 @@ if (-not $CommitMessage) {
     $commitTitle = $Version
     # 其余行作为 commit body
     $commitBody = if ($lines) { $lines -join "`n" } else { "" }
-    Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+    Write-Host "Changelog draft kept at: $tempFile" -ForegroundColor DarkGray
 
     if (-not $commitBody) {
         $commitBody = "Release $Version"

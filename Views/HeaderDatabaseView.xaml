@@ -76,12 +76,8 @@
                                   TextTrimming="CharacterEllipsis"
                                   Margin="4,0"/>
                     <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center">
-                        <ui:Button Content="修改" Appearance="Secondary"
-                                   Height="28" FontSize="12" MinWidth="48"
-                                   Click="EditOwnerButton_Click"/>
                         <ui:Button Content="{Binding DefaultButtonText}"
                                    Height="28" FontSize="12" MinWidth="48"
-                                   Margin="6,0,0,0"
                                    Click="SetDefaultOwnerButton_Click">
                             <ui:Button.Style>
                                 <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
@@ -94,6 +90,10 @@
                                 </Style>
                             </ui:Button.Style>
                         </ui:Button>
+                        <ui:Button Content="修改" Appearance="Secondary"
+                                   Height="28" FontSize="12" MinWidth="48"
+                                   Margin="6,0,0,0"
+                                   Click="EditOwnerButton_Click"/>
                         <ui:Button Content="删除" Appearance="Danger"
                                    Height="28" FontSize="12" MinWidth="48"
                                    Margin="6,0,0,0"
@@ -304,14 +304,9 @@
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right"
                                 Visibility="{Binding IsQuotationDescriptionTab, Converter={StaticResource InverseBool}}">
-                        <ui:Button x:Name="EditSelectedButton"
-                                   Content="修改选中" Appearance="Secondary"
-                                   Height="32" MinWidth="88" Padding="16,0"
-                                   Click="EditSelectedButton_Click"/>
                         <ui:Button x:Name="NewButton"
                                    Content="新建" Appearance="Primary"
                                    Height="32" MinWidth="80" Padding="16,0"
-                                   Margin="8,0,0,0"
                                    Click="NewButton_Click"/>
                     </StackPanel>
                 </Grid>

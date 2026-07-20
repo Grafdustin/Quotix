@@ -274,8 +274,15 @@ namespace Quotix.Services
                 // 用户取消下载
                 State.Stage  = UpdateStage.UpdateAvailable;
                 State.Message = "下载已取消";
+                State.CurrentVersion = AppInfo.Version;
+                State.NewVersion = updateInfo.Version;
+                State.FileSize = updateInfo.FileSize;
+                State.ReleaseDate = updateInfo.ReleaseDate;
+                State.Changelog = updateInfo.Changelog;
+                State.Error = "";
                 State.Progress         = 0;
                 State.ReceivedBytes    = 0;
+                State.TotalBytes       = updateInfo.FileSize;
                 State.SpeedBytesPerSec = 0;
                 State.Eta              = null;
                 State.IsCancelVisible  = false;

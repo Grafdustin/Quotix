@@ -342,13 +342,6 @@ public partial class HeaderDatabaseView : UserControl
         AddDialogOverlay.Visibility = Visibility.Visible;
     }
 
-    /// <summary>修改当前选中的负责人或客户。</summary>
-    private void EditSelectedButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (VM.BeginEditSelectedEntry())
-            AddDialogOverlay.Visibility = Visibility.Visible;
-    }
-
     /// <summary>
     /// 取消新建按钮点击事件，关闭对话框。
     /// </summary>

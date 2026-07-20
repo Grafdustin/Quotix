@@ -386,36 +386,6 @@ public partial class HeaderDatabaseViewModel : ObservableObject
         NewCustomerEmail = customer.Email ?? "";
     }
 
-    /// <summary>将当前选中的负责人或客户加载到编辑表单。</summary>
-    public bool BeginEditSelectedEntry()
-    {
-        if (IsOwnerTab)
-        {
-            if (SelectedOwner == null)
-            {
-                _dialog.ShowWarning("请先选择要修改的负责人");
-                return false;
-            }
-
-            BeginEditOwner(SelectedOwner);
-            return true;
-        }
-
-        if (IsCustomerTab)
-        {
-            if (SelectedCustomer == null)
-            {
-                _dialog.ShowWarning("请先选择要修改的客户");
-                return false;
-            }
-
-            BeginEditCustomer(SelectedCustomer);
-            return true;
-        }
-
-        return false;
-    }
-
     /// <summary>关闭编辑弹窗时清理临时状态。</summary>
     public void CancelEntryEditing()
     {
