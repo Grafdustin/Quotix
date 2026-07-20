@@ -652,7 +652,7 @@ namespace Quotix.Services
                 "    Write-InstallLog 'Starting updated Quotix.'",
                 "    Start-Process -FilePath $currentExe -WorkingDirectory $exeDir",
                 "",
-                "    Remove-Item -LiteralPath $installer -Force -ErrorAction SilentlyContinue",
+                "    Write-InstallLog ('Keeping downloaded installer: ' + $installer)",
                 "    Write-InstallLog 'Update script completed.'",
                 "}",
                 "catch {",
