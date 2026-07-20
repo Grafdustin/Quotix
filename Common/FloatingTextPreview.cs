@@ -78,8 +78,9 @@ public static class FloatingTextPreview
         private Popup? _popup;
         private TextBlock? _textBlock;
         private FrameworkElement? _popupRoot;
+        private Border? _bubbleBorder;
         private System.Windows.Shapes.Path? _arrow;
-        private Point _lastPoint;
+        private Point _anchorPoint;
 
         public HoverState(TextBox textBox)
         {
@@ -100,11 +101,13 @@ public static class FloatingTextPreview
             _textBox.MouseEnter += OnMouseEnter;
             _textBox.MouseMove += OnMouseMove;
             _textBox.MouseLeave += OnCloseRequested;
+            _textBox.GotKeyboardFocus += OnKeyboardFocus;
             _textBox.LostKeyboardFocus += OnCloseRequested;
             _textBox.Unloaded += OnCloseRequested;
             _textBox.PreviewMouseWheel += OnCloseRequested;
             _textBox.TextChanged += OnTextChanged;
             _textBox.IsVisibleChanged += OnIsVisibleChanged;
+            _textBox.LayoutUpdated += OnLayoutUpdated;
         }
 
         public void Detach()
@@ -114,23 +117,41 @@ public static class FloatingTextPreview
             _textBox.MouseEnter -= OnMouseEnter;
             _textBox.MouseMove -= OnMouseMove;
             _textBox.MouseLeave -= OnCloseRequested;
+            _textBox.GotKeyboardFocus -= OnKeyboardFocus;
             _textBox.LostKeyboardFocus -= OnCloseRequested;
             _textBox.Unloaded -= OnCloseRequested;
             _textBox.PreviewMouseWheel -= OnCloseRequested;
             _textBox.TextChanged -= OnTextChanged;
             _textBox.IsVisibleChanged -= OnIsVisibleChanged;
+            _textBox.LayoutUpdated -= OnLayoutUpdated;
         }
 
         private void OnMouseEnter(object sender, MouseEventArgs e)
         {
-            _lastPoint = e.GetPosition(_textBox);
+            _anchorPoint = e.GetPosition(_textBox);
             if (HasPreviewText())
                 _openTimer.Start();
         }
 
         private void OnMouseMove(object sender, MouseEventArgs e)
         {
-            _lastPoint = e.GetPosition(_textBox);
+            if (_popup?.IsOpen == true)
+                return;
+
+            _anchorPoint = e.GetPosition(_textBox);
+        }
+
+        private void OnKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (!_textBox.IsMouseOver)
+                _anchorPoint = new Point(_textBox.ActualWidth / 2, 0);
+
+            if (HasPreviewText())
+                _openTimer.Start();
+        }
+
+        private void OnLayoutUpdated(object? sender, EventArgs e)
+        {
             if (_popup?.IsOpen == true)
                 MovePopup();
         }
@@ -162,7 +183,7 @@ public static class FloatingTextPreview
 
         private void ShowOrUpdate()
         {
-            if (!HasPreviewText() || !_textBox.IsMouseOver || !_textBox.IsVisible)
+            if (!HasPreviewText() || (!_textBox.IsMouseOver && !_textBox.IsKeyboardFocusWithin) || !_textBox.IsVisible)
                 return;
 
             EnsurePopup();
@@ -188,7 +209,7 @@ public static class FloatingTextPreview
             };
 
             var background = new SolidColorBrush(Color.FromArgb(238, 34, 34, 34));
-            var border = new Border
+            _bubbleBorder = new Border
             {
                 Background = background,
                 CornerRadius = new CornerRadius(7),
@@ -211,20 +232,19 @@ public static class FloatingTextPreview
                 Stretch = Stretch.Fill,
                 Fill = background,
                 Data = Geometry.Parse("M 0 0 L 14 0 L 7 7 Z"),
-                HorizontalAlignment = HorizontalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Left,
                 Margin = new Thickness(0, -1, 0, 0)
             };
 
-            _popupRoot = new StackPanel
+            var popupRoot = new Grid
             {
-                Orientation = Orientation.Vertical,
-                IsHitTestVisible = false,
-                Children =
-                {
-                    border,
-                    _arrow
-                }
+                IsHitTestVisible = false
             };
+            popupRoot.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            popupRoot.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            popupRoot.Children.Add(_bubbleBorder);
+            popupRoot.Children.Add(_arrow);
+            _popupRoot = popupRoot;
 
             _popup = new Popup
             {
@@ -242,22 +262,42 @@ public static class FloatingTextPreview
             if (_popup == null)
                 return;
 
-            if (_popupRoot == null || _arrow == null)
+            if (_popupRoot == null || _bubbleBorder == null || _arrow == null)
                 return;
 
             _popupRoot.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             var size = _popupRoot.DesiredSize;
-            var screenPoint = _textBox.PointToScreen(_lastPoint);
+            var workArea = SystemParameters.WorkArea;
+            var screenPoint = _textBox.PointToScreen(_anchorPoint);
             var showAbove = screenPoint.Y - size.Height - 12 > SystemParameters.WorkArea.Top;
 
+            Grid.SetRow(_bubbleBorder, showAbove ? 0 : 1);
+            Grid.SetRow(_arrow, showAbove ? 1 : 0);
             _arrow.Data = Geometry.Parse(showAbove
                 ? "M 0 0 L 14 0 L 7 7 Z"
                 : "M 7 0 L 14 7 L 0 7 Z");
 
-            _popup.HorizontalOffset = _lastPoint.X - (size.Width / 2);
-            _popup.VerticalOffset = showAbove
-                ? _lastPoint.Y - size.Height - 12
-                : _lastPoint.Y + 12;
+            var desiredScreenX = screenPoint.X - (size.Width / 2);
+            var desiredScreenY = showAbove
+                ? screenPoint.Y - size.Height - 12
+                : screenPoint.Y + 12;
+
+            var clampedScreenX = Math.Clamp(
+                desiredScreenX,
+                workArea.Left + 8,
+                Math.Max(workArea.Left + 8, workArea.Right - size.Width - 8));
+            var clampedScreenY = Math.Clamp(
+                desiredScreenY,
+                workArea.Top + 8,
+                Math.Max(workArea.Top + 8, workArea.Bottom - size.Height - 8));
+
+            _popup.HorizontalOffset = _anchorPoint.X + (clampedScreenX - screenPoint.X);
+            _popup.VerticalOffset = _anchorPoint.Y + (clampedScreenY - screenPoint.Y);
+
+            var arrowLeft = Math.Clamp(screenPoint.X - clampedScreenX - (_arrow.Width / 2), 8, Math.Max(8, size.Width - _arrow.Width - 8));
+            _arrow.Margin = showAbove
+                ? new Thickness(arrowLeft, -1, 0, 0)
+                : new Thickness(arrowLeft, 0, 0, -1);
         }
 
         private void Close()
