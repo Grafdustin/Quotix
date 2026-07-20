@@ -48,23 +48,9 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0" Margin="0,0,0,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <ui:TextBlock Text="首页" FontSize="22" FontWeight="SemiBold"
-                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                            <ui:TextBlock Text="{Binding LastUpdatedText}" FontSize="12"
-                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                          Margin="0,4,0,0"/>
-                        </StackPanel>
-                        <ui:Button Grid.Column="1" Content="刷新" Appearance="Secondary"
-                                   Height="32" MinWidth="76" Padding="14,0"
-                                   VerticalAlignment="Center"
-                                   Command="{Binding RefreshCommand}"/>
-                    </Grid>
+                    <ui:TextBlock Grid.Row="0" Text="首页" FontSize="22" FontWeight="SemiBold"
+                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                  Margin="0,0,0,16"/>
 
                     <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,16">
                         <Border Style="{StaticResource MetricCardStyle}" Margin="0,0,10,0">
@@ -140,14 +126,14 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Width="36" Height="36" CornerRadius="8"
                                         Background="{DynamicResource ControlFillColorTertiaryBrush}">
-                                    <ui:SymbolIcon Symbol="People20" FontSize="18"
+                                    <ui:SymbolIcon Symbol="Money24" FontSize="18"
                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                    <ui:TextBlock Text="负责人" FontSize="12"
+                                    <ui:TextBlock Text="年度报价金额" FontSize="12"
                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    <ui:TextBlock Text="{Binding OwnerCountText}" FontSize="24"
+                                    <ui:TextBlock Text="{Binding AnnualAmountText}" FontSize="22"
                                                   FontWeight="SemiBold"
                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                 </StackPanel>
@@ -157,8 +143,8 @@
 
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.05*"/>
                             <ColumnDefinition Width="1.25*"/>
+                            <ColumnDefinition Width="1*"/>
                         </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0" Style="{StaticResource SectionSurfaceStyle}" Margin="0,0,16,0">
@@ -169,52 +155,147 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <ui:TextBlock Text="金额概览" FontSize="15" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-
-                                <Grid Grid.Row="1" Margin="0,18,0,0">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
+                                <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <ui:TextBlock Text="{Binding ChartTitle}" FontSize="15" FontWeight="SemiBold"
+                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <ui:TextBlock Text="{Binding ChartTotalAmountText, StringFormat=范围合计 {0}}"
+                                                      FontSize="12"
+                                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                      Margin="0,3,0,0"/>
+                                    </StackPanel>
 
-                                    <ui:TextBlock Grid.Row="0" Text="总报价金额" FontSize="13"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    <ui:TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TotalAmountText}"
-                                                  FontSize="16" FontWeight="SemiBold"
-                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-
-                                    <Border Grid.Row="1" Grid.ColumnSpan="2" Height="1"
-                                            Background="{DynamicResource CardStrokeColorDefaultBrush}"
-                                            Margin="0,14"/>
-
-                                    <ui:TextBlock Grid.Row="2" Text="本月报价金额" FontSize="13"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    <ui:TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MonthAmountText}"
-                                                  FontSize="16" FontWeight="SemiBold"
-                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                                        <ui:Button Content="周" Height="30" MinWidth="46" Padding="12,0"
+                                                   Command="{Binding SetChartRangeCommand}" CommandParameter="week">
+                                            <ui:Button.Style>
+                                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                    <Setter Property="Appearance" Value="Secondary"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsWeekRange}" Value="True">
+                                                            <Setter Property="Appearance" Value="Primary"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:Button.Style>
+                                        </ui:Button>
+                                        <ui:Button Content="月" Height="30" MinWidth="46" Padding="12,0"
+                                                   Margin="6,0,0,0"
+                                                   Command="{Binding SetChartRangeCommand}" CommandParameter="month">
+                                            <ui:Button.Style>
+                                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                    <Setter Property="Appearance" Value="Secondary"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsMonthRange}" Value="True">
+                                                            <Setter Property="Appearance" Value="Primary"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:Button.Style>
+                                        </ui:Button>
+                                        <ui:Button Content="年" Height="30" MinWidth="46" Padding="12,0"
+                                                   Margin="6,0,0,0"
+                                                   Command="{Binding SetChartRangeCommand}" CommandParameter="year">
+                                            <ui:Button.Style>
+                                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                    <Setter Property="Appearance" Value="Secondary"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsYearRange}" Value="True">
+                                                            <Setter Property="Appearance" Value="Primary"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:Button.Style>
+                                        </ui:Button>
+                                    </StackPanel>
                                 </Grid>
 
-                                <Border Grid.Row="2" Margin="0,18,0,0"
-                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                        CornerRadius="8" Padding="14">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <ui:TextBlock Text="单张平均金额" FontSize="13"
-                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        <ui:TextBlock Grid.Column="1" Text="{Binding AverageAmountText}"
-                                                      FontSize="15" FontWeight="SemiBold"
-                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    </Grid>
-                                </Border>
+                                <Grid Grid.Row="1" Margin="0,18,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="180"/>
+                                        <RowDefinition Height="24"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Height="180" CornerRadius="8"
+                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                        <Viewbox Stretch="Fill">
+                                            <Canvas Width="640" Height="180" ClipToBounds="True">
+                                                <Line X1="18" Y1="18" X2="18" Y2="162"
+                                                      Stroke="{DynamicResource CardStrokeColorDefaultBrush}" StrokeThickness="1"/>
+                                                <Line X1="18" Y1="162" X2="622" Y2="162"
+                                                      Stroke="{DynamicResource CardStrokeColorDefaultBrush}" StrokeThickness="1"/>
+                                                <Line X1="18" Y1="90" X2="622" Y2="90"
+                                                      Stroke="{DynamicResource CardStrokeColorDefaultBrush}" StrokeThickness="1"
+                                                      StrokeDashArray="3,4"/>
+                                                <Polyline Points="{Binding ChartPoints}"
+                                                          Stroke="{DynamicResource AccentFillColorDefaultBrush}"
+                                                          StrokeThickness="3"
+                                                          StrokeLineJoin="Round"/>
+                                                <ItemsControl ItemsSource="{Binding ChartMarkers}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <Canvas/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemContainerStyle>
+                                                        <Style TargetType="ContentPresenter">
+                                                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                                                        </Style>
+                                                    </ItemsControl.ItemContainerStyle>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Ellipse Width="6" Height="6"
+                                                                     Fill="{DynamicResource AccentFillColorDefaultBrush}"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Border>
+
+                                    <Viewbox Grid.Row="1" Stretch="Fill">
+                                        <Canvas Width="640" Height="24">
+                                            <ItemsControl ItemsSource="{Binding ChartLabels}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <Canvas/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemContainerStyle>
+                                                    <Style TargetType="ContentPresenter">
+                                                        <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                                        <Setter Property="Canvas.Top" Value="6"/>
+                                                    </Style>
+                                                </ItemsControl.ItemContainerStyle>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <ui:TextBlock Text="{Binding Text}" FontSize="11"
+                                                                      Width="40" TextAlignment="Center"
+                                                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Canvas>
+                                    </Viewbox>
+                                </Grid>
+
+                                <Grid Grid.Row="2" Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBlock Text="{Binding ChartMaxAmountText, StringFormat=峰值 {0}}"
+                                                  FontSize="12"
+                                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    <ui:TextBlock Grid.Column="1" Text="{Binding MonthAmountText, StringFormat=本月 {0}}"
+                                                  FontSize="12"
+                                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                </Grid>
                             </Grid>
                         </Border>
 
@@ -233,10 +314,10 @@
                                         CornerRadius="8,8,0,0" Height="36" Margin="0,14,0,0">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="92"/>
-                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="88"/>
+                                            <ColumnDefinition Width="110"/>
                                         </Grid.ColumnDefinitions>
                                         <ui:TextBlock Grid.Column="0" Text="编号" FontSize="11" FontWeight="SemiBold"
                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
@@ -274,10 +355,10 @@
                                                 </Border.Style>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="130"/>
+                                                        <ColumnDefinition Width="110"/>
                                                         <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="92"/>
-                                                        <ColumnDefinition Width="120"/>
+                                                        <ColumnDefinition Width="88"/>
+                                                        <ColumnDefinition Width="110"/>
                                                     </Grid.ColumnDefinitions>
                                                     <ui:TextBlock Grid.Column="0" Text="{Binding QuoteNumber}" FontSize="12"
                                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"

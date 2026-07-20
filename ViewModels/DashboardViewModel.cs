@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Windows;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Quotix.Models;
@@ -12,6 +14,10 @@ namespace Quotix.ViewModels;
 /// </summary>
 public partial class DashboardViewModel : ObservableObject
 {
+    private const double ChartWidth = 640;
+    private const double ChartHeight = 180;
+    private const double ChartPadding = 18;
+
     private static readonly string[] ProductTables =
     [
         "products_ndt",
@@ -24,25 +30,41 @@ public partial class DashboardViewModel : ObservableObject
     private readonly ProductService _productService;
     private readonly QuotationService _quotationService;
 
+    private List<Quotation> _cachedQuotations = new();
+
     [ObservableProperty] private int _customerCount;
-    [ObservableProperty] private int _ownerCount;
     [ObservableProperty] private int _productCount;
     [ObservableProperty] private int _quotationCount;
-    [ObservableProperty] private decimal _totalAmount;
+    [ObservableProperty] private decimal _annualAmount;
     [ObservableProperty] private decimal _monthAmount;
-    [ObservableProperty] private decimal _averageAmount;
-    [ObservableProperty] private string _lastUpdatedText = "尚未刷新";
+    [ObservableProperty] private string _selectedChartRange = "month";
+    [ObservableProperty] private decimal _chartTotalAmount;
+    [ObservableProperty] private decimal _chartMaxAmount;
     [ObservableProperty] private bool _isLoading;
 
     public ObservableCollection<DashboardQuoteItem> RecentQuotations { get; } = new();
+    public ObservableCollection<DashboardChartMarker> ChartMarkers { get; } = new();
+    public ObservableCollection<DashboardChartLabel> ChartLabels { get; } = new();
+
+    public PointCollection ChartPoints { get; } = new();
 
     public string CustomerCountText => CustomerCount.ToString("N0", CultureInfo.InvariantCulture);
-    public string OwnerCountText => OwnerCount.ToString("N0", CultureInfo.InvariantCulture);
     public string ProductCountText => ProductCount.ToString("N0", CultureInfo.InvariantCulture);
     public string QuotationCountText => QuotationCount.ToString("N0", CultureInfo.InvariantCulture);
-    public string TotalAmountText => FormatCurrency(TotalAmount);
+    public string AnnualAmountText => FormatCurrency(AnnualAmount);
     public string MonthAmountText => FormatCurrency(MonthAmount);
-    public string AverageAmountText => FormatCurrency(AverageAmount);
+    public string ChartTotalAmountText => FormatCurrency(ChartTotalAmount);
+    public string ChartMaxAmountText => FormatCurrency(ChartMaxAmount);
+    public string ChartTitle => SelectedChartRange switch
+    {
+        "week" => "近 7 天金额",
+        "year" => $"{DateTime.Now:yyyy} 年金额",
+        _ => $"{DateTime.Now:yyyy年M月} 金额"
+    };
+
+    public bool IsWeekRange => SelectedChartRange == "week";
+    public bool IsMonthRange => SelectedChartRange == "month";
+    public bool IsYearRange => SelectedChartRange == "year";
 
     public DashboardViewModel(
         HeaderService headerService,
@@ -65,18 +87,18 @@ public partial class DashboardViewModel : ObservableObject
         {
             var snapshot = await Task.Run(BuildSnapshot);
 
+            _cachedQuotations = snapshot.Quotations;
             CustomerCount = snapshot.CustomerCount;
-            OwnerCount = snapshot.OwnerCount;
             ProductCount = snapshot.ProductCount;
             QuotationCount = snapshot.QuotationCount;
-            TotalAmount = snapshot.TotalAmount;
+            AnnualAmount = snapshot.AnnualAmount;
             MonthAmount = snapshot.MonthAmount;
-            AverageAmount = snapshot.AverageAmount;
-            LastUpdatedText = $"更新于 {DateTime.Now:HH:mm}";
 
             RecentQuotations.Clear();
             foreach (var quote in snapshot.RecentQuotations)
                 RecentQuotations.Add(quote);
+
+            RebuildChart();
         }
         finally
         {
@@ -84,13 +106,25 @@ public partial class DashboardViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private void SetChartRange(string range)
+    {
+        if (range is not ("week" or "month" or "year"))
+            return;
+
+        SelectedChartRange = range;
+        RebuildChart();
+    }
+
     private DashboardSnapshot BuildSnapshot()
     {
         var customers = _headerService.GetCustomers();
-        var owners = _headerService.GetOwners();
         var productCount = ProductTables.Sum(table => _productService.GetProductsPaged(table, null, 1, 1).TotalCount);
         var quotations = _quotationService.GetQuotations();
         var now = DateTime.Now;
+        var annualAmount = quotations
+            .Where(q => TryParseDate(q.CreatedAt, out var createdAt) && createdAt.Year == now.Year)
+            .Sum(q => q.TotalAmount);
         var monthAmount = quotations
             .Where(q => TryParseDate(q.CreatedAt, out var createdAt)
                         && createdAt.Year == now.Year
@@ -112,23 +146,119 @@ public partial class DashboardViewModel : ObservableObject
         return new DashboardSnapshot
         {
             CustomerCount = customers.Count,
-            OwnerCount = owners.Count,
             ProductCount = productCount,
             QuotationCount = quotations.Count,
-            TotalAmount = quotations.Sum(q => q.TotalAmount),
+            AnnualAmount = annualAmount,
             MonthAmount = monthAmount,
-            AverageAmount = quotations.Count > 0 ? quotations.Average(q => q.TotalAmount) : 0,
-            RecentQuotations = recentQuotations
+            RecentQuotations = recentQuotations,
+            Quotations = quotations
         };
     }
 
+    private void RebuildChart()
+    {
+        var buckets = BuildChartBuckets();
+        ChartPoints.Clear();
+        ChartMarkers.Clear();
+        ChartLabels.Clear();
+
+        ChartTotalAmount = buckets.Sum(b => b.Amount);
+        ChartMaxAmount = buckets.Count > 0 ? buckets.Max(b => b.Amount) : 0;
+        var max = Math.Max(ChartMaxAmount, 1);
+        var usableWidth = ChartWidth - ChartPadding * 2;
+        var usableHeight = ChartHeight - ChartPadding * 2;
+        var step = buckets.Count > 1 ? usableWidth / (buckets.Count - 1) : 0;
+
+        for (var i = 0; i < buckets.Count; i++)
+        {
+            var x = ChartPadding + step * i;
+            var y = ChartPadding + usableHeight - (double)(buckets[i].Amount / max) * usableHeight;
+            var point = new Point(x, y);
+            ChartPoints.Add(point);
+            ChartMarkers.Add(new DashboardChartMarker
+            {
+                X = x - 3,
+                Y = y - 3,
+                Amount = FormatCurrency(buckets[i].Amount)
+            });
+        }
+
+        foreach (var (index, text) in PickLabels(buckets))
+        {
+            var x = buckets.Count > 1 ? ChartPadding + step * index : ChartPadding;
+            ChartLabels.Add(new DashboardChartLabel { X = Math.Max(0, x - 20), Text = text });
+        }
+
+        OnPropertyChanged(nameof(ChartPoints));
+        OnPropertyChanged(nameof(ChartTitle));
+        OnPropertyChanged(nameof(IsWeekRange));
+        OnPropertyChanged(nameof(IsMonthRange));
+        OnPropertyChanged(nameof(IsYearRange));
+    }
+
+    private List<DashboardChartBucket> BuildChartBuckets()
+    {
+        var now = DateTime.Now;
+        return SelectedChartRange switch
+        {
+            "week" => Enumerable.Range(0, 7)
+                .Select(offset => now.Date.AddDays(-6 + offset))
+                .Select(day => new DashboardChartBucket(
+                    day.ToString("M/d"),
+                    SumByDate(q => q.Date.Date == day)))
+                .ToList(),
+
+            "year" => Enumerable.Range(1, 12)
+                .Select(month => new DashboardChartBucket(
+                    $"{month}月",
+                    SumByDate(q => q.Date.Year == now.Year && q.Date.Month == month)))
+                .ToList(),
+
+            _ => Enumerable.Range(1, DateTime.DaysInMonth(now.Year, now.Month))
+                .Select(day => new DateTime(now.Year, now.Month, day))
+                .Select(day => new DashboardChartBucket(
+                    day.Day.ToString(CultureInfo.InvariantCulture),
+                    SumByDate(q => q.Date.Date == day.Date)))
+                .ToList()
+        };
+    }
+
+    private decimal SumByDate(Func<(DateTime Date, decimal Amount), bool> predicate)
+    {
+        decimal total = 0;
+        foreach (var quotation in _cachedQuotations)
+        {
+            if (!TryParseDate(quotation.CreatedAt, out var date))
+                continue;
+
+            var entry = (Date: date, Amount: quotation.TotalAmount);
+            if (predicate(entry))
+                total += entry.Amount;
+        }
+
+        return total;
+    }
+
+    private static IEnumerable<(int Index, string Text)> PickLabels(IReadOnlyList<DashboardChartBucket> buckets)
+    {
+        if (buckets.Count == 0)
+            yield break;
+
+        var indexes = buckets.Count <= 8
+            ? Enumerable.Range(0, buckets.Count)
+            : new[] { 0, buckets.Count / 4, buckets.Count / 2, buckets.Count * 3 / 4, buckets.Count - 1 };
+
+        foreach (var index in indexes.Distinct())
+            yield return (index, buckets[index].Label);
+    }
+
     partial void OnCustomerCountChanged(int value) => OnPropertyChanged(nameof(CustomerCountText));
-    partial void OnOwnerCountChanged(int value) => OnPropertyChanged(nameof(OwnerCountText));
     partial void OnProductCountChanged(int value) => OnPropertyChanged(nameof(ProductCountText));
     partial void OnQuotationCountChanged(int value) => OnPropertyChanged(nameof(QuotationCountText));
-    partial void OnTotalAmountChanged(decimal value) => OnPropertyChanged(nameof(TotalAmountText));
+    partial void OnAnnualAmountChanged(decimal value) => OnPropertyChanged(nameof(AnnualAmountText));
     partial void OnMonthAmountChanged(decimal value) => OnPropertyChanged(nameof(MonthAmountText));
-    partial void OnAverageAmountChanged(decimal value) => OnPropertyChanged(nameof(AverageAmountText));
+    partial void OnChartTotalAmountChanged(decimal value) => OnPropertyChanged(nameof(ChartTotalAmountText));
+    partial void OnChartMaxAmountChanged(decimal value) => OnPropertyChanged(nameof(ChartMaxAmountText));
 
     private static string FormatCurrency(decimal value) => $"¥ {value:N2}";
 
@@ -154,14 +284,28 @@ public sealed class DashboardQuoteItem
     public string Currency { get; init; } = "";
 }
 
+public sealed class DashboardChartMarker
+{
+    public double X { get; init; }
+    public double Y { get; init; }
+    public string Amount { get; init; } = "";
+}
+
+public sealed class DashboardChartLabel
+{
+    public double X { get; init; }
+    public string Text { get; init; } = "";
+}
+
+internal sealed record DashboardChartBucket(string Label, decimal Amount);
+
 internal sealed class DashboardSnapshot
 {
     public int CustomerCount { get; init; }
-    public int OwnerCount { get; init; }
     public int ProductCount { get; init; }
     public int QuotationCount { get; init; }
-    public decimal TotalAmount { get; init; }
+    public decimal AnnualAmount { get; init; }
     public decimal MonthAmount { get; init; }
-    public decimal AverageAmount { get; init; }
     public List<DashboardQuoteItem> RecentQuotations { get; init; } = new();
+    public List<Quotation> Quotations { get; init; } = new();
 }
