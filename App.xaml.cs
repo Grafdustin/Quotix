@@ -94,7 +94,7 @@ public partial class App : Application
     /// <summary>执行应用程序主启动流程</summary>
     private async Task StartApplicationAsync()
     {
-        // 全局平滑滚动：对所有 ScrollViewer 类级注册滚轮缓动（无需 XAML 标记，不依赖样式时机）
+        // 全局滚动优化：列表类控件按像素滚动，滚轮事件交回 WPF 原生处理。
         SmoothScrollBehavior.Register();
 
         // 构建 DI 容器
