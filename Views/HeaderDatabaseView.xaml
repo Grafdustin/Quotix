@@ -65,10 +65,15 @@
                                   VerticalAlignment="Center"
                                   TextTrimming="CharacterEllipsis"
                                   Margin="4,0"/>
-                    <ui:Button Grid.Column="4" Content="删除" Appearance="Danger"
-                               Height="28" FontSize="12"
-                               HorizontalAlignment="Center"
-                               Click="DeleteOwnerButton_Click"/>
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <ui:Button Content="默认" Appearance="Secondary"
+                                   Height="28" FontSize="12" MinWidth="48"
+                                   Click="SetDefaultOwnerButton_Click"/>
+                        <ui:Button Content="删除" Appearance="Danger"
+                                   Height="28" FontSize="12" MinWidth="48"
+                                   Margin="6,0,0,0"
+                                   Click="DeleteOwnerButton_Click"/>
+                    </StackPanel>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -220,13 +225,13 @@
                                                   VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
-                            <Border CornerRadius="8" Padding="14,8" Cursor="Hand"
+                            <Border CornerRadius="8" Padding="14,8" Margin="0,0,4,0" Cursor="Hand"
                                     MouseLeftButtonDown="SwitchToCustomer">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Background" Value="Transparent"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsOwnerTab}" Value="False">
+                                            <DataTrigger Binding="{Binding IsCustomerTab}" Value="True">
                                                 <Setter Property="Background"
                                                         Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
                                             </DataTrigger>
@@ -242,6 +247,28 @@
                                                   VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
+                            <Border CornerRadius="8" Padding="14,8" Cursor="Hand"
+                                    MouseLeftButtonDown="SwitchToQuotationDescription">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsQuotationDescriptionTab}" Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="DocumentBulletList24" FontSize="14"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ui:TextBlock Text="报价说明" FontSize="13" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Border>
 
@@ -249,6 +276,7 @@
                                Content="新建" Appearance="Primary"
                                Height="32" MinWidth="80" Padding="16,0"
                                HorizontalAlignment="Right"
+                               Visibility="{Binding IsQuotationDescriptionTab, Converter={StaticResource InverseBool}}"
                                Click="NewButton_Click"/>
                 </Grid>
 
@@ -295,7 +323,7 @@
                         CornerRadius="8,8,0,0"
                         Padding="0,10" Height="38"
                         Margin="0,0,12,0"
-                        Visibility="{Binding IsOwnerTab, Converter={StaticResource InverseBool}}"
+                        Visibility="{Binding IsCustomerTab, Converter={StaticResource BoolToVis}}"
                         x:Name="CustomerHeader">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -352,7 +380,81 @@
                          VirtualizingStackPanel.IsVirtualizing="True"
                          VirtualizingStackPanel.ScrollUnit="Pixel"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         Visibility="{Binding IsOwnerTab, Converter={StaticResource InverseBool}}"/>
+                         Visibility="{Binding IsCustomerTab, Converter={StaticResource BoolToVis}}"/>
+
+                <!-- 报价说明默认值 -->
+                <Border Grid.Row="3"
+                        Visibility="{Binding IsQuotationDescriptionTab, Converter={StaticResource BoolToVis}}"
+                        Padding="18,16"
+                        Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                        CornerRadius="8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="92"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:TextBlock Grid.Column="0" Text="有效期" FontSize="13"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          VerticalAlignment="Center"/>
+                            <ui:TextBox Grid.Column="1" Text="{Binding DefaultValidity, UpdateSourceTrigger=PropertyChanged}"
+                                        Height="36" VerticalContentAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Grid.Row="1" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="92"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:TextBlock Grid.Column="0" Text="付款方式" FontSize="13"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          VerticalAlignment="Center"/>
+                            <ui:TextBox Grid.Column="1" Text="{Binding DefaultPayment, UpdateSourceTrigger=PropertyChanged}"
+                                        Height="36" VerticalContentAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Grid.Row="2" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="92"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:TextBlock Grid.Column="0" Text="货期" FontSize="13"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          VerticalAlignment="Center"/>
+                            <ui:TextBox Grid.Column="1" Text="{Binding DefaultDeliveryTime, UpdateSourceTrigger=PropertyChanged}"
+                                        Height="36" VerticalContentAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Grid.Row="3" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="92"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:TextBlock Grid.Column="0" Text="交付方式" FontSize="13"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                          VerticalAlignment="Top" Margin="0,8,0,0"/>
+                            <ui:TextBox Grid.Column="1" Text="{Binding DefaultDeliveryMethod, UpdateSourceTrigger=PropertyChanged}"
+                                        MinHeight="72" TextWrapping="Wrap" AcceptsReturn="True"
+                                        VerticalScrollBarVisibility="Auto"/>
+                        </Grid>
+
+                        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+                            <ui:Button Content="恢复初始" Appearance="Secondary" MinWidth="92"
+                                       Command="{Binding ResetQuotationDescriptionDefaultsCommand}"/>
+                            <ui:Button Content="保存默认" Appearance="Primary" MinWidth="92"
+                                       Margin="8,0,0,0"
+                                       Command="{Binding SaveQuotationDescriptionDefaultsCommand}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
 
@@ -446,7 +548,7 @@
                     </Grid>
 
                     <!-- ===== 新建客户表单 ===== -->
-                    <Grid Visibility="{Binding IsOwnerTab, Converter={StaticResource InverseBool}}">
+                    <Grid Visibility="{Binding IsCustomerTab, Converter={StaticResource BoolToVis}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>

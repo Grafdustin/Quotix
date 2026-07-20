@@ -65,6 +65,19 @@ public class AppSettingsService
     /// <summary>持久化快捷输入字段映射的变更</summary>
     public void SaveQuickInputSettings() => SaveToDisk();
 
+    /// <summary>默认负责人 ID。</summary>
+    public string DefaultOwnerId
+    {
+        get => _current.DefaultOwnerId ?? "";
+        set { _current.DefaultOwnerId = value; SaveToDisk(); }
+    }
+
+    /// <summary>报价说明默认值。</summary>
+    public QuotationDescriptionDefaults QuotationDescriptionDefaults => _current.QuotationDescriptionDefaults;
+
+    /// <summary>持久化报价说明默认值。</summary>
+    public void SaveQuotationDescriptionDefaults() => SaveToDisk();
+
     /// <summary>
     /// 获取默认导出路径。
     /// 未设置或路径不存在时，返回桌面下的"Quotix Exports"目录。
@@ -129,6 +142,21 @@ public class AppSettings
 
     /// <summary>快捷输入设置（启用开关 + 按 NDT/RVI 分库的字段映射）</summary>
     public QuickInputSettings QuickInput { get; set; } = new();
+
+    /// <summary>新建报价单默认负责人 ID。</summary>
+    public string? DefaultOwnerId { get; set; }
+
+    /// <summary>新建报价单默认报价说明。</summary>
+    public QuotationDescriptionDefaults QuotationDescriptionDefaults { get; set; } = new();
+}
+
+/// <summary>报价说明默认值。</summary>
+public class QuotationDescriptionDefaults
+{
+    public string Validity { get; set; } = "1个月";
+    public string Payment { get; set; } = "预付30%，发货前付全款";
+    public string DeliveryTime { get; set; } = "8-12周";
+    public string DeliveryMethod { get; set; } = "客户项目现场，含海运、内陆运输费用及相关保险费用";
 }
 
 /// <summary>快捷输入设置实体（序列化到 settings.json）</summary>

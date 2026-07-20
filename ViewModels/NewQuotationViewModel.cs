@@ -40,7 +40,7 @@ public partial class NewQuotationViewModel : ObservableObject
     [ObservableProperty] private string _payment = "预付30%，发货前付全款";
     [ObservableProperty] private string _deliveryTime = "8-12周";
     [ObservableProperty] private string _deliveryMethod = "客户项目现场，含海运、内陆运输费用及相关保险费用";
-    [ObservableProperty] private string _quoteDate;
+    [ObservableProperty] private string _quoteDate = "";
     
     /// <summary>
     /// DatePicker 绑定的 DateTime? 属性，与 QuoteDate 字符串同步。
@@ -171,8 +171,38 @@ public partial class NewQuotationViewModel : ObservableObject
         // 统一管理报价项属性变更订阅，避免 Add/Remove/加载已有报价时悬空回调与内存泄漏（见 OnItemsCollectionChanged）
         Items.CollectionChanged += OnItemsCollectionChanged;
 
-        QuoteDate = $"{DateTime.Now.Year}年{DateTime.Now.Month}月{DateTime.Now.Day}日";
+        ApplyFormDefaults();
         AddItem();
+    }
+
+    private void ApplyFormDefaults()
+    {
+        ApplyDefaultOwner();
+
+        var defaults = _settingsService.QuotationDescriptionDefaults;
+        Validity = defaults.Validity;
+        Payment = defaults.Payment;
+        DeliveryTime = defaults.DeliveryTime;
+        DeliveryMethod = defaults.DeliveryMethod;
+        QuoteDate = $"{DateTime.Now.Year}年{DateTime.Now.Month}月{DateTime.Now.Day}日";
+    }
+
+    private void ApplyDefaultOwner()
+    {
+        CompanyContact = CompanyPhone = CompanyTel = CompanyEmail = "";
+
+        var defaultOwnerId = _settingsService.DefaultOwnerId;
+        if (string.IsNullOrWhiteSpace(defaultOwnerId))
+            return;
+
+        var owner = _headerService.GetOwners().FirstOrDefault(o => o.Id == defaultOwnerId);
+        if (owner == null)
+            return;
+
+        CompanyContact = owner.Name;
+        CompanyPhone = owner.Phone ?? "";
+        CompanyTel = owner.Tel ?? "";
+        CompanyEmail = owner.Email ?? "";
     }
 
     /// <summary>
@@ -241,13 +271,8 @@ public partial class NewQuotationViewModel : ObservableObject
     [RelayCommand]
     private void ResetForm()
     {
-        CompanyContact = CompanyPhone = CompanyTel = CompanyEmail = "";
         CustomerName = CustomerContact = CustomerPhone = CustomerEmail = "";
-        Validity = "1个月";
-        Payment = "预付30%，发货前付全款";
-        DeliveryTime = "8-12周";
-        DeliveryMethod = "客户项目现场，含海运、内陆运输费用及相关保险费用";
-        QuoteDate = $"{DateTime.Now.Year}年{DateTime.Now.Month}月{DateTime.Now.Day}日";
+        ApplyFormDefaults();
         Filename = "";
         Items.Clear();
         AddItem();

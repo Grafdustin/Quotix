@@ -122,6 +122,12 @@ public partial class HeaderDatabaseView : UserControl
             SearchBox.Text = "";
             UpdateRecordCount();
         }
+        else if (e.PropertyName == nameof(VM.IsCustomerTab) ||
+                 e.PropertyName == nameof(VM.IsQuotationDescriptionTab))
+        {
+            SearchBox.Text = "";
+            UpdateRecordCount();
+        }
     }
 
     /// <summary>
@@ -151,6 +157,8 @@ public partial class HeaderDatabaseView : UserControl
     /// </summary>
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        if (_vm == null || VM.IsQuotationDescriptionTab) return;
+
         var search = SearchBox.Text?.Trim() ?? "";
 
         if (VM.IsOwnerTab)
@@ -229,7 +237,7 @@ public partial class HeaderDatabaseView : UserControl
         if (_vm == null) return;
         RecordCountRun.Text = VM.IsOwnerTab
             ? VM.Owners.Count.ToString("N0")
-            : VM.Customers.Count.ToString("N0");
+            : VM.IsCustomerTab ? VM.Customers.Count.ToString("N0") : "0";
     }
 
     // ══════════════════════════════════════════════════════
@@ -252,6 +260,14 @@ public partial class HeaderDatabaseView : UserControl
         VM.SwitchToCustomerCommand.Execute(null);
     }
 
+    /// <summary>
+    /// 切换到报价说明默认值设置。
+    /// </summary>
+    private void SwitchToQuotationDescription(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        VM.SwitchToQuotationDescriptionCommand.Execute(null);
+    }
+
     // ══════════════════════════════════════════════════════
     //  删除
     // ══════════════════════════════════════════════════════
@@ -264,6 +280,17 @@ public partial class HeaderDatabaseView : UserControl
         if (sender is Button btn && btn.DataContext is Owner owner)
         {
             VM.DeleteOwnerCommand.Execute(owner.Id);
+        }
+    }
+
+    /// <summary>
+    /// 设置默认负责人按钮点击事件。
+    /// </summary>
+    private void SetDefaultOwnerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.DataContext is Owner owner)
+        {
+            VM.SetDefaultOwnerCommand.Execute(owner.Id);
         }
     }
 
