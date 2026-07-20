@@ -450,9 +450,9 @@
                     <Border CornerRadius="10"
                             Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1" Padding="18,16">
+                            BorderThickness="1" Padding="16,14">
                         <StackPanel>
-                            <Grid Margin="0,0,0,18">
+                            <Grid Margin="0,0,0,12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
