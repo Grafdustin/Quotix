@@ -17,23 +17,19 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
       with:
-        fetch-depth: 0  # 获取完整提交历史，用于提取 changelog
+        fetch-depth: 0
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.0.x'
 
-    - name: Extract version and changelog
+    - name: Extract version
       id: meta
       run: |
         $version = "${{ github.ref_name }}".TrimStart('v')
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-        # 从 commit message 提取 changelog（跳过第一行标题）
-        $commitBody = git log -1 --format="%b"
-        echo "CHANGELOG<<EOF" >> $env:GITHUB_OUTPUT
-        echo "$commitBody" >> $env:GITHUB_OUTPUT
-        echo "EOF" >> $env:GITHUB_OUTPUT
+        echo "CHANGELOG=$version" >> $env:GITHUB_OUTPUT
       shell: pwsh
 
     - name: Restore dependencies
@@ -130,29 +126,52 @@ jobs:
           Write-Host "latest.yml copied from repo root:"
           Get-Content "$outDir/latest.yml"
         } else {
-          Write-Host "Warning: latest.yml not found in repo root, generating from changelog..."
+          Write-Host "Warning: latest.yml not found in repo root, generating version-only fallback..."
           $version = "${{ steps.meta.outputs.VERSION }}"
-          $changelog = "${{ steps.meta.outputs.CHANGELOG }}"
           $ymlContent = "version: $version`n"
           $ymlContent += "changelog: |`n"
-          if ($changelog) {
-            foreach ($line in ($changelog -split "`n")) {
-              $trimmed = $line.Trim()
-              if ($trimmed -ne "") {
-                $ymlContent += "  $trimmed`n"
-              }
-            }
-          }
+          $ymlContent += "  $version`n"
           Set-Content -Path "$outDir/latest.yml" -Value $ymlContent -Encoding UTF8 -NoNewline
-          Write-Host "latest.yml generated from changelog:"
+          Write-Host "latest.yml generated from version fallback:"
           Get-Content "$outDir/latest.yml"
         }
       shell: pwsh
 
     - name: Generate Release Notes
       run: |
-        # 将 changelog 中 ## 开头的行转为 ### markdown 标题
-        $changelog = "${{ steps.meta.outputs.CHANGELOG }}"
+        # Release Notes 只从 latest.yml 读取；不再从 commit body 提取发布日志。
+        $latestYmlPath = "Installer/Out/latest.yml"
+        $version = "${{ steps.meta.outputs.VERSION }}"
+        $changelog = ""
+
+        if (Test-Path $latestYmlPath) {
+          $lines = Get-Content $latestYmlPath -Encoding UTF8
+          $inChangelog = $false
+          $items = New-Object System.Collections.Generic.List[string]
+
+          foreach ($line in $lines) {
+            $trimmedStart = $line.TrimStart()
+            if (-not $inChangelog -and $trimmedStart.StartsWith("changelog:")) {
+              $inChangelog = $true
+              $afterColon = $trimmedStart.Substring($trimmedStart.IndexOf(":") + 1).Trim()
+              if ($afterColon -and $afterColon -notin @("|", "|-", "|+")) {
+                $items.Add($afterColon)
+              }
+              continue
+            }
+
+            if ($inChangelog) {
+              if ($line.Trim() -eq "") {
+                $items.Add("")
+              } else {
+                $items.Add($line.TrimStart())
+              }
+            }
+          }
+
+          $changelog = ($items -join "`n").Trim()
+        }
+
         $notes = ""
         if ($changelog) {
           foreach ($line in ($changelog -split "`n")) {
@@ -164,7 +183,7 @@ jobs:
             }
           }
         }
-        if (-not $notes) { $notes = "Release ${{ steps.meta.outputs.VERSION }}" }
+        if (-not $notes) { $notes = $version }
         Set-Content -Path "release_notes.md" -Value $notes -Encoding UTF8
         Write-Host "Release notes generated:"
         Get-Content "release_notes.md"
