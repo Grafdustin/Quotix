@@ -88,6 +88,8 @@ public partial class SettingsViewModel : ObservableObject
         // 订阅产品数据变更（导入/清空），及时刷新快捷输入可用的表头下拉项
         WeakReferenceMessenger.Default.Register<ProductDataChangedMessage>(this, (r, m) =>
             RefreshQuickInputColumns(m.Value));
+
+        RefreshFeedbackErrorLog();
     }
 
     /// <summary>当前快捷输入编辑库对应的物理表名</summary>
@@ -468,6 +470,7 @@ public partial class SettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsFeedbackFunctionError))]
     [NotifyPropertyChangedFor(nameof(IsFeedbackDataError))]
     [NotifyPropertyChangedFor(nameof(IsFeedbackSuggestion))]
+    [NotifyPropertyChangedFor(nameof(IsFeedbackErrorLogSelectable))]
     private string _feedbackProblemType = "功能异常";
 
     [ObservableProperty]
@@ -483,6 +486,7 @@ public partial class SettingsViewModel : ObservableObject
     public bool IsFeedbackFunctionError => FeedbackProblemType == "功能异常";
     public bool IsFeedbackDataError => FeedbackProblemType == "数据错误";
     public bool IsFeedbackSuggestion => FeedbackProblemType == "功能建议";
+    public bool IsFeedbackErrorLogSelectable => FeedbackProblemType == "功能建议";
 
     public string FeedbackScreenshotName => FeedbackScreenshotPaths.Count == 0
         ? "未添加截图"
@@ -495,7 +499,22 @@ public partial class SettingsViewModel : ObservableObject
         => SendFeedbackCommand.NotifyCanExecuteChanged();
 
     partial void OnFeedbackAttachErrorLogChanged(bool value)
-        => RefreshFeedbackErrorLog();
+    {
+        if (!value && !IsFeedbackErrorLogSelectable)
+        {
+            FeedbackAttachErrorLog = true;
+            return;
+        }
+
+        RefreshFeedbackErrorLog();
+    }
+
+    partial void OnFeedbackProblemTypeChanged(string value)
+    {
+        if (!IsFeedbackErrorLogSelectable)
+            FeedbackAttachErrorLog = true;
+        RefreshFeedbackErrorLog();
+    }
 
     [RelayCommand]
     private void SetFeedbackProblemType(string problemType)
@@ -538,6 +557,7 @@ public partial class SettingsViewModel : ObservableObject
         IsFeedbackSending = true;
         try
         {
+            RefreshFeedbackErrorLog();
             var errorLogPath = FeedbackAttachErrorLog ? _feedbackService.FindErrorLogPath() : null;
             var request = new FeedbackRequest
             {
@@ -553,7 +573,7 @@ public partial class SettingsViewModel : ObservableObject
             FeedbackScreenshotPaths.Clear();
             OnPropertyChanged(nameof(FeedbackScreenshotName));
             RefreshFeedbackErrorLog();
-            _dialog.ShowInfo("反馈已发送，感谢你的记录。", "发送成功");
+            _dialog.ShowInfo("已提交");
         }
         catch (Exception ex)
         {
