@@ -45,6 +45,7 @@ public static class DiConfig
 
         // ===== ViewModel 层（Transient — 每次解析新实例，防止状态共享）=====
         services.AddTransient<MainViewModel>();
+        services.AddTransient<DashboardViewModel>();
         services.AddTransient<NewQuotationViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddTransient<ProductDatabaseViewModel>();

@@ -19,6 +19,9 @@
         <DataTemplate DataType="{x:Type vm:NewQuotationViewModel}">
             <views:NewQuotationView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+            <views:DashboardView/>
+        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:HistoryViewModel}">
             <views:HistoryView/>
         </DataTemplate>
@@ -134,6 +137,13 @@
                         </ui:NavigationView.Resources>
 
                         <ui:NavigationView.MenuItems>
+                            <ui:NavigationViewItem Content="首页"
+                                Tag="dashboard"
+                                Click="OnNavItemClick">
+                                <ui:NavigationViewItem.Icon>
+                                    <ui:SymbolIcon Symbol="Home24"/>
+                                </ui:NavigationViewItem.Icon>
+                            </ui:NavigationViewItem>
                             <ui:NavigationViewItem Content="新建报价"
                                 Tag="new-quotation"
                                 Click="OnNavItemClick">

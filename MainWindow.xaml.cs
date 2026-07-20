@@ -169,8 +169,8 @@ public partial class MainWindow : FluentWindow
                 UpdateThemeIcon();
         };
 
-        // 初始化：默认激活新建报价
-        SyncNavSelection("new-quotation");
+        // 初始化：默认激活首页
+        SyncNavSelection("dashboard");
         UpdateThemeIcon();
         UpdatePaneToggleIcon();
 
@@ -348,6 +348,9 @@ public partial class MainWindow : FluentWindow
             // 切换内容
             switch (tag)
             {
+                case "dashboard":
+                    VM.OpenDashboardTab();
+                    break;
                 case "new-quotation":
                     VM.OpenNewQuotationTab();
                     break;

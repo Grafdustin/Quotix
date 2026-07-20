@@ -20,6 +20,7 @@ public partial class MainViewModel : ObservableObject
     private readonly AppSettingsService _appSettings;
     private readonly ThemeService _themeService;
     private readonly DialogService _dialog;
+    private readonly DashboardViewModel _dashboardVM;
     private readonly NewQuotationViewModel _newQuotationVM;
     private readonly SettingsViewModel _settingsVM;
 
@@ -65,6 +66,7 @@ public partial class MainViewModel : ObservableObject
         AppSettingsService appSettings,
         ThemeService themeService,
         DialogService dialog,
+        DashboardViewModel dashboardVM,
         NewQuotationViewModel newQuotationVM,
         SettingsViewModel settingsVM,
         ProductDatabaseViewModel productDbVM,
@@ -74,6 +76,7 @@ public partial class MainViewModel : ObservableObject
         _appSettings = appSettings;
         _themeService = themeService;
         _dialog = dialog;
+        _dashboardVM = dashboardVM;
         _newQuotationVM = newQuotationVM;
         _settingsVM = settingsVM;
         _productDbVM = productDbVM;
@@ -109,11 +112,36 @@ public partial class MainViewModel : ObservableObject
         IsDarkMode = _themeService.IsDarkMode;
         _settingsVM.IsDarkMode = _themeService.IsDarkMode;
 
-        // 默认打开新建报价标签页
-        OpenNewQuotationTab();
+        // 默认打开首页仪表盘
+        OpenDashboardTab();
     }
 
     // ============ 标签页管理 ============
+
+    /// <summary>打开首页仪表盘标签页（已存在则激活并刷新）</summary>
+    public void OpenDashboardTab()
+    {
+        var existing = Tabs.FirstOrDefault(t => t.TabId == "dashboard");
+        if (existing != null)
+        {
+            ActivateTab(existing);
+            _ = _dashboardVM.RefreshAsync();
+            return;
+        }
+
+        var view = new DashboardView { DataContext = _dashboardVM };
+        var tab = new TabItemViewModel
+        {
+            TabId = "dashboard",
+            Title = "首页",
+            Content = _dashboardVM,
+            View = view,
+            CanClose = true
+        };
+        Tabs.Add(tab);
+        ActivateTab(tab);
+        _ = _dashboardVM.RefreshAsync();
+    }
 
     /// <summary>打开新建报价标签页（已存在则激活）</summary>
     public void OpenNewQuotationTab()
@@ -277,6 +305,9 @@ public partial class MainViewModel : ObservableObject
     {
         switch (tabId)
         {
+            case "dashboard":
+                OpenDashboardTab();
+                break;
             case "new-quotation":
                 OpenNewQuotationTab();
                 break;
