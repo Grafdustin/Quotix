@@ -511,9 +511,11 @@
                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                           Margin="0,0,0,8"/>
                             <ui:TextBox Text="{Binding FeedbackDescription, UpdateSourceTrigger=PropertyChanged}"
-                                        MinHeight="132"
+                                        Height="132"
                                         AcceptsReturn="True"
                                         TextWrapping="Wrap"
+                                        ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                         VerticalContentAlignment="Top"
                                         PlaceholderText="请描述你遇到的问题、触发步骤或建议内容"
                                         Margin="0,0,0,18"/>
