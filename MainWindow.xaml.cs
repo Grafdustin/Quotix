@@ -533,6 +533,7 @@ public partial class MainWindow : FluentWindow
     // ─── 内嵌弹窗 ───
 
     private DispatcherFrame? _dialogFrame;
+    private Func<string, string?>? _dialogInputValidator;
 
     /// <summary>
     /// 取消按钮点击事件（内嵌对话框）。
@@ -550,6 +551,18 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void DialogOverlay_PrimaryClick(object sender, RoutedEventArgs e)
     {
+        if (DialogInputBox.Visibility == Visibility.Visible && _dialogInputValidator != null)
+        {
+            var error = _dialogInputValidator(DialogInputBox.Text);
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                DialogInputErrorText.Text = error;
+                DialogInputErrorText.Visibility = Visibility.Visible;
+                DialogInputBox.Focus();
+                return;
+            }
+        }
+
         _dialogResult = true;
         _dialogInputResult = DialogInputBox.Visibility == Visibility.Visible
             ? DialogInputBox.Text
@@ -585,6 +598,9 @@ public partial class MainWindow : FluentWindow
         DialogIcon.Symbol = icon;
         DialogInputBox.Visibility = Visibility.Collapsed;
         DialogInputBox.Text = "";
+        DialogInputErrorText.Visibility = Visibility.Collapsed;
+        DialogInputErrorText.Text = "";
+        _dialogInputValidator = null;
 
         DialogPrimaryBtn.Content = primaryText;
 
@@ -624,7 +640,8 @@ public partial class MainWindow : FluentWindow
         string initialValue,
         SymbolRegular icon,
         string primaryText,
-        string cancelText)
+        string cancelText,
+        Func<string, string?>? validator = null)
     {
         Dispatcher.VerifyAccess();
 
@@ -633,6 +650,9 @@ public partial class MainWindow : FluentWindow
         DialogIcon.Symbol = icon;
         DialogInputBox.Text = initialValue;
         DialogInputBox.Visibility = Visibility.Visible;
+        DialogInputErrorText.Visibility = Visibility.Collapsed;
+        DialogInputErrorText.Text = "";
+        _dialogInputValidator = validator;
         DialogPrimaryBtn.Content = primaryText;
         DialogCancelBtn.Content = cancelText;
         DialogCancelBtn.Visibility = Visibility.Visible;

@@ -294,7 +294,7 @@ public partial class NewQuotationViewModel : ObservableObject
         if (!wasEditing)
         {
             var suggestion = BuildSuggestedFilename();
-            var input = _dialog.ShowInput("请确认报价单文件名。", suggestion, "保存报价单");
+            var input = _dialog.ShowFilenameInput("请确认报价单文件名。", suggestion, "保存报价单");
             if (input == null)
                 return;
 

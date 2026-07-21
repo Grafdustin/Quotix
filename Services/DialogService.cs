@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using Wpf.Ui.Controls;
 using WpfMessageBoxResult = Wpf.Ui.Controls.MessageBoxResult;
@@ -37,6 +38,30 @@ public class DialogService
             SymbolRegular.Edit20,
             "保存",
             "取消");
+    }
+
+    /// <summary>显示文件名输入弹窗，确认时会校验 Windows 文件名非法字符。</summary>
+    public string? ShowFilenameInput(string message, string initialValue, string title = "命名报价单")
+    {
+        var mainWindow = Application.Current?.MainWindow as MainWindow;
+        return mainWindow?.ShowInlineInputDialog(
+            title,
+            message,
+            initialValue,
+            SymbolRegular.Edit20,
+            "保存",
+            "取消",
+            ValidateFilename);
+    }
+
+    private static string? ValidateFilename(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "文件名不能为空";
+
+        return value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
+            ? "文件名不能包含下列任何字符：\\ / : * ? \" < > |"
+            : null;
     }
 
     // ============ 私有方法 ============
