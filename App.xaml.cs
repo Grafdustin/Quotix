@@ -211,7 +211,9 @@ public partial class App : Application
                 level++;
             }
 
-            File.AppendAllText(logPath, sb.ToString());
+            var newEntry = sb.ToString();
+            var existing = File.Exists(logPath) ? File.ReadAllText(logPath) : "";
+            File.WriteAllText(logPath, newEntry + existing);
         }
         catch { }
     }
