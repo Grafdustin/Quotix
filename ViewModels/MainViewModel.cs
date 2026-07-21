@@ -61,6 +61,8 @@ public partial class MainViewModel : ObservableObject
     private readonly ProductDatabaseViewModel _productDbVM;
     private readonly HeaderDatabaseViewModel _headerDbVM;
     private readonly HistoryViewModel _historyVM;
+    private readonly PreRegistrationInputViewModel _preRegistrationInputVM;
+    private readonly PreRegistrationHistoryViewModel _preRegistrationHistoryVM;
 
     public MainViewModel(
         AppSettingsService appSettings,
@@ -71,7 +73,9 @@ public partial class MainViewModel : ObservableObject
         SettingsViewModel settingsVM,
         ProductDatabaseViewModel productDbVM,
         HeaderDatabaseViewModel headerDbVM,
-        HistoryViewModel historyVM)
+        HistoryViewModel historyVM,
+        PreRegistrationInputViewModel preRegistrationInputVM,
+        PreRegistrationHistoryViewModel preRegistrationHistoryVM)
     {
         _appSettings = appSettings;
         _themeService = themeService;
@@ -82,6 +86,8 @@ public partial class MainViewModel : ObservableObject
         _productDbVM = productDbVM;
         _headerDbVM = headerDbVM;
         _historyVM = historyVM;
+        _preRegistrationInputVM = preRegistrationInputVM;
+        _preRegistrationHistoryVM = preRegistrationHistoryVM;
 
         // 订阅 Messenger 消息（替代事件耦合）
         WeakReferenceMessenger.Default.Register<ThemeChangedMessage>(this, (r, m) =>
@@ -241,6 +247,54 @@ public partial class MainViewModel : ObservableObject
         vm.Refresh();
     }
 
+    /// <summary>打开 NDT 预报备填入标签页。</summary>
+    public void OpenPreRegistrationInputTab()
+    {
+        var existing = Tabs.FirstOrDefault(t => t.TabId == "pre-registration-input");
+        if (existing != null)
+        {
+            ActivateTab(existing);
+            return;
+        }
+
+        var view = new PreRegistrationInputView { DataContext = _preRegistrationInputVM };
+        var tab = new TabItemViewModel
+        {
+            TabId = "pre-registration-input",
+            Title = "报备填入",
+            Content = _preRegistrationInputVM,
+            View = view,
+            CanClose = true
+        };
+        Tabs.Add(tab);
+        ActivateTab(tab);
+    }
+
+    /// <summary>打开 NDT 预报备记录标签页。</summary>
+    public void OpenPreRegistrationHistoryTab()
+    {
+        var existing = Tabs.FirstOrDefault(t => t.TabId == "pre-registration-history");
+        if (existing != null)
+        {
+            ActivateTab(existing);
+            _ = _preRegistrationHistoryVM.RefreshAsync();
+            return;
+        }
+
+        var view = new PreRegistrationHistoryView { DataContext = _preRegistrationHistoryVM };
+        var tab = new TabItemViewModel
+        {
+            TabId = "pre-registration-history",
+            Title = "报备记录",
+            Content = _preRegistrationHistoryVM,
+            View = view,
+            CanClose = true
+        };
+        Tabs.Add(tab);
+        ActivateTab(tab);
+        _ = _preRegistrationHistoryVM.RefreshAsync();
+    }
+
     /// <summary>打开设置标签页（已存在则激活）</summary>
     public void OpenSettingsTab()
     {
@@ -313,6 +367,12 @@ public partial class MainViewModel : ObservableObject
                 break;
             case "history":
                 OpenHistoryTab();
+                break;
+            case "pre-registration-input":
+                OpenPreRegistrationInputTab();
+                break;
+            case "pre-registration-history":
+                OpenPreRegistrationHistoryTab();
                 break;
             case "product-db":
                 OpenProductDatabaseTab();

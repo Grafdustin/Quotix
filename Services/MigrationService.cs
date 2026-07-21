@@ -76,6 +76,17 @@ public class MigrationService
             CREATE TABLE IF NOT EXISTS customers (
                 id TEXT PRIMARY KEY, company_name TEXT NOT NULL, contact TEXT, phone TEXT, email TEXT
             );
+            CREATE TABLE IF NOT EXISTS pre_registrations (
+                id TEXT PRIMARY KEY, title TEXT, agent_name TEXT, agent_sales TEXT, agent_phone TEXT, agent_email TEXT,
+                middleman_name TEXT, middleman_address TEXT, middleman_sales TEXT, middleman_phone TEXT, middleman_email TEXT,
+                customer_name TEXT, customer_tel TEXT, customer_address TEXT, customer_fax TEXT, customer_department TEXT,
+                customer_email TEXT, customer_contact TEXT, customer_mobile TEXT, industry_market TEXT, information_source TEXT,
+                application_purpose TEXT, recommended_products TEXT, competitor_info TEXT,
+                activity_date1 TEXT, activity_content1 TEXT, activity_date2 TEXT, activity_content2 TEXT,
+                activity_date3 TEXT, activity_content3 TEXT, activity_date4 TEXT, activity_content4 TEXT,
+                activity_date5 TEXT, activity_content5 TEXT, activity_date6 TEXT, activity_content6 TEXT,
+                case_result TEXT, registration_date TEXT, created_at TEXT, updated_at TEXT
+            );
         ";
         cmd.ExecuteNonQuery();
     }
@@ -98,6 +109,8 @@ public class MigrationService
         TryExec(conn, "CREATE INDEX IF NOT EXISTS idx_products_table_name ON products(table_name)");
         TryExec(conn, "CREATE INDEX IF NOT EXISTS idx_products_created_by ON products(created_by)");
         TryExec(conn, "CREATE INDEX IF NOT EXISTS idx_products_table_data_json ON products(table_name, data_json)");
+        TryExec(conn, "CREATE INDEX IF NOT EXISTS idx_pre_registrations_created_at ON pre_registrations(created_at)");
+        TryExec(conn, "CREATE INDEX IF NOT EXISTS idx_pre_registrations_customer_name ON pre_registrations(customer_name)");
     }
 
     /// <summary>创建 FTS5 全文索引虚拟表</summary>

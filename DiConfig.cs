@@ -30,6 +30,7 @@ public static class DiConfig
         services.AddSingleton<ProductRepository>();
         services.AddSingleton<QuotationRepository>();
         services.AddSingleton<HeaderRepository>();
+        services.AddSingleton<PreRegistrationRepository>();
 
         // ===== Service 层（Singleton — 无状态业务逻辑）=====
         services.AddSingleton<AppSettingsService>();
@@ -41,6 +42,7 @@ public static class DiConfig
         services.AddSingleton<ProductService>();
         services.AddSingleton<QuotationService>();
         services.AddSingleton<HeaderService>();
+        services.AddSingleton<PreRegistrationService>();
         services.AddSingleton<UpdatePipeline>();  // 更新流水线（状态机引擎）
         services.AddSingleton<FeedbackService>();
 
@@ -52,6 +54,8 @@ public static class DiConfig
         services.AddTransient<ProductDatabaseViewModel>();
         services.AddTransient<HeaderDatabaseViewModel>();
         services.AddTransient<HistoryViewModel>();
+        services.AddTransient<PreRegistrationInputViewModel>();
+        services.AddTransient<PreRegistrationHistoryViewModel>();
 
         // ===== 主窗口（Singleton — 单窗口应用）=====
         services.AddSingleton<MainWindow>();

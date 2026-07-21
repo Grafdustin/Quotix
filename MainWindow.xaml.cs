@@ -357,6 +357,12 @@ public partial class MainWindow : FluentWindow
                 case "history":
                     VM.OpenHistoryTab();
                     break;
+                case "pre-registration-input":
+                    VM.OpenPreRegistrationInputTab();
+                    break;
+                case "pre-registration-history":
+                    VM.OpenPreRegistrationHistoryTab();
+                    break;
                 case "product-db":
                     VM.OpenProductDatabaseTab();
                     break;

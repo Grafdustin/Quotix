@@ -159,6 +159,20 @@
                                     <ui:SymbolIcon Symbol="History24"/>
                                 </ui:NavigationViewItem.Icon>
                             </ui:NavigationViewItem>
+                            <ui:NavigationViewItem Content="报备填入"
+                                Tag="pre-registration-input"
+                                Click="OnNavItemClick">
+                                <ui:NavigationViewItem.Icon>
+                                    <ui:SymbolIcon Symbol="DocumentAdd24"/>
+                                </ui:NavigationViewItem.Icon>
+                            </ui:NavigationViewItem>
+                            <ui:NavigationViewItem Content="报备记录"
+                                Tag="pre-registration-history"
+                                Click="OnNavItemClick">
+                                <ui:NavigationViewItem.Icon>
+                                    <ui:SymbolIcon Symbol="History24"/>
+                                </ui:NavigationViewItem.Icon>
+                            </ui:NavigationViewItem>
                             <ui:NavigationViewItem Content="产品列表"
                                 Tag="product-db"
                                 Click="OnNavItemClick">
