@@ -34,6 +34,13 @@ public static class MarqueeTextBehavior
             typeof(MarqueeTextBehavior),
             new PropertyMetadata(TextAlignment.Left));
 
+    private static readonly DependencyProperty OriginalWidthProperty =
+        DependencyProperty.RegisterAttached(
+            "OriginalWidth",
+            typeof(double),
+            typeof(MarqueeTextBehavior),
+            new PropertyMetadata(double.NaN));
+
     private static readonly DependencyProperty HasOriginalAlignmentProperty =
         DependencyProperty.RegisterAttached(
             "HasOriginalAlignment",
@@ -111,17 +118,18 @@ public static class MarqueeTextBehavior
             }
 
             RememberAlignment(textBlock);
+            textBlock.Width = textWidth;
             textBlock.HorizontalAlignment = HorizontalAlignment.Left;
             textBlock.TextAlignment = TextAlignment.Left;
             transform.BeginAnimation(TranslateTransform.XProperty, null);
             transform.X = 0;
 
-            var duration = TimeSpan.FromSeconds(Math.Clamp(overflow / 24, 3, 8));
+            var duration = TimeSpan.FromSeconds(Math.Clamp(overflow / 34, 1.6, 4.2));
             var animation = new DoubleAnimation
             {
                 From = 0,
                 To = -overflow,
-                BeginTime = TimeSpan.FromSeconds(0.8),
+                BeginTime = TimeSpan.FromSeconds(0.45),
                 Duration = duration,
                 AutoReverse = true,
                 RepeatBehavior = RepeatBehavior.Forever,
@@ -150,6 +158,7 @@ public static class MarqueeTextBehavior
 
         textBlock.SetValue(OriginalHorizontalAlignmentProperty, textBlock.HorizontalAlignment);
         textBlock.SetValue(OriginalTextAlignmentProperty, textBlock.TextAlignment);
+        textBlock.SetValue(OriginalWidthProperty, textBlock.Width);
         textBlock.SetValue(HasOriginalAlignmentProperty, true);
     }
 
@@ -160,6 +169,7 @@ public static class MarqueeTextBehavior
 
         textBlock.HorizontalAlignment = (HorizontalAlignment)textBlock.GetValue(OriginalHorizontalAlignmentProperty);
         textBlock.TextAlignment = (TextAlignment)textBlock.GetValue(OriginalTextAlignmentProperty);
+        textBlock.Width = (double)textBlock.GetValue(OriginalWidthProperty);
         textBlock.SetValue(HasOriginalAlignmentProperty, false);
     }
 
