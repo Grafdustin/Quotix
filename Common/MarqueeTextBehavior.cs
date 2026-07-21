@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Globalization;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
@@ -10,6 +11,8 @@ namespace Quotix.Common;
 /// </summary>
 public static class MarqueeTextBehavior
 {
+    private const double EdgePadding = 10;
+
     public static readonly DependencyProperty IsEnabledProperty =
         DependencyProperty.RegisterAttached(
             "IsEnabled",
@@ -40,6 +43,13 @@ public static class MarqueeTextBehavior
             typeof(double),
             typeof(MarqueeTextBehavior),
             new PropertyMetadata(double.NaN));
+
+    private static readonly DependencyProperty OriginalMinWidthProperty =
+        DependencyProperty.RegisterAttached(
+            "OriginalMinWidth",
+            typeof(double),
+            typeof(MarqueeTextBehavior),
+            new PropertyMetadata(0d));
 
     private static readonly DependencyProperty HasOriginalAlignmentProperty =
         DependencyProperty.RegisterAttached(
@@ -94,7 +104,6 @@ public static class MarqueeTextBehavior
 
         textBlock.Dispatcher.BeginInvoke(() =>
         {
-            textBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             var viewport = GetViewportWidth(textBlock);
             if (viewport <= 0)
             {
@@ -102,7 +111,7 @@ public static class MarqueeTextBehavior
                 return;
             }
 
-            var textWidth = textBlock.DesiredSize.Width;
+            var textWidth = MeasureTextWidth(textBlock) + EdgePadding;
             var overflow = textWidth - viewport;
             if (overflow <= 2)
             {
@@ -118,9 +127,12 @@ public static class MarqueeTextBehavior
             }
 
             RememberAlignment(textBlock);
+            textBlock.MinWidth = textWidth;
             textBlock.Width = textWidth;
             textBlock.HorizontalAlignment = HorizontalAlignment.Left;
             textBlock.TextAlignment = TextAlignment.Left;
+            textBlock.InvalidateMeasure();
+            textBlock.UpdateLayout();
             transform.BeginAnimation(TranslateTransform.XProperty, null);
             transform.X = 0;
 
@@ -159,6 +171,7 @@ public static class MarqueeTextBehavior
         textBlock.SetValue(OriginalHorizontalAlignmentProperty, textBlock.HorizontalAlignment);
         textBlock.SetValue(OriginalTextAlignmentProperty, textBlock.TextAlignment);
         textBlock.SetValue(OriginalWidthProperty, textBlock.Width);
+        textBlock.SetValue(OriginalMinWidthProperty, textBlock.MinWidth);
         textBlock.SetValue(HasOriginalAlignmentProperty, true);
     }
 
@@ -170,6 +183,7 @@ public static class MarqueeTextBehavior
         textBlock.HorizontalAlignment = (HorizontalAlignment)textBlock.GetValue(OriginalHorizontalAlignmentProperty);
         textBlock.TextAlignment = (TextAlignment)textBlock.GetValue(OriginalTextAlignmentProperty);
         textBlock.Width = (double)textBlock.GetValue(OriginalWidthProperty);
+        textBlock.MinWidth = (double)textBlock.GetValue(OriginalMinWidthProperty);
         textBlock.SetValue(HasOriginalAlignmentProperty, false);
     }
 
@@ -185,11 +199,35 @@ public static class MarqueeTextBehavior
         {
             if (parent is FrameworkElement element
                 && element.ActualWidth > 0
-                && element.ActualWidth < textBlock.DesiredSize.Width)
+                && element.ActualWidth < MeasureTextWidth(textBlock))
                 return element.ActualWidth;
         }
 
         return textBlock.ActualWidth;
+    }
+
+    private static double MeasureTextWidth(TextBlock textBlock)
+    {
+        if (string.IsNullOrEmpty(textBlock.Text))
+            return 0;
+
+        var dpi = VisualTreeHelper.GetDpi(textBlock);
+        var typeface = new Typeface(
+            textBlock.FontFamily,
+            textBlock.FontStyle,
+            textBlock.FontWeight,
+            textBlock.FontStretch);
+
+        var formatted = new FormattedText(
+            textBlock.Text,
+            CultureInfo.CurrentUICulture,
+            textBlock.FlowDirection,
+            typeface,
+            textBlock.FontSize,
+            Brushes.Black,
+            dpi.PixelsPerDip);
+
+        return Math.Ceiling(formatted.WidthIncludingTrailingWhitespace);
     }
 }
 
