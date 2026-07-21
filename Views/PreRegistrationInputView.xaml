@@ -4,48 +4,54 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              Background="Transparent">
     <UserControl.Resources>
-        <Style x:Key="SectionCard" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="18"/>
-            <Setter Property="Margin" Value="0,0,0,14"/>
-        </Style>
+        <SolidColorBrush x:Key="TemplateYellowBrush" Color="#FFFF00"/>
+        <SolidColorBrush x:Key="TemplateLineBrush" Color="#D8D8D8"/>
 
-        <Style x:Key="CompactCard" TargetType="Border" BasedOn="{StaticResource SectionCard}">
-            <Setter Property="Padding" Value="16"/>
-        </Style>
-
-        <Style x:Key="SectionTitle" TargetType="ui:TextBlock">
-            <Setter Property="FontSize" Value="15"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
-            <Setter Property="Margin" Value="0,0,0,14"/>
-        </Style>
-
-        <Style x:Key="FieldLabel" TargetType="ui:TextBlock">
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
-            <Setter Property="Margin" Value="0,0,0,6"/>
-        </Style>
-
-        <Style x:Key="FieldBox" TargetType="TextBox">
-            <Setter Property="Height" Value="36"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Padding" Value="10,0"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        <Style x:Key="SheetCell" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource TemplateLineBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
             <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}"/>
+            <Setter Property="Padding" Value="8,5"/>
         </Style>
 
-        <Style x:Key="AreaBox" TargetType="TextBox" BasedOn="{StaticResource FieldBox}">
-            <Setter Property="Height" Value="116"/>
+        <Style x:Key="SheetLabelCell" TargetType="Border" BasedOn="{StaticResource SheetCell}">
+            <Setter Property="Background" Value="{StaticResource TemplateYellowBrush}"/>
+        </Style>
+
+        <Style x:Key="SheetYellowCell" TargetType="Border" BasedOn="{StaticResource SheetCell}">
+            <Setter Property="Background" Value="{StaticResource TemplateYellowBrush}"/>
+        </Style>
+
+        <Style x:Key="SectionCell" TargetType="Border" BasedOn="{StaticResource SheetCell}">
+            <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}"/>
+            <Setter Property="Padding" Value="10,7"/>
+        </Style>
+
+        <Style x:Key="SheetLabelText" TargetType="ui:TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="SectionText" TargetType="ui:TextBlock" BasedOn="{StaticResource SheetLabelText}">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="CellTextBox" TargetType="TextBox">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        </Style>
+
+        <Style x:Key="AreaTextBox" TargetType="TextBox" BasedOn="{StaticResource CellTextBox}">
             <Setter Property="AcceptsReturn" Value="True"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
             <Setter Property="VerticalContentAlignment" Value="Top"/>
-            <Setter Property="Padding" Value="10,8"/>
         </Style>
     </UserControl.Resources>
 
@@ -65,7 +71,7 @@
                     <StackPanel>
                         <ui:TextBlock Text="NDT 预报备填入" FontSize="22" FontWeight="SemiBold"
                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ui:TextBlock Text="布局按原模板顺序排列，导出时生成原格式 Excel"
+                        <ui:TextBlock Text="界面按模板表格结构排列，保存并导出后会生成原格式 Excel"
                                       FontSize="12"
                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                       Margin="0,3,0,0"/>
@@ -81,201 +87,255 @@
                 </Grid>
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel MaxWidth="1080" HorizontalAlignment="Center">
-                        <Border Style="{StaticResource CompactCard}">
-                            <StackPanel>
-                                <ui:TextBlock Text="代理商" Style="{StaticResource SectionTitle}"/>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="1.4*"/>
-                                        <ColumnDefinition Width="1*"/>
-                                        <ColumnDefinition Width="1*"/>
-                                        <ColumnDefinition Width="1.4*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
-                                        <ui:TextBlock Text="名称" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding AgentName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,12">
-                                        <ui:TextBlock Text="报备日期" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding RegistrationDate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,12,12">
-                                        <ui:TextBlock Text="销售担当" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding AgentSales, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,0,12">
-                                        <ui:TextBlock Text="手机" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding AgentPhone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4">
-                                        <ui:TextBlock Text="邮箱" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding AgentEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
+                    <Border BorderBrush="{StaticResource TemplateLineBrush}"
+                            BorderThickness="1,1,0,0"
+                            CornerRadius="8"
+                            ClipToBounds="True"
+                            MaxWidth="980"
+                            HorizontalAlignment="Center">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.8*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="0.9*"/>
+                                <ColumnDefinition Width="1.05*"/>
+                                <ColumnDefinition Width="1.1*"/>
+                                <ColumnDefinition Width="0.9*"/>
+                                <ColumnDefinition Width="1.1*"/>
+                                <ColumnDefinition Width="1.45*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="54"/>
+                                <RowDefinition Height="36"/>
+                                <RowDefinition Height="36"/>
+                                <RowDefinition Height="36"/>
+                                <RowDefinition Height="36"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="40"/>
+                                <RowDefinition Height="104"/>
+                                <RowDefinition Height="40"/>
+                                <RowDefinition Height="104"/>
+                                <RowDefinition Height="40"/>
+                                <RowDefinition Height="104"/>
+                                <RowDefinition Height="40"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="38"/>
+                                <RowDefinition Height="40"/>
+                                <RowDefinition Height="72"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                        <Border Style="{StaticResource CompactCard}">
-                            <StackPanel>
-                                <ui:TextBlock Text="中间商" Style="{StaticResource SectionTitle}"/>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="1.4*"/>
-                                        <ColumnDefinition Width="1.8*"/>
-                                        <ColumnDefinition Width="1*"/>
-                                        <ColumnDefinition Width="1*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
-                                        <ui:TextBlock Text="名称" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding MiddlemanName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,12">
-                                        <ui:TextBlock Text="地址" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding MiddlemanAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,12,12">
-                                        <ui:TextBlock Text="销售担当" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding MiddlemanSales, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,0,12">
-                                        <ui:TextBlock Text="手机" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding MiddlemanPhone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4">
-                                        <ui:TextBlock Text="邮箱" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding MiddlemanEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
+                            <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="8" Style="{StaticResource SheetCell}">
+                                <ui:TextBlock Text="NDT 预报备" FontSize="22" FontWeight="SemiBold"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            </Border>
 
-                        <Border Style="{StaticResource SectionCard}">
-                            <StackPanel>
-                                <ui:TextBlock Text="客户基本信息" Style="{StaticResource SectionTitle}"/>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="1*"/>
-                                        <ColumnDefinition Width="1*"/>
-                                    </Grid.ColumnDefinitions>
+                            <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="代理商" Style="{StaticResource SheetLabelText}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="名称" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="3" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding AgentName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="5" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="报备日期" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="6" Grid.ColumnSpan="2" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding RegistrationDate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="销售担当" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding AgentSales, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="3" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="手机" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="4" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding AgentPhone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="5" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="邮箱" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="6" Grid.ColumnSpan="2" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding AgentEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
 
-                                    <StackPanel Grid.Column="0" Margin="0,0,14,0">
-                                        <StackPanel Margin="0,0,0,12">
-                                            <ui:TextBlock Text="客户名称" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding CustomerName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="0,0,0,12">
-                                            <ui:TextBlock Text="地址" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding CustomerAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="0,0,0,12">
-                                            <ui:TextBlock Text="部门" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding CustomerDepartment, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="0,0,0,12">
-                                            <ui:TextBlock Text="联络人" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding CustomerContact, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel>
-                                            <ui:TextBlock Text="行业市场" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding IndustryMarket, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                    </StackPanel>
+                            <Border Grid.Row="3" Grid.RowSpan="2" Grid.Column="0" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="中间商" Style="{StaticResource SheetLabelText}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="名称" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="3" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding MiddlemanName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="3" Grid.Column="5" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="地址" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="3" Grid.Column="6" Grid.ColumnSpan="2" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding MiddlemanAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="4" Grid.Column="1" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="销售担当" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="4" Grid.Column="2" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding MiddlemanSales, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="4" Grid.Column="3" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="手机" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="4" Grid.Column="4" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding MiddlemanPhone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="4" Grid.Column="5" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="邮箱" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="4" Grid.Column="6" Grid.ColumnSpan="2" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding MiddlemanEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
 
-                                    <StackPanel Grid.Column="1" Margin="14,0,0,0">
-                                        <StackPanel Margin="0,0,0,12">
-                                            <ui:TextBlock Text="电话" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding CustomerTel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="0,0,0,12">
-                                            <ui:TextBlock Text="传真" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding CustomerFax, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="0,0,0,12">
-                                            <ui:TextBlock Text="电邮" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding CustomerEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="0,0,0,12">
-                                            <ui:TextBlock Text="手机" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding CustomerMobile, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel>
-                                            <ui:TextBlock Text="信息来源" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding InformationSource, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
+                            <Border Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="8" Style="{StaticResource SectionCell}">
+                                <ui:TextBlock Text="客户基本信息" Style="{StaticResource SectionText}"/>
+                            </Border>
+                            <Border Grid.Row="6" Grid.Column="0" Style="{StaticResource SheetYellowCell}">
+                                <ui:TextBlock Text="客户名称：" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding CustomerName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="6" Grid.Column="4" Style="{StaticResource SheetCell}">
+                                <ui:TextBlock Text="电话：" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="6" Grid.Column="5" Grid.ColumnSpan="3" Style="{StaticResource SheetCell}">
+                                <TextBox Text="{Binding CustomerTel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="7" Grid.Column="0" Style="{StaticResource SheetYellowCell}">
+                                <ui:TextBlock Text="地址：" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding CustomerAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="7" Grid.Column="4" Style="{StaticResource SheetCell}">
+                                <ui:TextBlock Text="传真：" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="7" Grid.Column="5" Grid.ColumnSpan="3" Style="{StaticResource SheetCell}">
+                                <TextBox Text="{Binding CustomerFax, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="8" Grid.Column="0" Style="{StaticResource SheetYellowCell}">
+                                <ui:TextBlock Text="部门：" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding CustomerDepartment, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="8" Grid.Column="4" Style="{StaticResource SheetCell}">
+                                <ui:TextBlock Text="电邮：" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="8" Grid.Column="5" Grid.ColumnSpan="3" Style="{StaticResource SheetCell}">
+                                <TextBox Text="{Binding CustomerEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="9" Grid.Column="0" Style="{StaticResource SheetYellowCell}">
+                                <ui:TextBlock Text="联络人：" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="9" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding CustomerContact, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="9" Grid.Column="4" Style="{StaticResource SheetLabelCell}">
+                                <ui:TextBlock Text="手机：" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="9" Grid.Column="5" Grid.ColumnSpan="3" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding CustomerMobile, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="10" Grid.Column="0" Style="{StaticResource SheetYellowCell}">
+                                <ui:TextBlock Text="行业市场：" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="10" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding IndustryMarket, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+                            <Border Grid.Row="10" Grid.Column="4" Style="{StaticResource SheetYellowCell}">
+                                <ui:TextBlock Text="信息来源：" Style="{StaticResource SheetLabelText}"/>
+                            </Border>
+                            <Border Grid.Row="10" Grid.Column="5" Grid.ColumnSpan="3" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding InformationSource, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
 
-                        <Border Style="{StaticResource SectionCard}">
-                            <StackPanel>
-                                <ui:TextBlock Text="应用信息及目的" Style="{StaticResource SectionTitle}"/>
-                                <TextBox Text="{Binding ApplicationPurpose, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaBox}"/>
-                            </StackPanel>
-                        </Border>
+                            <Border Grid.Row="11" Grid.Column="0" Grid.ColumnSpan="8" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding ApplicationPurpose, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaTextBox}" Margin="0,30,0,0"/>
+                            </Border>
+                            <Border Grid.Row="11" Grid.Column="0" Grid.ColumnSpan="8" Style="{StaticResource SectionCell}" Height="36" VerticalAlignment="Top" IsHitTestVisible="False">
+                                <ui:TextBlock Text="应用信息及目的" Style="{StaticResource SectionText}"/>
+                            </Border>
 
-                        <Border Style="{StaticResource SectionCard}">
-                            <StackPanel>
-                                <ui:TextBlock Text="推荐产品&amp;数量" Style="{StaticResource SectionTitle}"/>
-                                <TextBox Text="{Binding RecommendedProducts, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaBox}"/>
-                            </StackPanel>
-                        </Border>
+                            <Border Grid.Row="13" Grid.Column="0" Grid.ColumnSpan="8" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding RecommendedProducts, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaTextBox}" Margin="0,30,0,0"/>
+                            </Border>
+                            <Border Grid.Row="13" Grid.Column="0" Grid.ColumnSpan="8" Style="{StaticResource SectionCell}" Height="36" VerticalAlignment="Top" IsHitTestVisible="False">
+                                <ui:TextBlock Text="推荐产品&amp;数量" Style="{StaticResource SectionText}"/>
+                            </Border>
 
-                        <Border Style="{StaticResource SectionCard}">
-                            <StackPanel>
-                                <ui:TextBlock Text="客户及竞争对手信息" Style="{StaticResource SectionTitle}"/>
-                                <TextBox Text="{Binding CompetitorInfo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaBox}"/>
-                            </StackPanel>
-                        </Border>
+                            <Border Grid.Row="15" Grid.Column="0" Grid.ColumnSpan="8" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding CompetitorInfo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaTextBox}" Margin="0,30,0,0"/>
+                            </Border>
+                            <Border Grid.Row="15" Grid.Column="0" Grid.ColumnSpan="8" Style="{StaticResource SectionCell}" Height="36" VerticalAlignment="Top" IsHitTestVisible="False">
+                                <ui:TextBlock Text="客户及竞争对手信息" Style="{StaticResource SectionText}"/>
+                            </Border>
 
-                        <Border Style="{StaticResource SectionCard}">
-                            <StackPanel>
-                                <ui:TextBlock Text="推进节点活动和结果" Style="{StaticResource SectionTitle}"/>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="136"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBox Grid.Row="0" Grid.Column="0" Text="{Binding ActivityDate1, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,10,10"/>
-                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ActivityContent1, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,0,10"/>
-                                    <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding ActivityDate2, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,10,10"/>
-                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ActivityContent2, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,0,10"/>
-                                    <TextBox Grid.Row="2" Grid.Column="0" Text="{Binding ActivityDate3, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,10,10"/>
-                                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ActivityContent3, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,0,10"/>
-                                    <TextBox Grid.Row="3" Grid.Column="0" Text="{Binding ActivityDate4, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,10,10"/>
-                                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ActivityContent4, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,0,10"/>
-                                    <TextBox Grid.Row="4" Grid.Column="0" Text="{Binding ActivityDate5, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,10,10"/>
-                                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ActivityContent5, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,0,10"/>
-                                    <TextBox Grid.Row="5" Grid.Column="0" Text="{Binding ActivityDate6, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}" Margin="0,0,10,0"/>
-                                    <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ActivityContent6, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
+                            <Border Grid.Row="16" Grid.Column="0" Grid.ColumnSpan="8" Style="{StaticResource SectionCell}">
+                                <ui:TextBlock Text="推进节点活动和结果" Style="{StaticResource SectionText}"/>
+                            </Border>
 
-                        <Border Style="{StaticResource SectionCard}">
-                            <StackPanel>
-                                <ui:TextBlock Text="案件结果" Style="{StaticResource SectionTitle}"/>
-                                <TextBox Text="{Binding CaseResult, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaBox}" Height="76"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
+                            <Border Grid.Row="17" Grid.Column="0" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="时间" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="17" Grid.Column="1" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityDate1, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="17" Grid.Column="2" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="内容" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="17" Grid.Column="3" Grid.ColumnSpan="5" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityContent1, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="18" Grid.Column="0" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="时间" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="18" Grid.Column="1" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityDate2, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="18" Grid.Column="2" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="内容" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="18" Grid.Column="3" Grid.ColumnSpan="5" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityContent2, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="19" Grid.Column="0" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="时间" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="19" Grid.Column="1" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityDate3, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="19" Grid.Column="2" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="内容" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="19" Grid.Column="3" Grid.ColumnSpan="5" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityContent3, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="20" Grid.Column="0" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="时间" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="20" Grid.Column="1" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityDate4, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="20" Grid.Column="2" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="内容" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="20" Grid.Column="3" Grid.ColumnSpan="5" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityContent4, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="21" Grid.Column="0" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="时间" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="21" Grid.Column="1" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityDate5, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="21" Grid.Column="2" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="内容" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="21" Grid.Column="3" Grid.ColumnSpan="5" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityContent5, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="22" Grid.Column="0" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="时间" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="22" Grid.Column="1" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityDate6, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+                            <Border Grid.Row="22" Grid.Column="2" Style="{StaticResource SheetLabelCell}"><ui:TextBlock Text="内容" Style="{StaticResource SheetLabelText}"/></Border>
+                            <Border Grid.Row="22" Grid.Column="3" Grid.ColumnSpan="5" Style="{StaticResource SheetYellowCell}"><TextBox Text="{Binding ActivityContent6, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/></Border>
+
+                            <Border Grid.Row="23" Grid.Column="0" Style="{StaticResource SectionCell}">
+                                <ui:TextBlock Text="案件结果" Style="{StaticResource SectionText}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="23" Grid.Column="1" Grid.ColumnSpan="7" Style="{StaticResource SheetYellowCell}">
+                                <TextBox Text="{Binding CaseResult, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CellTextBox}"/>
+                            </Border>
+
+                            <Border Grid.Row="25" Grid.Column="0" Grid.ColumnSpan="8" Style="{StaticResource SheetCell}" Padding="14,12">
+                                <ui:TextBlock TextWrapping="Wrap"
+                                              FontSize="12"
+                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                              Text="说明：文件名按 代理商名---客户名 生成；客户信息栏建议完整填写；推进节点可填写演示、上报计划、采购议价、招标公布等进展。"/>
+                            </Border>
+                        </Grid>
+                    </Border>
                 </ScrollViewer>
             </Grid>
         </Border>
