@@ -20,6 +20,27 @@ public static class MarqueeTextBehavior
     public static bool GetIsEnabled(DependencyObject obj) => (bool)obj.GetValue(IsEnabledProperty);
     public static void SetIsEnabled(DependencyObject obj, bool value) => obj.SetValue(IsEnabledProperty, value);
 
+    private static readonly DependencyProperty OriginalHorizontalAlignmentProperty =
+        DependencyProperty.RegisterAttached(
+            "OriginalHorizontalAlignment",
+            typeof(HorizontalAlignment),
+            typeof(MarqueeTextBehavior),
+            new PropertyMetadata(HorizontalAlignment.Stretch));
+
+    private static readonly DependencyProperty OriginalTextAlignmentProperty =
+        DependencyProperty.RegisterAttached(
+            "OriginalTextAlignment",
+            typeof(TextAlignment),
+            typeof(MarqueeTextBehavior),
+            new PropertyMetadata(TextAlignment.Left));
+
+    private static readonly DependencyProperty HasOriginalAlignmentProperty =
+        DependencyProperty.RegisterAttached(
+            "HasOriginalAlignment",
+            typeof(bool),
+            typeof(MarqueeTextBehavior),
+            new PropertyMetadata(false));
+
     private static void OnIsEnabledChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not TextBlock textBlock)
@@ -66,6 +87,7 @@ public static class MarqueeTextBehavior
 
         textBlock.Dispatcher.BeginInvoke(() =>
         {
+            textBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             var viewport = GetViewportWidth(textBlock);
             if (viewport <= 0)
             {
@@ -73,7 +95,6 @@ public static class MarqueeTextBehavior
                 return;
             }
 
-            textBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             var textWidth = textBlock.DesiredSize.Width;
             var overflow = textWidth - viewport;
             if (overflow <= 2)
@@ -89,7 +110,11 @@ public static class MarqueeTextBehavior
                 textBlock.RenderTransform = transform;
             }
 
+            RememberAlignment(textBlock);
+            textBlock.HorizontalAlignment = HorizontalAlignment.Left;
+            textBlock.TextAlignment = TextAlignment.Left;
             transform.BeginAnimation(TranslateTransform.XProperty, null);
+            transform.X = 0;
 
             var duration = TimeSpan.FromSeconds(Math.Clamp(overflow / 24, 3, 8));
             var animation = new DoubleAnimation
@@ -114,6 +139,28 @@ public static class MarqueeTextBehavior
             transform.BeginAnimation(TranslateTransform.XProperty, null);
             transform.X = 0;
         }
+
+        RestoreAlignment(textBlock);
+    }
+
+    private static void RememberAlignment(TextBlock textBlock)
+    {
+        if ((bool)textBlock.GetValue(HasOriginalAlignmentProperty))
+            return;
+
+        textBlock.SetValue(OriginalHorizontalAlignmentProperty, textBlock.HorizontalAlignment);
+        textBlock.SetValue(OriginalTextAlignmentProperty, textBlock.TextAlignment);
+        textBlock.SetValue(HasOriginalAlignmentProperty, true);
+    }
+
+    private static void RestoreAlignment(TextBlock textBlock)
+    {
+        if (!(bool)textBlock.GetValue(HasOriginalAlignmentProperty))
+            return;
+
+        textBlock.HorizontalAlignment = (HorizontalAlignment)textBlock.GetValue(OriginalHorizontalAlignmentProperty);
+        textBlock.TextAlignment = (TextAlignment)textBlock.GetValue(OriginalTextAlignmentProperty);
+        textBlock.SetValue(HasOriginalAlignmentProperty, false);
     }
 
     private static double GetViewportWidth(TextBlock textBlock)
