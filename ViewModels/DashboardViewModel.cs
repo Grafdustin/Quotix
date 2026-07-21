@@ -515,6 +515,7 @@ public sealed class DashboardQuoteItem
     public string CreatedAt { get; init; } = "";
     public string Amount { get; init; } = "";
     public string Currency { get; init; } = "";
+    public string DisplayAmountText => $"{Amount} {Currency}";
 }
 
 public sealed class DashboardChartMarker
