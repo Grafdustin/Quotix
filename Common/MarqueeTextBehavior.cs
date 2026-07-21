@@ -120,7 +120,15 @@ public static class MarqueeTextBehavior
     {
         for (var parent = VisualTreeHelper.GetParent(textBlock); parent != null; parent = VisualTreeHelper.GetParent(parent))
         {
-            if (parent is FrameworkElement element && element.ActualWidth > 0)
+            if (parent is FrameworkElement { ClipToBounds: true } clipped && clipped.ActualWidth > 0)
+                return clipped.ActualWidth;
+        }
+
+        for (var parent = VisualTreeHelper.GetParent(textBlock); parent != null; parent = VisualTreeHelper.GetParent(parent))
+        {
+            if (parent is FrameworkElement element
+                && element.ActualWidth > 0
+                && element.ActualWidth < textBlock.DesiredSize.Width)
                 return element.ActualWidth;
         }
 

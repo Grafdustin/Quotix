@@ -133,12 +133,18 @@
                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                    <ui:TextBlock Text="年度报价金额" FontSize="12"
+                                <Grid Grid.Column="1" Margin="12,0,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="24"/>
+                                    </Grid.RowDefinitions>
+                                    <ui:TextBlock Grid.Row="0" Text="年度报价金额" FontSize="12"
                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    <Border ClipToBounds="True" Height="28">
+                                    <Border Grid.Row="1" ClipToBounds="True" Height="30">
                                         <ui:TextBlock Text="{Binding AnnualRmbAmountText}"
                                                       FontWeight="SemiBold"
+                                                      VerticalAlignment="Center"
                                                       common:MarqueeTextBehavior.IsEnabled="True">
                                             <ui:TextBlock.Style>
                                                 <Style TargetType="ui:TextBlock">
@@ -147,22 +153,22 @@
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding HasAnnualUsdAmount}" Value="True">
                                                             <Setter Property="FontSize" Value="16"/>
-                                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </ui:TextBlock.Style>
                                         </ui:TextBlock>
                                     </Border>
-                                    <Border ClipToBounds="True" Height="22"
+                                    <Border Grid.Row="2" ClipToBounds="True" Height="24"
                                             Visibility="{Binding HasAnnualUsdAmount, Converter={StaticResource BoolToVis}}">
                                         <ui:TextBlock Text="{Binding AnnualUsdAmountText}"
                                                       FontSize="16"
                                                       FontWeight="SemiBold"
-                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                      VerticalAlignment="Center"
                                                       common:MarqueeTextBehavior.IsEnabled="True"/>
                                     </Border>
-                                </StackPanel>
+                                </Grid>
                             </Grid>
                         </Border>
                     </UniformGrid>
@@ -505,15 +511,26 @@
                                                     <ui:TextBlock Grid.Column="1" Text="{Binding CreatedAt}" FontSize="12"
                                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                                   VerticalAlignment="Center"/>
-                                                    <StackPanel Grid.Column="2" Orientation="Horizontal"
-                                                                HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                Margin="0,0,12,0">
-                                                        <ui:TextBlock Text="{Binding Amount}" FontSize="12" FontWeight="SemiBold"
-                                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                                        <ui:TextBlock Text="{Binding Currency}" FontSize="10"
+                                                    <Grid Grid.Column="2" Margin="0,0,12,0"
+                                                          HorizontalAlignment="Stretch"
+                                                          VerticalAlignment="Center">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.Column="0" ClipToBounds="True"
+                                                                HorizontalAlignment="Stretch">
+                                                            <ui:TextBlock Text="{Binding Amount}" FontSize="12" FontWeight="SemiBold"
+                                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                                          TextAlignment="Right"
+                                                                          HorizontalAlignment="Right"
+                                                                          common:MarqueeTextBehavior.IsEnabled="True"/>
+                                                        </Border>
+                                                        <ui:TextBlock Grid.Column="1" Text="{Binding Currency}" FontSize="10"
                                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                                      VerticalAlignment="Center"
                                                                       Margin="5,1,0,0"/>
-                                                    </StackPanel>
+                                                    </Grid>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
