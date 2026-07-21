@@ -4,8 +4,6 @@ using System.Windows;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
-using Quotix.Messages;
 using Quotix.Models;
 using Quotix.Services;
 
@@ -18,7 +16,10 @@ public partial class DashboardViewModel : ObservableObject
 {
     private const double ChartWidth = 640;
     private const double ChartHeight = 180;
-    private const double ChartPadding = 18;
+    private const double ChartPaddingLeft = 62;
+    private const double ChartPaddingTop = 18;
+    private const double ChartPaddingRight = 18;
+    private const double ChartPaddingBottom = 18;
 
     private static readonly string[] ProductTables =
     [
@@ -43,7 +44,7 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty] private decimal _monthRmbAmount;
     [ObservableProperty] private decimal _monthUsdAmount;
     [ObservableProperty] private string _selectedChartRange = "month";
-    [ObservableProperty] private string _primaryCurrency = "RMB";
+    [ObservableProperty] private string _selectedChartCurrency = "RMB";
     [ObservableProperty] private decimal _chartTotalAmount;
     [ObservableProperty] private decimal _chartMaxAmount;
     [ObservableProperty] private string _chartLineData = "";
@@ -68,15 +69,14 @@ public partial class DashboardViewModel : ObservableObject
     public string CustomerCountText => CustomerCount.ToString("N0", CultureInfo.InvariantCulture);
     public string ProductCountText => ProductCount.ToString("N0", CultureInfo.InvariantCulture);
     public string QuotationCountText => QuotationCount.ToString("N0", CultureInfo.InvariantCulture);
-    public decimal PrimaryAnnualAmount => IsPrimaryUsd ? AnnualUsdAmount : AnnualRmbAmount;
-    public decimal SecondaryAnnualAmount => IsPrimaryUsd ? AnnualRmbAmount : AnnualUsdAmount;
-    public string PrimaryAnnualAmountText => FormatCurrency(PrimaryAnnualAmount, PrimaryCurrency);
-    public string SecondaryAnnualAmountText => FormatCurrency(SecondaryAnnualAmount, SecondaryCurrency);
-    public string MonthAmountText => FormatCurrency(IsPrimaryUsd ? MonthUsdAmount : MonthRmbAmount, PrimaryCurrency);
-    public string ChartTotalAmountText => FormatCurrency(ChartTotalAmount, PrimaryCurrency);
-    public string ChartMaxAmountText => FormatCurrency(ChartMaxAmount, PrimaryCurrency);
-    public bool IsPrimaryUsd => IsUsd(PrimaryCurrency);
-    public string SecondaryCurrency => IsPrimaryUsd ? "RMB" : "USD";
+    public string AnnualRmbAmountText => FormatCurrency(AnnualRmbAmount, "RMB");
+    public string AnnualUsdAmountText => FormatCurrency(AnnualUsdAmount, "USD");
+    public bool HasAnnualUsdAmount => AnnualUsdAmount > 0;
+    public string MonthAmountText => FormatCurrency(IsUsdChartCurrency ? MonthUsdAmount : MonthRmbAmount, SelectedChartCurrency);
+    public string ChartTotalAmountText => FormatCurrency(ChartTotalAmount, SelectedChartCurrency);
+    public string ChartMaxAmountText => FormatCurrency(ChartMaxAmount, SelectedChartCurrency);
+    public bool IsRmbChartCurrency => !IsUsd(SelectedChartCurrency);
+    public bool IsUsdChartCurrency => IsUsd(SelectedChartCurrency);
     public string ChartTitle => SelectedChartRange switch
     {
         "week" => "近 7 天金额",
@@ -96,12 +96,6 @@ public partial class DashboardViewModel : ObservableObject
         _headerService = headerService;
         _productService = productService;
         _quotationService = quotationService;
-
-        WeakReferenceMessenger.Default.Register<QuotationCurrencyChangedMessage>(this, (r, m) =>
-        {
-            PrimaryCurrency = NormalizeCurrency(m.Value);
-            RebuildChart();
-        });
     }
 
     [RelayCommand]
@@ -143,6 +137,17 @@ public partial class DashboardViewModel : ObservableObject
             return;
 
         SelectedChartRange = range;
+        RebuildChart();
+    }
+
+    [RelayCommand]
+    private void SetChartCurrency(string currency)
+    {
+        currency = NormalizeCurrency(currency);
+        if (SelectedChartCurrency == currency)
+            return;
+
+        SelectedChartCurrency = currency;
         RebuildChart();
     }
 
@@ -213,15 +218,15 @@ public partial class DashboardViewModel : ObservableObject
         ChartTotalAmount = buckets.Sum(b => b.Amount);
         ChartMaxAmount = buckets.Count > 0 ? buckets.Max(b => b.Amount) : 0;
         var max = GetNiceChartMax(ChartMaxAmount);
-        var usableWidth = ChartWidth - ChartPadding * 2;
-        var usableHeight = ChartHeight - ChartPadding * 2;
+        var usableWidth = ChartWidth - ChartPaddingLeft - ChartPaddingRight;
+        var usableHeight = ChartHeight - ChartPaddingTop - ChartPaddingBottom;
         var step = buckets.Count > 1 ? usableWidth / (buckets.Count - 1) : 0;
         var pathPoints = new List<Point>(buckets.Count);
 
         for (var i = 0; i < buckets.Count; i++)
         {
-            var x = ChartPadding + step * i;
-            var y = ChartPadding + usableHeight - (double)(buckets[i].Amount / max) * usableHeight;
+            var x = ChartPaddingLeft + step * i;
+            var y = ChartPaddingTop + usableHeight - (double)(buckets[i].Amount / max) * usableHeight;
             var point = new Point(x, y);
             ChartPoints.Add(point);
             pathPoints.Add(point);
@@ -229,13 +234,13 @@ public partial class DashboardViewModel : ObservableObject
             {
                 X = x - 3,
                 Y = y - 3,
-                Amount = FormatCurrency(buckets[i].Amount, PrimaryCurrency)
+                Amount = FormatCurrency(buckets[i].Amount, SelectedChartCurrency)
             });
         }
 
         foreach (var (index, text) in PickLabels(buckets))
         {
-            var x = buckets.Count > 1 ? ChartPadding + step * index : ChartPadding;
+            var x = buckets.Count > 1 ? ChartPaddingLeft + step * index : ChartPaddingLeft;
             ChartLabels.Add(new DashboardChartLabel { X = Math.Max(0, x - 20), Text = text });
         }
 
@@ -270,7 +275,7 @@ public partial class DashboardViewModel : ObservableObject
         var point = ChartPoints[nearestIndex];
         var bucket = _currentChartBuckets[nearestIndex];
         ChartDetailDate = bucket.DetailDate;
-        ChartDetailAmount = FormatCurrency(bucket.Amount, PrimaryCurrency);
+        ChartDetailAmount = FormatCurrency(bucket.Amount, SelectedChartCurrency);
         ChartDetailLineX = point.X;
         ChartDetailX = Math.Clamp(point.X + 16, 70, ChartWidth - 160);
         ChartDetailY = Math.Clamp(point.Y - 52, 18, ChartHeight - 78);
@@ -319,7 +324,7 @@ public partial class DashboardViewModel : ObservableObject
         {
             if (!TryParseDate(quotation.CreatedAt, out var date))
                 continue;
-            if (NormalizeCurrency(quotation.Currency) != NormalizeCurrency(PrimaryCurrency))
+            if (NormalizeCurrency(quotation.Currency) != NormalizeCurrency(SelectedChartCurrency))
                 continue;
 
             var entry = (Date: date, Amount: quotation.TotalAmount);
@@ -365,12 +370,12 @@ public partial class DashboardViewModel : ObservableObject
     private void BuildChartGridLines(IReadOnlyList<DashboardChartBucket> buckets, decimal max, double step, double usableHeight)
     {
         const int horizontalParts = 4;
-        var left = ChartPadding;
-        var right = ChartWidth - ChartPadding;
+        var left = ChartPaddingLeft;
+        var right = ChartWidth - ChartPaddingRight;
 
         for (var i = 0; i <= horizontalParts; i++)
         {
-            var y = ChartPadding + usableHeight / horizontalParts * i;
+            var y = ChartPaddingTop + usableHeight / horizontalParts * i;
             var value = max - max / horizontalParts * i;
             ChartHorizontalGridLines.Add(new DashboardChartGridLine
             {
@@ -393,13 +398,13 @@ public partial class DashboardViewModel : ObservableObject
 
         foreach (var index in verticalIndexes.Distinct())
         {
-            var x = buckets.Count > 1 ? ChartPadding + step * index : ChartPadding;
+            var x = buckets.Count > 1 ? ChartPaddingLeft + step * index : ChartPaddingLeft;
             ChartVerticalGridLines.Add(new DashboardChartGridLine
             {
                 X1 = x,
-                Y1 = ChartPadding,
+                Y1 = ChartPaddingTop,
                 X2 = x,
-                Y2 = ChartHeight - ChartPadding
+                Y2 = ChartHeight - ChartPaddingBottom
             });
         }
     }
@@ -437,7 +442,7 @@ public partial class DashboardViewModel : ObservableObject
         if (points.Count == 0)
             return "";
 
-        var baseline = ChartHeight - ChartPadding;
+        var baseline = ChartHeight - ChartPaddingBottom;
         var path = BuildSmoothPath(points);
         var last = points[^1];
         var first = points[0];
@@ -460,24 +465,22 @@ public partial class DashboardViewModel : ObservableObject
     partial void OnAnnualUsdAmountChanged(decimal value) => NotifyAnnualAmountChanged();
     partial void OnMonthRmbAmountChanged(decimal value) => OnPropertyChanged(nameof(MonthAmountText));
     partial void OnMonthUsdAmountChanged(decimal value) => OnPropertyChanged(nameof(MonthAmountText));
-    partial void OnPrimaryCurrencyChanged(string value)
+    partial void OnSelectedChartCurrencyChanged(string value)
     {
-        NotifyAnnualAmountChanged();
         OnPropertyChanged(nameof(MonthAmountText));
         OnPropertyChanged(nameof(ChartTotalAmountText));
         OnPropertyChanged(nameof(ChartMaxAmountText));
-        OnPropertyChanged(nameof(IsPrimaryUsd));
-        OnPropertyChanged(nameof(SecondaryCurrency));
+        OnPropertyChanged(nameof(IsRmbChartCurrency));
+        OnPropertyChanged(nameof(IsUsdChartCurrency));
     }
     partial void OnChartTotalAmountChanged(decimal value) => OnPropertyChanged(nameof(ChartTotalAmountText));
     partial void OnChartMaxAmountChanged(decimal value) => OnPropertyChanged(nameof(ChartMaxAmountText));
 
     private void NotifyAnnualAmountChanged()
     {
-        OnPropertyChanged(nameof(PrimaryAnnualAmount));
-        OnPropertyChanged(nameof(SecondaryAnnualAmount));
-        OnPropertyChanged(nameof(PrimaryAnnualAmountText));
-        OnPropertyChanged(nameof(SecondaryAnnualAmountText));
+        OnPropertyChanged(nameof(AnnualRmbAmountText));
+        OnPropertyChanged(nameof(AnnualUsdAmountText));
+        OnPropertyChanged(nameof(HasAnnualUsdAmount));
     }
 
     private static string FormatNumber(decimal value) => value.ToString("N2", CultureInfo.InvariantCulture);

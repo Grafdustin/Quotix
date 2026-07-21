@@ -135,24 +135,26 @@
                                 <StackPanel Grid.Column="1" Margin="12,0,0,0">
                                     <ui:TextBlock Text="年度报价金额" FontSize="12"
                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    <ui:TextBlock Text="{Binding PrimaryAnnualAmountText}"
+                                    <ui:TextBlock Text="{Binding AnnualRmbAmountText}"
                                                   FontWeight="SemiBold"
                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}">
                                         <ui:TextBlock.Style>
                                             <Style TargetType="ui:TextBlock">
                                                 <Setter Property="FontSize" Value="22"/>
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsPrimaryUsd}" Value="True">
-                                                        <Setter Property="FontSize" Value="19"/>
+                                                    <DataTrigger Binding="{Binding HasAnnualUsdAmount}" Value="True">
+                                                        <Setter Property="FontSize" Value="18"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </ui:TextBlock.Style>
                                     </ui:TextBlock>
-                                    <ui:TextBlock Text="{Binding SecondaryAnnualAmountText}"
-                                                  FontSize="11"
+                                    <ui:TextBlock Text="{Binding AnnualUsdAmountText}"
+                                                  FontSize="14"
+                                                  FontWeight="SemiBold"
                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                                  Margin="0,-1,0,0"/>
+                                                  Margin="0,0,0,0"
+                                                  Visibility="{Binding HasAnnualUsdAmount, Converter={StaticResource BoolToVis}}"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -187,6 +189,33 @@
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                                        <ui:Button Content="RMB" Height="30" MinWidth="56" Padding="12,0"
+                                                   Command="{Binding SetChartCurrencyCommand}" CommandParameter="RMB">
+                                            <ui:Button.Style>
+                                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                    <Setter Property="Appearance" Value="Secondary"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsRmbChartCurrency}" Value="True">
+                                                            <Setter Property="Appearance" Value="Primary"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:Button.Style>
+                                        </ui:Button>
+                                        <ui:Button Content="USD" Height="30" MinWidth="56" Padding="12,0"
+                                                   Margin="6,0,10,0"
+                                                   Command="{Binding SetChartCurrencyCommand}" CommandParameter="USD">
+                                            <ui:Button.Style>
+                                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                    <Setter Property="Appearance" Value="Secondary"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsUsdChartCurrency}" Value="True">
+                                                            <Setter Property="Appearance" Value="Primary"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:Button.Style>
+                                        </ui:Button>
                                         <ui:Button Content="周" Height="30" MinWidth="46" Padding="12,0"
                                                    Command="{Binding SetChartRangeCommand}" CommandParameter="week">
                                             <ui:Button.Style>
