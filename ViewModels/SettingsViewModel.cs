@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -557,12 +558,42 @@ public partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _dialog.ShowError($"反馈发送失败：{ex.Message}");
+            _dialog.ShowError($"反馈发送失败：{GetFeedbackErrorMessage(ex)}");
         }
         finally
         {
             IsFeedbackSending = false;
         }
+    }
+
+    private static string GetFeedbackErrorMessage(Exception ex)
+    {
+        if (IsNetworkError(ex))
+            return "网络连接异常，请检查网络后重试。";
+
+        return ex.Message;
+    }
+
+    private static bool IsNetworkError(Exception ex)
+    {
+        for (var current = ex; current != null; current = current.InnerException)
+        {
+            if (current is SocketException)
+                return true;
+
+            var message = current.Message;
+            if (message.Contains("找不到主机")
+                || message.Contains("不知道这样的主机")
+                || message.Contains("No such host")
+                || message.Contains("Name or service not known")
+                || message.Contains("nodename nor servname provided")
+                || message.Contains("network", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("timed out", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("actively refused", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 
     private void RefreshFeedbackErrorLog()
