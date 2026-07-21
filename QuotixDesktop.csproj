@@ -6,9 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>Quotix</AssemblyName>
-    <Version>1.2.4</Version>
+    <Version>1.2.5</Version>
     <!-- 不显式指定 AssemblyVersion / FileVersion，由 SDK 自动从 Version 派生，确保文件版本随发布版本实时更新 -->
-    <InformationalVersion>1.2.4</InformationalVersion>
+    <InformationalVersion>1.2.5</InformationalVersion>
     <Company>NISYO</Company>
     <Copyright>Copyright (C) 2026 NISYO</Copyright>
     <PublishSingleFile>false</PublishSingleFile>
