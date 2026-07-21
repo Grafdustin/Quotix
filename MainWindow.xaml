@@ -248,23 +248,24 @@
                                       FontSize="14" TextWrapping="Wrap"
                                       Margin="0,4,0,16" Opacity="0.8"/>
 
-                        <ui:TextBox x:Name="DialogInputBox" Grid.Row="2"
-                                    Visibility="Collapsed"
-                                    Width="420"
-                                    HorizontalAlignment="Stretch"
-                                    Height="36" FontSize="13"
-                                    Margin="0,0,0,6"
-                                    common:FloatingTextPreview.IsEnabled="False"
-                                    VerticalContentAlignment="Center"/>
+                        <StackPanel Grid.Row="2" Margin="0,0,0,16">
+                            <ui:TextBox x:Name="DialogInputBox"
+                                        Visibility="Collapsed"
+                                        Width="420"
+                                        HorizontalAlignment="Stretch"
+                                        Height="36" FontSize="13"
+                                        common:FloatingTextPreview.IsEnabled="False"
+                                        VerticalContentAlignment="Center"/>
 
-                        <ui:TextBlock x:Name="DialogInputErrorText" Grid.Row="2"
-                                      Visibility="Collapsed"
-                                      Width="420"
-                                      HorizontalAlignment="Stretch"
-                                      FontSize="12"
-                                      Foreground="#C42B1C"
-                                      TextWrapping="Wrap"
-                                      Margin="0,42,0,12"/>
+                            <ui:TextBlock x:Name="DialogInputErrorText"
+                                          Visibility="Collapsed"
+                                          Width="420"
+                                          HorizontalAlignment="Stretch"
+                                          FontSize="12"
+                                          Foreground="#C42B1C"
+                                          TextWrapping="Wrap"
+                                          Margin="0,6,0,0"/>
+                        </StackPanel>
 
                         <!-- 按钮 -->
                         <StackPanel x:Name="DialogButtons" Grid.Row="3"
