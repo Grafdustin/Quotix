@@ -406,21 +406,17 @@
                                         CornerRadius="8,8,0,0" Height="36" Margin="0,14,0,0">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="88"/>
-                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="104"/>
+                                            <ColumnDefinition Width="120"/>
                                         </Grid.ColumnDefinitions>
-                                        <ui:TextBlock Grid.Column="0" Text="编号" FontSize="11" FontWeight="SemiBold"
+                                        <ui:TextBlock Grid.Column="0" Text="客户" FontSize="11" FontWeight="SemiBold"
                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                       VerticalAlignment="Center" Margin="12,0,0,0"/>
-                                        <ui:TextBlock Grid.Column="1" Text="客户" FontSize="11" FontWeight="SemiBold"
+                                        <ui:TextBlock Grid.Column="1" Text="时间" FontSize="11" FontWeight="SemiBold"
                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                       VerticalAlignment="Center"/>
-                                        <ui:TextBlock Grid.Column="2" Text="日期" FontSize="11" FontWeight="SemiBold"
-                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                      VerticalAlignment="Center"/>
-                                        <ui:TextBlock Grid.Column="3" Text="金额" FontSize="11" FontWeight="SemiBold"
+                                        <ui:TextBlock Grid.Column="2" Text="金额" FontSize="11" FontWeight="SemiBold"
                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                       VerticalAlignment="Center" HorizontalAlignment="Right"
                                                       Margin="0,0,12,0"/>
@@ -447,30 +443,21 @@
                                                 </Border.Style>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="110"/>
                                                         <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="88"/>
-                                                        <ColumnDefinition Width="110"/>
+                                                        <ColumnDefinition Width="104"/>
+                                                        <ColumnDefinition Width="120"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <ui:TextBlock Grid.Column="0" Text="{Binding QuoteNumber}" FontSize="12"
+                                                    <ui:TextBlock Grid.Column="0" Text="{Binding CustomerName}" FontSize="12"
                                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                                                   Margin="12,0,8,0"/>
-                                                    <ui:TextBlock Grid.Column="1" Text="{Binding CustomerName}" FontSize="12"
-                                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                                  VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                    <ui:TextBlock Grid.Column="2" Text="{Binding CreatedAt}" FontSize="12"
+                                                    <ui:TextBlock Grid.Column="1" Text="{Binding CreatedAt}" FontSize="12"
                                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                                   VerticalAlignment="Center"/>
-                                                    <StackPanel Grid.Column="3" Orientation="Horizontal"
-                                                                HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                Margin="0,0,12,0">
-                                                        <ui:TextBlock Text="{Binding Amount}" FontSize="12" FontWeight="SemiBold"
-                                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                                        <ui:TextBlock Text="{Binding Currency}" FontSize="10"
-                                                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                                                      Margin="5,1,0,0"/>
-                                                    </StackPanel>
+                                                    <ui:TextBlock Grid.Column="2" Text="{Binding Amount}" FontSize="12" FontWeight="SemiBold"
+                                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                  Margin="0,0,12,0"/>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
