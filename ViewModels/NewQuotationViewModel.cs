@@ -263,7 +263,12 @@ public partial class NewQuotationViewModel : ObservableObject
     private void SwitchCurrency(string currency)
     {
         Currency = currency;
-        CurrencySymbol = currency == "USD" ? "$" : "¥";
+    }
+
+    partial void OnCurrencyChanged(string value)
+    {
+        CurrencySymbol = value == "USD" ? "$" : "¥";
+        WeakReferenceMessenger.Default.Send(new QuotationCurrencyChangedMessage(value));
     }
 
     /// <summary>

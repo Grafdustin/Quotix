@@ -118,3 +118,15 @@ public sealed class ProductDataChangedMessage : ValueChangedMessage<string>
     /// <param name="tableName">发生数据变更的表名</param>
     public ProductDataChangedMessage(string tableName) : base(tableName) { }
 }
+
+/// <summary>
+/// 开始报价页币种变更消息，携带当前币种（RMB / USD）。
+/// </summary>
+public sealed class QuotationCurrencyChangedMessage : ValueChangedMessage<string>
+{
+    /// <summary>
+    /// 初始化 QuotationCurrencyChangedMessage 实例。
+    /// </summary>
+    /// <param name="currency">当前报价币种</param>
+    public QuotationCurrencyChangedMessage(string currency) : base(currency) { }
+}

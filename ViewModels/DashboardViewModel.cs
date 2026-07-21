@@ -4,6 +4,8 @@ using System.Windows;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using Quotix.Messages;
 using Quotix.Models;
 using Quotix.Services;
 
@@ -36,9 +38,12 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty] private int _customerCount;
     [ObservableProperty] private int _productCount;
     [ObservableProperty] private int _quotationCount;
-    [ObservableProperty] private decimal _annualAmount;
-    [ObservableProperty] private decimal _monthAmount;
+    [ObservableProperty] private decimal _annualRmbAmount;
+    [ObservableProperty] private decimal _annualUsdAmount;
+    [ObservableProperty] private decimal _monthRmbAmount;
+    [ObservableProperty] private decimal _monthUsdAmount;
     [ObservableProperty] private string _selectedChartRange = "month";
+    [ObservableProperty] private string _primaryCurrency = "RMB";
     [ObservableProperty] private decimal _chartTotalAmount;
     [ObservableProperty] private decimal _chartMaxAmount;
     [ObservableProperty] private string _chartLineData = "";
@@ -63,10 +68,15 @@ public partial class DashboardViewModel : ObservableObject
     public string CustomerCountText => CustomerCount.ToString("N0", CultureInfo.InvariantCulture);
     public string ProductCountText => ProductCount.ToString("N0", CultureInfo.InvariantCulture);
     public string QuotationCountText => QuotationCount.ToString("N0", CultureInfo.InvariantCulture);
-    public string AnnualAmountText => FormatCurrency(AnnualAmount);
-    public string MonthAmountText => FormatCurrency(MonthAmount);
-    public string ChartTotalAmountText => FormatCurrency(ChartTotalAmount);
-    public string ChartMaxAmountText => FormatCurrency(ChartMaxAmount);
+    public decimal PrimaryAnnualAmount => IsPrimaryUsd ? AnnualUsdAmount : AnnualRmbAmount;
+    public decimal SecondaryAnnualAmount => IsPrimaryUsd ? AnnualRmbAmount : AnnualUsdAmount;
+    public string PrimaryAnnualAmountText => FormatCurrency(PrimaryAnnualAmount, PrimaryCurrency);
+    public string SecondaryAnnualAmountText => FormatCurrency(SecondaryAnnualAmount, SecondaryCurrency);
+    public string MonthAmountText => FormatCurrency(IsPrimaryUsd ? MonthUsdAmount : MonthRmbAmount, PrimaryCurrency);
+    public string ChartTotalAmountText => FormatCurrency(ChartTotalAmount, PrimaryCurrency);
+    public string ChartMaxAmountText => FormatCurrency(ChartMaxAmount, PrimaryCurrency);
+    public bool IsPrimaryUsd => IsUsd(PrimaryCurrency);
+    public string SecondaryCurrency => IsPrimaryUsd ? "RMB" : "USD";
     public string ChartTitle => SelectedChartRange switch
     {
         "week" => "近 7 天金额",
@@ -86,6 +96,12 @@ public partial class DashboardViewModel : ObservableObject
         _headerService = headerService;
         _productService = productService;
         _quotationService = quotationService;
+
+        WeakReferenceMessenger.Default.Register<QuotationCurrencyChangedMessage>(this, (r, m) =>
+        {
+            PrimaryCurrency = NormalizeCurrency(m.Value);
+            RebuildChart();
+        });
     }
 
     [RelayCommand]
@@ -103,8 +119,10 @@ public partial class DashboardViewModel : ObservableObject
             CustomerCount = snapshot.CustomerCount;
             ProductCount = snapshot.ProductCount;
             QuotationCount = snapshot.QuotationCount;
-            AnnualAmount = snapshot.AnnualAmount;
-            MonthAmount = snapshot.MonthAmount;
+            AnnualRmbAmount = snapshot.AnnualRmbAmount;
+            AnnualUsdAmount = snapshot.AnnualUsdAmount;
+            MonthRmbAmount = snapshot.MonthRmbAmount;
+            MonthUsdAmount = snapshot.MonthUsdAmount;
 
             RecentQuotations.Clear();
             foreach (var quote in snapshot.RecentQuotations)
@@ -134,13 +152,25 @@ public partial class DashboardViewModel : ObservableObject
         var productCount = ProductTables.Sum(table => _productService.GetProductsPaged(table, null, 1, 1).TotalCount);
         var quotations = _quotationService.GetQuotations();
         var now = DateTime.Now;
-        var annualAmount = quotations
+        var annualRmbAmount = quotations
             .Where(q => TryParseDate(q.CreatedAt, out var createdAt) && createdAt.Year == now.Year)
+            .Where(q => !IsUsd(q.Currency))
             .Sum(q => q.TotalAmount);
-        var monthAmount = quotations
+        var annualUsdAmount = quotations
+            .Where(q => TryParseDate(q.CreatedAt, out var createdAt) && createdAt.Year == now.Year)
+            .Where(q => IsUsd(q.Currency))
+            .Sum(q => q.TotalAmount);
+        var monthRmbAmount = quotations
             .Where(q => TryParseDate(q.CreatedAt, out var createdAt)
                         && createdAt.Year == now.Year
                         && createdAt.Month == now.Month)
+            .Where(q => !IsUsd(q.Currency))
+            .Sum(q => q.TotalAmount);
+        var monthUsdAmount = quotations
+            .Where(q => TryParseDate(q.CreatedAt, out var createdAt)
+                        && createdAt.Year == now.Year
+                        && createdAt.Month == now.Month)
+            .Where(q => IsUsd(q.Currency))
             .Sum(q => q.TotalAmount);
 
         var recentQuotations = quotations
@@ -150,7 +180,7 @@ public partial class DashboardViewModel : ObservableObject
                 QuoteNumber = string.IsNullOrWhiteSpace(q.QuoteNumber) ? "未编号" : q.QuoteNumber!,
                 CustomerName = string.IsNullOrWhiteSpace(q.CustomerName) ? "未填写客户" : q.CustomerName,
                 CreatedAt = FormatDate(q.CreatedAt),
-                Amount = FormatCurrency(q.TotalAmount),
+                Amount = FormatNumber(q.TotalAmount),
                 Currency = string.IsNullOrWhiteSpace(q.Currency) ? "CNY" : q.Currency!
             })
             .ToList();
@@ -160,8 +190,10 @@ public partial class DashboardViewModel : ObservableObject
             CustomerCount = customers.Count,
             ProductCount = productCount,
             QuotationCount = quotations.Count,
-            AnnualAmount = annualAmount,
-            MonthAmount = monthAmount,
+            AnnualRmbAmount = annualRmbAmount,
+            AnnualUsdAmount = annualUsdAmount,
+            MonthRmbAmount = monthRmbAmount,
+            MonthUsdAmount = monthUsdAmount,
             RecentQuotations = recentQuotations,
             Quotations = quotations
         };
@@ -197,7 +229,7 @@ public partial class DashboardViewModel : ObservableObject
             {
                 X = x - 3,
                 Y = y - 3,
-                Amount = FormatCurrency(buckets[i].Amount)
+                Amount = FormatCurrency(buckets[i].Amount, PrimaryCurrency)
             });
         }
 
@@ -238,7 +270,7 @@ public partial class DashboardViewModel : ObservableObject
         var point = ChartPoints[nearestIndex];
         var bucket = _currentChartBuckets[nearestIndex];
         ChartDetailDate = bucket.DetailDate;
-        ChartDetailAmount = FormatCurrency(bucket.Amount);
+        ChartDetailAmount = FormatCurrency(bucket.Amount, PrimaryCurrency);
         ChartDetailLineX = point.X;
         ChartDetailX = Math.Clamp(point.X + 16, 70, ChartWidth - 160);
         ChartDetailY = Math.Clamp(point.Y - 52, 18, ChartHeight - 78);
@@ -286,6 +318,8 @@ public partial class DashboardViewModel : ObservableObject
         foreach (var quotation in _cachedQuotations)
         {
             if (!TryParseDate(quotation.CreatedAt, out var date))
+                continue;
+            if (NormalizeCurrency(quotation.Currency) != NormalizeCurrency(PrimaryCurrency))
                 continue;
 
             var entry = (Date: date, Amount: quotation.TotalAmount);
@@ -422,12 +456,41 @@ public partial class DashboardViewModel : ObservableObject
     partial void OnCustomerCountChanged(int value) => OnPropertyChanged(nameof(CustomerCountText));
     partial void OnProductCountChanged(int value) => OnPropertyChanged(nameof(ProductCountText));
     partial void OnQuotationCountChanged(int value) => OnPropertyChanged(nameof(QuotationCountText));
-    partial void OnAnnualAmountChanged(decimal value) => OnPropertyChanged(nameof(AnnualAmountText));
-    partial void OnMonthAmountChanged(decimal value) => OnPropertyChanged(nameof(MonthAmountText));
+    partial void OnAnnualRmbAmountChanged(decimal value) => NotifyAnnualAmountChanged();
+    partial void OnAnnualUsdAmountChanged(decimal value) => NotifyAnnualAmountChanged();
+    partial void OnMonthRmbAmountChanged(decimal value) => OnPropertyChanged(nameof(MonthAmountText));
+    partial void OnMonthUsdAmountChanged(decimal value) => OnPropertyChanged(nameof(MonthAmountText));
+    partial void OnPrimaryCurrencyChanged(string value)
+    {
+        NotifyAnnualAmountChanged();
+        OnPropertyChanged(nameof(MonthAmountText));
+        OnPropertyChanged(nameof(ChartTotalAmountText));
+        OnPropertyChanged(nameof(ChartMaxAmountText));
+        OnPropertyChanged(nameof(IsPrimaryUsd));
+        OnPropertyChanged(nameof(SecondaryCurrency));
+    }
     partial void OnChartTotalAmountChanged(decimal value) => OnPropertyChanged(nameof(ChartTotalAmountText));
     partial void OnChartMaxAmountChanged(decimal value) => OnPropertyChanged(nameof(ChartMaxAmountText));
 
-    private static string FormatCurrency(decimal value) => $"¥ {value:N2}";
+    private void NotifyAnnualAmountChanged()
+    {
+        OnPropertyChanged(nameof(PrimaryAnnualAmount));
+        OnPropertyChanged(nameof(SecondaryAnnualAmount));
+        OnPropertyChanged(nameof(PrimaryAnnualAmountText));
+        OnPropertyChanged(nameof(SecondaryAnnualAmountText));
+    }
+
+    private static string FormatNumber(decimal value) => value.ToString("N2", CultureInfo.InvariantCulture);
+
+    private static string FormatCurrency(decimal value, string currency)
+        => $"{CurrencySymbol(currency)} {value:N2}";
+
+    private static string CurrencySymbol(string? currency) => IsUsd(currency) ? "$" : "¥";
+
+    private static bool IsUsd(string? currency)
+        => string.Equals(currency, "USD", StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizeCurrency(string? currency) => IsUsd(currency) ? "USD" : "RMB";
 
     private static string FormatDate(string? value)
     {
@@ -486,8 +549,10 @@ internal sealed class DashboardSnapshot
     public int CustomerCount { get; init; }
     public int ProductCount { get; init; }
     public int QuotationCount { get; init; }
-    public decimal AnnualAmount { get; init; }
-    public decimal MonthAmount { get; init; }
+    public decimal AnnualRmbAmount { get; init; }
+    public decimal AnnualUsdAmount { get; init; }
+    public decimal MonthRmbAmount { get; init; }
+    public decimal MonthUsdAmount { get; init; }
     public List<DashboardQuoteItem> RecentQuotations { get; init; } = new();
     public List<Quotation> Quotations { get; init; } = new();
 }
