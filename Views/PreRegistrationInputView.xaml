@@ -13,6 +13,10 @@
             <Setter Property="Margin" Value="0,0,0,14"/>
         </Style>
 
+        <Style x:Key="CompactCard" TargetType="Border" BasedOn="{StaticResource SectionCard}">
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+
         <Style x:Key="SectionTitle" TargetType="ui:TextBlock">
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -36,7 +40,7 @@
         </Style>
 
         <Style x:Key="AreaBox" TargetType="TextBox" BasedOn="{StaticResource FieldBox}">
-            <Setter Property="Height" Value="96"/>
+            <Setter Property="Height" Value="116"/>
             <Setter Property="AcceptsReturn" Value="True"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
@@ -61,7 +65,7 @@
                     <StackPanel>
                         <ui:TextBlock Text="NDT 预报备填入" FontSize="22" FontWeight="SemiBold"
                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ui:TextBlock Text="按模板字段录入，导出时自动生成原格式 Excel"
+                        <ui:TextBlock Text="布局按原模板顺序排列，导出时生成原格式 Excel"
                                       FontSize="12"
                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                       Margin="0,3,0,0"/>
@@ -77,163 +81,159 @@
                 </Grid>
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel MaxWidth="1180" HorizontalAlignment="Center">
-                        <Border Style="{StaticResource SectionCard}">
+                    <StackPanel MaxWidth="1080" HorizontalAlignment="Center">
+                        <Border Style="{StaticResource CompactCard}">
                             <StackPanel>
-                                <ui:TextBlock Text="基础信息" Style="{StaticResource SectionTitle}"/>
+                                <ui:TextBlock Text="代理商" Style="{StaticResource SectionTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="1.2*"/>
+                                        <ColumnDefinition Width="1.4*"/>
                                         <ColumnDefinition Width="1*"/>
                                         <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="1.4*"/>
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                                        <ui:TextBlock Text="代理商名称" Style="{StaticResource FieldLabel}"/>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
+                                        <ui:TextBlock Text="名称" Style="{StaticResource FieldLabel}"/>
                                         <TextBox Text="{Binding AgentName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,12">
                                         <ui:TextBlock Text="报备日期" Style="{StaticResource FieldLabel}"/>
                                         <TextBox Text="{Binding RegistrationDate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="2">
-                                        <ui:TextBlock Text="信息来源" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding InformationSource, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,12,12">
+                                        <ui:TextBlock Text="销售担当" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding AgentSales, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,0,12">
+                                        <ui:TextBlock Text="手机" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding AgentPhone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4">
+                                        <ui:TextBlock Text="邮箱" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding AgentEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
                         </Border>
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1*"/>
-                                <ColumnDefinition Width="1*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Border Grid.Column="0" Style="{StaticResource SectionCard}" Margin="0,0,8,14">
-                                <StackPanel>
-                                    <ui:TextBlock Text="代理商联系人" Style="{StaticResource SectionTitle}"/>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="1*"/>
-                                            <ColumnDefinition Width="1*"/>
-                                            <ColumnDefinition Width="1.3*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                            <ui:TextBlock Text="销售担当" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding AgentSales, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="1" Margin="0,0,10,0">
-                                            <ui:TextBlock Text="手机" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding AgentPhone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="2">
-                                            <ui:TextBlock Text="邮箱" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding AgentEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </StackPanel>
-                            </Border>
-
-                            <Border Grid.Column="1" Style="{StaticResource SectionCard}" Margin="8,0,0,14">
-                                <StackPanel>
-                                    <ui:TextBlock Text="中间商" Style="{StaticResource SectionTitle}"/>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="1*"/>
-                                            <ColumnDefinition Width="1*"/>
-                                            <ColumnDefinition Width="1*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" Margin="0,0,10,12">
-                                            <ui:TextBlock Text="名称" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding MiddlemanName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="1" Margin="0,0,10,12">
-                                            <ui:TextBlock Text="销售担当" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding MiddlemanSales, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="2" Margin="0,0,0,12">
-                                            <ui:TextBlock Text="手机" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding MiddlemanPhone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Margin="0,54,10,0">
-                                            <ui:TextBlock Text="地址" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding MiddlemanAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="2" Margin="0,54,0,0">
-                                            <ui:TextBlock Text="邮箱" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox Text="{Binding MiddlemanEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
+                        <Border Style="{StaticResource CompactCard}">
+                            <StackPanel>
+                                <ui:TextBlock Text="中间商" Style="{StaticResource SectionTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.4*"/>
+                                        <ColumnDefinition Width="1.8*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
+                                        <ui:TextBlock Text="名称" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding MiddlemanName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,12">
+                                        <ui:TextBlock Text="地址" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding MiddlemanAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,12,12">
+                                        <ui:TextBlock Text="销售担当" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding MiddlemanSales, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,0,12">
+                                        <ui:TextBlock Text="手机" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding MiddlemanPhone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4">
+                                        <ui:TextBlock Text="邮箱" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding MiddlemanEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
                         <Border Style="{StaticResource SectionCard}">
                             <StackPanel>
                                 <ui:TextBlock Text="客户基本信息" Style="{StaticResource SectionTitle}"/>
-                                <UniformGrid Columns="4">
-                                    <StackPanel Margin="0,0,12,12">
-                                        <ui:TextBlock Text="客户名称" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding CustomerName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,14,0">
+                                        <StackPanel Margin="0,0,0,12">
+                                            <ui:TextBlock Text="客户名称" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding CustomerName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,0,12">
+                                            <ui:TextBlock Text="地址" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding CustomerAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,0,12">
+                                            <ui:TextBlock Text="部门" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding CustomerDepartment, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,0,12">
+                                            <ui:TextBlock Text="联络人" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding CustomerContact, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <ui:TextBlock Text="行业市场" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding IndustryMarket, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                        </StackPanel>
                                     </StackPanel>
-                                    <StackPanel Margin="0,0,12,12">
-                                        <ui:TextBlock Text="部门" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding CustomerDepartment, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+
+                                    <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                                        <StackPanel Margin="0,0,0,12">
+                                            <ui:TextBlock Text="电话" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding CustomerTel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,0,12">
+                                            <ui:TextBlock Text="传真" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding CustomerFax, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,0,12">
+                                            <ui:TextBlock Text="电邮" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding CustomerEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,0,12">
+                                            <ui:TextBlock Text="手机" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding CustomerMobile, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <ui:TextBlock Text="信息来源" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding InformationSource, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                                        </StackPanel>
                                     </StackPanel>
-                                    <StackPanel Margin="0,0,12,12">
-                                        <ui:TextBlock Text="联络人" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding CustomerContact, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Margin="0,0,0,12">
-                                        <ui:TextBlock Text="行业市场" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding IndustryMarket, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Margin="0,0,12,12">
-                                        <ui:TextBlock Text="电话" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding CustomerTel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Margin="0,0,12,12">
-                                        <ui:TextBlock Text="手机" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding CustomerMobile, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Margin="0,0,12,12">
-                                        <ui:TextBlock Text="电邮" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding CustomerEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Margin="0,0,0,12">
-                                        <ui:TextBlock Text="传真" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding CustomerFax, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Margin="0,0,0,0">
-                                        <ui:TextBlock Text="地址" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding CustomerAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
-                                    </StackPanel>
-                                </UniformGrid>
+                                </Grid>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource SectionCard}">
                             <StackPanel>
-                                <ui:TextBlock Text="报备内容" Style="{StaticResource SectionTitle}"/>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="1*"/>
-                                        <ColumnDefinition Width="1*"/>
-                                        <ColumnDefinition Width="1*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                                        <ui:TextBlock Text="应用信息及目的" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding ApplicationPurpose, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                                        <ui:TextBlock Text="推荐产品&amp;数量" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding RecommendedProducts, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaBox}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2">
-                                        <ui:TextBlock Text="客户及竞争对手信息" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox Text="{Binding CompetitorInfo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaBox}"/>
-                                    </StackPanel>
-                                </Grid>
+                                <ui:TextBlock Text="应用信息及目的" Style="{StaticResource SectionTitle}"/>
+                                <TextBox Text="{Binding ApplicationPurpose, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaBox}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SectionCard}">
+                            <StackPanel>
+                                <ui:TextBlock Text="推荐产品&amp;数量" Style="{StaticResource SectionTitle}"/>
+                                <TextBox Text="{Binding RecommendedProducts, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaBox}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SectionCard}">
+                            <StackPanel>
+                                <ui:TextBlock Text="客户及竞争对手信息" Style="{StaticResource SectionTitle}"/>
+                                <TextBox Text="{Binding CompetitorInfo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AreaBox}"/>
                             </StackPanel>
                         </Border>
 
