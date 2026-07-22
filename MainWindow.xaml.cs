@@ -49,15 +49,15 @@ public partial class MainWindow : FluentWindow
             ""),
         new("quick-code", "new-quotation", "快捷输入",
             "在编号框输入关键字，选择产品。",
-            ""),
+            "提示:请先在设置菜单的产品列表中导入excel，再去设置的快捷输入中编辑映射列"),
         new("history", "history", "报价历史",
             "搜索、编辑或重新导出报价。",
             ""),
         new("settings", null, "设置",
             "调整导出、快捷输入、外观、更新和反馈。",
             ""),
-        new("settings", null, "完成",
-            "按顺序使用：产品列表、收录信息、新建报价、报价历史。",
+        new("", "dashboard", "结束",
+            "在设置中导入选择的产品列表的Excel文件、按照提示内容开始吧。",
             "")
     };
     private int _onboardingIndex;
@@ -338,9 +338,9 @@ public partial class MainWindow : FluentWindow
                 : RootNavView.OpenPaneLength;
 
             x = Math.Max(6, navPoint.X - navOverlayPoint.X + 6);
-            y += 12;
+            y += 8;
             width = Math.Max(48, navWidth - 14);
-            height = 44;
+            height = 32;
         }
 
         Canvas.SetLeft(TutorialHighlight, x);
