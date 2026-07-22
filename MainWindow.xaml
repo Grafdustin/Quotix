@@ -610,7 +610,7 @@
             <Grid x:Name="TutorialOverlay"
                   Grid.ColumnSpan="2"
                   Visibility="Collapsed"
-                  Background="#99000000"
+                  Background="#18000000"
                   Panel.ZIndex="3000">
                 <Canvas x:Name="TutorialCanvas">
                     <Border x:Name="TutorialHighlight"
@@ -618,7 +618,7 @@
                             CornerRadius="12"
                             BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
                             BorderThickness="3"
-                            Background="#22FFFFFF"
+                            Background="Transparent"
                             IsHitTestVisible="False">
                         <Border.Effect>
                             <DropShadowEffect BlurRadius="28" ShadowDepth="0"

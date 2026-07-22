@@ -515,6 +515,7 @@
 
                                             <!-- 编号 -->
                                             <ui:TextBox Grid.Column="2"
+                                                        AutomationProperties.AutomationId="QuotationCodeInput"
                                                         Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}"
                                                         FontSize="13" Height="34" VerticalContentAlignment="Center"
                                                         Margin="0,0,8,0"

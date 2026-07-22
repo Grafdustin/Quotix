@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -49,7 +50,7 @@ public partial class MainWindow : FluentWindow
         new("new-quotation", "new-quotation", "第三步：新建报价",
             "新建报价页录入公司信息、客户信息、报价说明和产品明细。产品编号输入框会触发快捷输入，选中条目后自动填充说明、单价等字段。",
             "保存时会生成报价历史；导出时会生成可发送给客户的报价单文件。"),
-        new("new-quotation", "new-quotation", "快捷输入的用法",
+        new("quick-code", "new-quotation", "快捷输入的用法",
             "在产品编号输入框输入关键字，会出现匹配列表。选择产品后，系统按照设置里的字段映射，把编号、说明、单价写入对应输入框。",
             "映射不对时，到设置 > 快捷输入里调整 NDT/RVI 对应列即可。"),
         new("history", "history", "第四步：管理报价历史",
@@ -316,11 +317,14 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        target.BringIntoView();
+        MainContentHost.UpdateLayout();
+        TutorialOverlay.UpdateLayout();
+
         TutorialHighlight.Visibility = Visibility.Visible;
-        var rootPoint = target.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
-        var overlayPoint = TutorialOverlay.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
-        var x = Math.Max(8, rootPoint.X - overlayPoint.X - 6);
-        var y = Math.Max(8, rootPoint.Y - overlayPoint.Y - 6);
+        var point = target.TransformToAncestor(TutorialOverlay).Transform(new Point(0, 0));
+        var x = Math.Max(8, point.X - 6);
+        var y = Math.Max(8, point.Y - 6);
         var width = Math.Min(RootLayout.ActualWidth - x - 8, target.ActualWidth + 12);
         var height = Math.Min(RootLayout.ActualHeight - y - 8, target.ActualHeight + 12);
 
@@ -382,10 +386,30 @@ public partial class MainWindow : FluentWindow
         "product-db" => ProductDbNavItem,
         "header-db" => HeaderDbNavItem,
         "new-quotation" => NewQuotationNavItem,
+        "quick-code" => FindVisualByAutomationId(MainContentHost, "QuotationCodeInput"),
         "history" => HistoryNavItem,
         "settings" => SettingsCard,
         _ => null
     };
+
+    /// <summary>按 AutomationId 在视觉树里查找元素，用于定位模板内部控件。</summary>
+    private static FrameworkElement? FindVisualByAutomationId(DependencyObject root, string automationId)
+    {
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is FrameworkElement element
+                && AutomationProperties.GetAutomationId(element) == automationId)
+                return element;
+
+            var nested = FindVisualByAutomationId(child, automationId);
+            if (nested != null)
+                return nested;
+        }
+
+        return null;
+    }
 
     /// <summary>完成或跳过引导。</summary>
     private void FinishOnboarding()
