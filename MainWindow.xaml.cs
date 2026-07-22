@@ -61,6 +61,9 @@ public partial class MainWindow : FluentWindow
             "")
     };
     private int _onboardingIndex;
+    private readonly DispatcherTimer _updateCheckTimer = new();
+    private bool _isCheckingUpdate;
+    private string _lastPromptedUpdateVersion = "";
 
     /// <summary>
     /// 更新弹窗是否处于后台下载模式（弹窗已关闭但下载仍在继续）
@@ -81,6 +84,8 @@ public partial class MainWindow : FluentWindow
         LoadTitleBarIcon();
         Loaded += OnLoaded;
         Closed += OnClosed;
+        _updateCheckTimer.Interval = TimeSpan.FromMinutes(30);
+        _updateCheckTimer.Tick += UpdateCheckTimer_Tick;
 
         // 更新弹窗绑定到 Pipeline 的 State 对象
         UpdateOverlay.DataContext = _updatePipeline.State;
@@ -110,6 +115,8 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void OnClosed(object? sender, EventArgs e)
     {
+        _updateCheckTimer.Stop();
+        _updateCheckTimer.Tick -= UpdateCheckTimer_Tick;
         _updatePipeline.State.PropertyChanged -= OnUpdateStateChanged;
         _updatePipeline.Dispose();
     }
@@ -218,8 +225,9 @@ public partial class MainWindow : FluentWindow
         // 给设置弹窗注入 SettingsViewModel（它不在 ContentControl 的 DataTemplate 体系中）
         SettingsViewControl.DataContext = VM.SettingsViewModel;
 
-        // 异步检查更新（不阻塞 UI 加载）
+        // 异步检查更新（不阻塞 UI 加载），并在程序运行中持续检查新发布版本。
         _ = AutoCheckUpdateAsync();
+        _updateCheckTimer.Start();
 
         if (!_settingsService.HasSeenOnboarding)
         {
@@ -443,23 +451,51 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private async Task AutoCheckUpdateAsync()
     {
+        await CheckAndPromptUpdateAsync();
+    }
+
+    private async void UpdateCheckTimer_Tick(object? sender, EventArgs e)
+    {
+        await CheckAndPromptUpdateAsync();
+    }
+
+    /// <summary>
+    /// 检查更新并在发现新版本时弹出提醒；同一版本只主动弹出一次。
+    /// </summary>
+    private async Task CheckAndPromptUpdateAsync()
+    {
+        if (_isCheckingUpdate)
+            return;
+
+        if (UpdateOverlay.Visibility == Visibility.Visible)
+            return;
+
+        if (_updatePipeline.State.Stage is UpdateStage.Downloading or UpdateStage.Installing)
+            return;
+
+        _isCheckingUpdate = true;
         try
         {
             var updateInfo = await _updatePipeline.CheckAsync();
 
-            if (updateInfo != null)
-            {
-                // 有新版本：显示更新导航项 + 弹窗提醒
-                Dispatcher.Invoke(() =>
-                {
-                    UpdateArrowButton();
-                    ShowUpdateOverlay();
-                });
-            }
+            Dispatcher.Invoke(UpdateArrowButton);
+
+            if (updateInfo == null)
+                return;
+
+            if (string.Equals(_lastPromptedUpdateVersion, updateInfo.Version, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _lastPromptedUpdateVersion = updateInfo.Version;
+            Dispatcher.Invoke(ShowUpdateOverlay);
         }
         catch
         {
             // 网络错误等，静默处理
+        }
+        finally
+        {
+            _isCheckingUpdate = false;
         }
     }
 

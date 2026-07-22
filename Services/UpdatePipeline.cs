@@ -418,7 +418,7 @@ namespace Quotix.Services
 
                 // 仅从 latest.yml 解析版本号和更新日志。
                 // 不再回退到 Release body——Release body 是 GitHub 自动生成的提交日志，并非用户期望的更新说明。
-                string        version   = tagName.TrimStart('v');
+                string        version   = NormalizeVersion(tagName);
                 ChangelogEntry[] changelog = Array.Empty<ChangelogEntry>();
 
                 if (!string.IsNullOrEmpty(latestYmlUrl))
@@ -426,7 +426,7 @@ namespace Quotix.Services
                     try
                     {
                         var ymlContent = await _httpClient.GetStringAsync(latestYmlUrl);
-                        var (ymlVersion, ymlChangelog) = ParseLatestYaml(ymlContent);
+                        var (ymlVersion, ymlChangelog, _) = ParseLatestYaml(ymlContent);
                         if (!string.IsNullOrEmpty(ymlVersion))
                             version = ymlVersion;
                         changelog = ParseChangelog(ymlChangelog);
@@ -451,8 +451,12 @@ namespace Quotix.Services
                 };
 
                 _currentUpdateInfo = updateInfo;
-                var currentVersion = new Version(AppInfo.Version);
-                var latestVersion  = new Version(version);
+                if (!TryCreateVersion(AppInfo.Version, out var currentVersion)
+                    || !TryCreateVersion(version, out var latestVersion))
+                {
+                    _currentUpdateInfo = null;
+                    return null;
+                }
 
                 if (latestVersion > currentVersion)
                 {
@@ -477,12 +481,12 @@ namespace Quotix.Services
             {
                 var latestYmlUrl = $"https://github.com/{_repoOwner}/{_repoName}/releases/latest/download/latest.yml";
                 var ymlContent = await _httpClient.GetStringAsync(latestYmlUrl);
-                var (version, ymlChangelog) = ParseLatestYaml(ymlContent);
+                var (version, ymlChangelog, installerPath) = ParseLatestYaml(ymlContent);
 
                 if (string.IsNullOrWhiteSpace(version))
                     return (false, null);
 
-                var downloadUrl = $"https://github.com/{_repoOwner}/{_repoName}/releases/download/v{version}/Quotix_Setup_{version}.exe";
+                var downloadUrl = BuildLatestDownloadUrl(version, installerPath);
                 var fileSize = await TryGetRemoteFileSizeAsync(downloadUrl);
                 var updateInfo = new UpdateInfo
                 {
@@ -496,8 +500,12 @@ namespace Quotix.Services
                 };
 
                 _currentUpdateInfo = updateInfo;
-                var currentVersion = new Version(AppInfo.Version);
-                var latestVersion  = new Version(version);
+                if (!TryCreateVersion(AppInfo.Version, out var currentVersion)
+                    || !TryCreateVersion(version, out var latestVersion))
+                {
+                    _currentUpdateInfo = null;
+                    return (true, null);
+                }
 
                 if (latestVersion > currentVersion)
                     return (true, updateInfo);
@@ -532,9 +540,10 @@ namespace Quotix.Services
         /// <summary>
         /// 解析 latest.yml 内容，提取版本号和更新日志文本。
         /// </summary>
-        private static (string version, string changelog) ParseLatestYaml(string yaml)
+        private static (string version, string changelog, string installerPath) ParseLatestYaml(string yaml)
         {
             string version = "";
+            string installerPath = "";
             var changelogBuilder = new StringBuilder();
             var lines = yaml.Replace("\r\n", "\n").Split('\n');
             bool inChangelog = false;
@@ -545,7 +554,13 @@ namespace Quotix.Services
 
                 if (!inChangelog && trimmed.StartsWith("version:"))
                 {
-                    version = trimmed.Substring(trimmed.IndexOf(':') + 1).Trim();
+                    version = NormalizeVersion(trimmed.Substring(trimmed.IndexOf(':') + 1));
+                }
+                else if (!inChangelog
+                    && string.IsNullOrWhiteSpace(installerPath)
+                    && (trimmed.StartsWith("path:") || trimmed.StartsWith("url:")))
+                {
+                    installerPath = UnquoteYamlValue(trimmed.Substring(trimmed.IndexOf(':') + 1).Trim());
                 }
                 else if (!inChangelog && trimmed.StartsWith("changelog:"))
                 {
@@ -568,7 +583,65 @@ namespace Quotix.Services
                 }
             }
 
-            return (version, changelogBuilder.ToString().TrimEnd());
+            return (version, changelogBuilder.ToString().TrimEnd(), installerPath);
+        }
+
+        /// <summary>
+        /// 根据 latest.yml 中的安装包路径生成下载地址；缺失时使用 latest/download 兜底。
+        /// </summary>
+        private string BuildLatestDownloadUrl(string version, string installerPath)
+        {
+            installerPath = UnquoteYamlValue(installerPath);
+            if (Uri.TryCreate(installerPath, UriKind.Absolute, out var absoluteUri))
+                return absoluteUri.ToString();
+
+            var fileName = string.IsNullOrWhiteSpace(installerPath)
+                ? $"Quotix_Setup_{version}.exe"
+                : Path.GetFileName(installerPath.Replace('\\', '/'));
+
+            return $"https://github.com/{_repoOwner}/{_repoName}/releases/latest/download/{Uri.EscapeDataString(fileName)}";
+        }
+
+        /// <summary>
+        /// 规范化版本号，去掉 YAML 引号和 v 前缀。
+        /// </summary>
+        private static string NormalizeVersion(string value)
+        {
+            var normalized = UnquoteYamlValue(value).Trim();
+            return normalized.StartsWith("v", StringComparison.OrdinalIgnoreCase)
+                ? normalized[1..]
+                : normalized;
+        }
+
+        /// <summary>
+        /// 尝试创建 Version，失败时返回 false，避免更新检测被异常中断。
+        /// </summary>
+        private static bool TryCreateVersion(string value, out Version version)
+        {
+            version = new Version(0, 0, 0);
+            if (Version.TryParse(NormalizeVersion(value), out var parsed) && parsed != null)
+            {
+                version = parsed;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 去掉 YAML 简单标量值两侧引号。
+        /// </summary>
+        private static string UnquoteYamlValue(string value)
+        {
+            var trimmed = value.Trim();
+            if (trimmed.Length >= 2
+                && ((trimmed[0] == '"' && trimmed[^1] == '"')
+                    || (trimmed[0] == '\'' && trimmed[^1] == '\'')))
+            {
+                return trimmed[1..^1].Trim();
+            }
+
+            return trimmed;
         }
 
         /// <summary>
