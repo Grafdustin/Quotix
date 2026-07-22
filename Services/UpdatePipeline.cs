@@ -144,9 +144,10 @@ namespace Quotix.Services
             _downloadCts = new CancellationTokenSource();
             var token = _downloadCts.Token;
 
-            var downloadStartTime = DateTime.Now;
-            var lastReportTime   = downloadStartTime;
+            var downloadWatch = Stopwatch.StartNew();
+            var lastReportSeconds = 0d;
             long lastReportedBytes = 0;
+            var speedSamples = new Queue<double>();
 
             try
             {
@@ -176,9 +177,10 @@ namespace Quotix.Services
                     State.ReceivedBytes = 0;
                     State.SpeedBytesPerSec = 0;
                     State.Eta = null;
-                    downloadStartTime = DateTime.Now;
-                    lastReportTime = downloadStartTime;
+                    downloadWatch.Restart();
+                    lastReportSeconds = 0;
                     lastReportedBytes = 0;
+                    speedSamples.Clear();
 
                     try
                     {
@@ -212,27 +214,25 @@ namespace Quotix.Services
                                 if (totalBytes > 0)
                                     State.Progress = totalRead * 100.0 / totalBytes;
 
-                                // 每 0.5 秒更新一次网速（避免闪烁）
-                                var now = DateTime.Now;
-                                var elapsed = (now - lastReportTime).TotalSeconds;
+                                // 每 0.5 秒更新一次网速和剩余时间，使用近期速度平滑，避免总平均速度导致 ETA 失真。
+                                var elapsed = downloadWatch.Elapsed.TotalSeconds - lastReportSeconds;
                                 if (elapsed >= 0.5)
                                 {
                                     var bytesInInterval = totalRead - lastReportedBytes;
-                                    State.SpeedBytesPerSec = elapsed > 0 ? bytesInInterval / elapsed : 0;
-                                    lastReportTime = now;
-                                    lastReportedBytes = totalRead;
-                                }
-
-                                // 预估剩余时间（基于整体平均速度）
-                                var totalElapsed = (now - downloadStartTime).TotalSeconds;
-                                if (totalElapsed > 0 && totalRead > 0 && totalBytes > 0)
-                                {
-                                    var avgSpeed = totalRead / totalElapsed;
-                                    if (avgSpeed > 0)
+                                    var instantSpeed = elapsed > 0 ? bytesInInterval / elapsed : 0;
+                                    if (instantSpeed > 0)
                                     {
-                                        var remainingBytes = totalBytes - totalRead;
-                                        State.Eta = TimeSpan.FromSeconds(remainingBytes / avgSpeed);
+                                        speedSamples.Enqueue(instantSpeed);
+                                        while (speedSamples.Count > 6)
+                                            speedSamples.Dequeue();
                                     }
+
+                                    var smoothedSpeed = speedSamples.Count > 0 ? speedSamples.Average() : 0;
+                                    State.SpeedBytesPerSec = smoothedSpeed;
+                                    State.Eta = CalculateEta(totalBytes, totalRead, smoothedSpeed);
+
+                                    lastReportSeconds = downloadWatch.Elapsed.TotalSeconds;
+                                    lastReportedBytes = totalRead;
                                 }
                             }
 
@@ -853,6 +853,24 @@ namespace Quotix.Services
             {
                 yield return url;
             }
+        }
+
+        /// <summary>
+        /// 根据近期平滑速度计算剩余时间。
+        /// </summary>
+        private static TimeSpan? CalculateEta(long totalBytes, long receivedBytes, double speedBytesPerSec)
+        {
+            if (totalBytes <= 0 || receivedBytes <= 0 || receivedBytes >= totalBytes)
+                return null;
+            if (speedBytesPerSec < 1)
+                return null;
+
+            var remainingBytes = totalBytes - receivedBytes;
+            var seconds = remainingBytes / speedBytesPerSec;
+            if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds <= 0)
+                return null;
+
+            return TimeSpan.FromSeconds(Math.Ceiling(seconds));
         }
 
         /// <summary>
