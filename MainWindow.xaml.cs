@@ -23,7 +23,8 @@ public partial class MainWindow : FluentWindow
         string Target,
         string? PageTag,
         string Title,
-        string Body);
+        string Body,
+        string Hint);
 
     /// <summary>
     /// 获取当前数据上下文作为 MainViewModel。
@@ -33,13 +34,33 @@ public partial class MainWindow : FluentWindow
     private readonly UpdatePipeline _updatePipeline;
     private readonly List<OnboardingStep> _onboardingSteps = new()
     {
-        new("content", "dashboard", "欢迎使用 Quotix", "这里是主要工作区。第一次打开会先进入首页，你可以快速查看客户、产品、报价数量和金额趋势。"),
-        new("dashboard", "dashboard", "首页", "首页适合每天先看一眼整体数据：最近报价、年度金额、金额趋势都集中在这里。"),
-        new("product-db", "product-db", "产品列表", "先把 NDT 或 RVI 的价表、货期导入产品列表。报价页的快捷输入会从这里读取产品数据。"),
-        new("header-db", "header-db", "收录信息", "在这里维护负责人、客户和报价说明。默认负责人和默认报价说明会自动带到新建报价单里。"),
-        new("new-quotation", "new-quotation", "新建报价", "录入客户信息和产品明细。编号输入框支持快捷搜索，选中条目后会自动填充说明、单价等字段。"),
-        new("history", "history", "报价历史", "保存后的报价会进入历史记录。你可以继续编辑、更新报价单，或者重新导出文件。"),
-        new("settings", null, "设置", "设置里可以调整导出路径、快捷输入映射、外观、产品数据、更新和问题反馈。之后也能从这里重新打开本指引。")
+        new("content", "dashboard", "欢迎使用 Quotix",
+            "Quotix 的主要操作都围绕左侧导航和右侧工作区完成。引导会自动切换页面，只负责说明，不会改动你的业务数据。",
+            "建议先跟着看一遍，熟悉后可以在设置里随时重新打开。"),
+        new("dashboard", "dashboard", "首页看整体",
+            "首页用来快速扫一眼当前业务情况：客户数量、产品数量、报价数量、年度金额和最近报价都会集中显示。",
+            "适合每天打开软件后先确认报价走势和最近记录。"),
+        new("product-db", "product-db", "第一步：准备产品数据",
+            "产品列表负责导入和查看 NDT/RVI 的价表、货期数据。快捷输入、产品自动填充和报价单计算都依赖这里的数据。",
+            "如果快捷输入搜不到产品，优先检查这里是否导入了正确的表。"),
+        new("header-db", "header-db", "第二步：维护常用信息",
+            "收录信息用于维护负责人、客户库和报价说明。设置默认负责人后，新建报价单会自动填入；客户信息也可以在报价时快速引用。",
+            "常用客户和默认报价说明维护好后，后续建单会省很多重复输入。"),
+        new("new-quotation", "new-quotation", "第三步：新建报价",
+            "新建报价页录入公司信息、客户信息、报价说明和产品明细。产品编号输入框会触发快捷输入，选中条目后自动填充说明、单价等字段。",
+            "保存时会生成报价历史；导出时会生成可发送给客户的报价单文件。"),
+        new("new-quotation", "new-quotation", "快捷输入的用法",
+            "在产品编号输入框输入关键字，会出现匹配列表。选择产品后，系统按照设置里的字段映射，把编号、说明、单价写入对应输入框。",
+            "映射不对时，到设置 > 快捷输入里调整 NDT/RVI 对应列即可。"),
+        new("history", "history", "第四步：管理报价历史",
+            "报价历史保存每一张报价单。你可以搜索记录、继续编辑、更新报价单，也可以重新导出文件。",
+            "客户反复改需求时，建议从历史记录继续编辑，避免重复新建。"),
+        new("settings", null, "设置和维护",
+            "设置里可以调整导出路径、快捷输入映射、外观、产品导入、更新检查、问题反馈，以及重新打开这个界面引导。",
+            "如果软件行为不符合预期，通常先看设置里的快捷输入、产品列表和反馈入口。"),
+        new("settings", null, "完成",
+            "你已经看完基础流程：先准备数据，再维护常用信息，最后新建报价并在历史里管理。这个顺序最稳，也最省时间。",
+            "点完成后，新安装引导不会再次自动弹出。")
     };
     private int _onboardingIndex;
 
@@ -237,6 +258,8 @@ public partial class MainWindow : FluentWindow
         TutorialStepText.Text = $"{_onboardingIndex + 1} / {_onboardingSteps.Count}";
         TutorialTitleText.Text = step.Title;
         TutorialBodyText.Text = step.Body;
+        TutorialHintText.Text = step.Hint;
+        TutorialProgressBar.Value = (_onboardingIndex + 1) * 100.0 / _onboardingSteps.Count;
         TutorialPrevButton.IsEnabled = _onboardingIndex > 0;
         TutorialNextButton.Content = _onboardingIndex == _onboardingSteps.Count - 1 ? "完成" : "下一步";
 
@@ -289,6 +312,7 @@ public partial class MainWindow : FluentWindow
         if (target == null || !target.IsVisible || target.ActualWidth <= 0 || target.ActualHeight <= 0)
         {
             TutorialHighlight.Visibility = Visibility.Collapsed;
+            CenterOnboardingCard();
             return;
         }
 
@@ -304,6 +328,50 @@ public partial class MainWindow : FluentWindow
         Canvas.SetTop(TutorialHighlight, y);
         TutorialHighlight.Width = Math.Max(40, width);
         TutorialHighlight.Height = Math.Max(36, height);
+
+        PositionOnboardingCard(x, y, width, height);
+    }
+
+    /// <summary>把引导说明卡放到高亮区域附近，并避免超出视窗。</summary>
+    private void PositionOnboardingCard(double x, double y, double width, double height)
+    {
+        TutorialCard.UpdateLayout();
+
+        const double gap = 16;
+        const double edge = 18;
+        var overlayWidth = Math.Max(1, TutorialOverlay.ActualWidth);
+        var overlayHeight = Math.Max(1, TutorialOverlay.ActualHeight);
+        var cardWidth = TutorialCard.ActualWidth > 0 ? TutorialCard.ActualWidth : TutorialCard.Width;
+        var cardHeight = TutorialCard.ActualHeight > 0 ? TutorialCard.ActualHeight : 230;
+
+        var left = x + width + gap;
+        var top = y;
+
+        if (left + cardWidth > overlayWidth - edge)
+            left = x - cardWidth - gap;
+
+        if (left < edge)
+        {
+            left = Math.Min(overlayWidth - cardWidth - edge, Math.Max(edge, x + width / 2 - cardWidth / 2));
+            top = y + height + gap;
+        }
+
+        if (top + cardHeight > overlayHeight - edge)
+            top = y - cardHeight - gap;
+        if (top < edge)
+            top = edge;
+
+        TutorialCard.HorizontalAlignment = HorizontalAlignment.Left;
+        TutorialCard.VerticalAlignment = VerticalAlignment.Top;
+        TutorialCard.Margin = new Thickness(left, top, 0, 0);
+    }
+
+    /// <summary>目标不可用时把引导说明卡放回底部居中。</summary>
+    private void CenterOnboardingCard()
+    {
+        TutorialCard.HorizontalAlignment = HorizontalAlignment.Center;
+        TutorialCard.VerticalAlignment = VerticalAlignment.Bottom;
+        TutorialCard.Margin = new Thickness(0, 0, 0, 34);
     }
 
     /// <summary>获取当前引导步骤需要高亮的界面元素。</summary>
