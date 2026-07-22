@@ -119,7 +119,8 @@ public partial class PreRegistrationInputViewModel : ObservableObject
         IndustryMarket = "Genearl Manufacturing";
         InformationSource = "自行开发";
         ApplicationPurpose = RecommendedProducts = CompetitorInfo = CaseResult = "";
-        ActivityDate1 = ActivityDate2 = ActivityDate3 = ActivityDate4 = ActivityDate5 = ActivityDate6 = "";
+        ActivityDate1 = DateTime.Now.ToString("dd-MMM-yy");
+        ActivityDate2 = ActivityDate3 = ActivityDate4 = ActivityDate5 = ActivityDate6 = "";
         ActivityContent1 = ActivityContent2 = ActivityContent3 = ActivityContent4 = ActivityContent5 = ActivityContent6 = "";
         RegistrationDate = DateTime.Now.ToString("yyyy-MM-dd");
     }

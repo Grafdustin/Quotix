@@ -36,6 +36,10 @@ public class PreRegistrationService
         item.RegistrationDate = string.IsNullOrWhiteSpace(item.RegistrationDate)
             ? DateTime.Now.ToString("yyyy-MM-dd")
             : item.RegistrationDate;
+
+        item.ActivityDate1 = string.IsNullOrWhiteSpace(item.ActivityDate1)
+            ? DateTime.Now.ToString("dd-MMM-yy")
+            : item.ActivityDate1;
         item.Title = BuildTitle(item);
         _repo.Insert(item);
         return item;
@@ -63,13 +67,13 @@ public class PreRegistrationService
         var ws = workbook.Worksheets.First();
 
         Set(ws, "C23", item.AgentName);
-        Set(ws, "F23", item.RegistrationDate);
+        Set(ws, "G23", item.RegistrationDate);
         Set(ws, "B24", item.AgentSales);
         Set(ws, "D24", item.AgentPhone);
         Set(ws, "G24", item.AgentEmail);
 
         Set(ws, "B25", item.MiddlemanName);
-        Set(ws, "F25", item.MiddlemanAddress);
+        Set(ws, "G25", item.MiddlemanAddress);
         Set(ws, "B26", item.MiddlemanSales);
         Set(ws, "D26", item.MiddlemanPhone);
         Set(ws, "G26", item.MiddlemanEmail);

@@ -114,16 +114,25 @@ public partial class PriceCalculatorDialog : FluentWindow
         if (!decimal.TryParse(ValueInput.Text, out var value))
             return;
 
-        var isMultiply = OperationCombo.SelectedIndex == 0;
-        if (!isMultiply && value == 0)
-            return;
+        var operation = (OperationCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "×";
 
+        if (operation == "÷" && value == 0)
+        {
+            return;
+        }
         var roundMode = RoundModeCombo.SelectedIndex; // 0=无取整, 1=向上取整, 2=向下取整, 3=四舍五入
         foreach (var item in _items)
         {
             item.OriginalPrice = item.UnitPrice.ToString("F2");
 
-            var result = isMultiply ? item.UnitPrice * value : item.UnitPrice / value;
+            var result = operation switch
+            {
+                "×" => item.UnitPrice * value,
+                "÷" => item.UnitPrice / value,
+                "+" => item.UnitPrice + value,
+                "-" => item.UnitPrice - value,
+                _ => item.UnitPrice
+            };
 
             item.UnitPrice = roundMode switch
             {

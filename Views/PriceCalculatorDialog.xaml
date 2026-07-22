@@ -30,10 +30,12 @@
                         <Border Style="{StaticResource LabelBadge}" Width="56">
                             <ui:TextBlock Text="运算" FontSize="12"/>
                         </Border>
-                        <ComboBox x:Name="OperationCombo" Width="100" SelectedIndex="1"
+                        <ComboBox x:Name="OperationCombo" Width="70" SelectedIndex="1"
                                   Height="34" VerticalContentAlignment="Center">
-                            <ComboBoxItem Content="倍数 (×)"/>
-                            <ComboBoxItem Content="除法 (÷)"/>
+                            <ComboBoxItem Content="×"/>
+                            <ComboBoxItem Content="÷"/>
+                            <ComboBoxItem Content="+"/>
+                            <ComboBoxItem Content="-"/>
                         </ComboBox>
                     </StackPanel>
 
@@ -44,7 +46,7 @@
                         </Border>
                         <ui:TextBox x:Name="ValueInput" ClearButtonEnabled="False" Width="100" FontSize="14"
                                     VerticalContentAlignment="Center" Height="34"
-                                    Text="0" PreviewTextInput="NumberPreviewTextInput"/>
+                                    Text="" PreviewTextInput="NumberPreviewTextInput"/>
                     </StackPanel>
 
                     <!-- 取整 -->

@@ -68,14 +68,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <ui:TextBlock Text="NDT 预报备填入" FontSize="22" FontWeight="SemiBold"
-                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ui:TextBlock Text="界面按模板表格结构排列，保存并导出后会生成原格式 Excel"
-                                      FontSize="12"
-                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                      Margin="0,3,0,0"/>
-                    </StackPanel>
+
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <ui:Button Content="重置" Appearance="Secondary" Height="34" MinWidth="82"
                                    Command="{Binding ResetCommand}"/>
