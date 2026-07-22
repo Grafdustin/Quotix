@@ -331,10 +331,16 @@ public partial class MainWindow : FluentWindow
 
         if (target is NavigationViewItem)
         {
-            x += 16;
+            var navPoint = RootNavView.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
+            var navOverlayPoint = TutorialOverlay.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
+            var navWidth = RootNavView.ActualWidth > 0
+                ? RootNavView.ActualWidth
+                : RootNavView.OpenPaneLength;
+
+            x = Math.Max(6, navPoint.X - navOverlayPoint.X + 6);
             y += 5;
-            width = Math.Max(48, width - 32);
-            height = Math.Max(36, height - 10);
+            width = Math.Max(48, navWidth - 14);
+            height = 60;
         }
 
         Canvas.SetLeft(TutorialHighlight, x);
