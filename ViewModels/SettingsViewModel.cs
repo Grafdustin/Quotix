@@ -118,7 +118,7 @@ public partial class SettingsViewModel : ObservableObject
         new("products", "产品列表", SymbolRegular.Box24),
         new("update", "更新", SymbolRegular.ArrowSync16),
         new("feedback", "问题反馈", SymbolRegular.Chat16),
-        new("tutorial", "教程", SymbolRegular.Info16),
+        // new("tutorial", "教程", SymbolRegular.Info16),
         new("about", "关于", SymbolRegular.Info16),
     };
 
