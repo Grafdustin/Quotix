@@ -45,6 +45,13 @@ public class AppSettingsService
         set { _current.NavigationCollapsed = value; SaveToDisk(); }
     }
 
+    /// <summary>是否已完成首次使用引导（读写均自动持久化）</summary>
+    public bool HasSeenOnboarding
+    {
+        get => _current.HasSeenOnboarding;
+        set { _current.HasSeenOnboarding = value; SaveToDisk(); }
+    }
+
     /// <summary>默认导出路径（读写均自动持久化）</summary>
     public string? DefaultExportPath
     {
@@ -136,6 +143,9 @@ public class AppSettings
 
     /// <summary>导航栏是否折叠</summary>
     public bool NavigationCollapsed { get; set; }
+
+    /// <summary>是否已完成首次使用引导</summary>
+    public bool HasSeenOnboarding { get; set; }
 
     /// <summary>用户设置的默认导出路径</summary>
     public string? DefaultExportPath { get; set; }

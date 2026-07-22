@@ -19,12 +19,29 @@ namespace Quotix;
 /// </summary>
 public partial class MainWindow : FluentWindow
 {
+    private sealed record OnboardingStep(
+        string Target,
+        string? PageTag,
+        string Title,
+        string Body);
+
     /// <summary>
     /// 获取当前数据上下文作为 MainViewModel。
     /// </summary>
     private MainViewModel VM => (MainViewModel)DataContext;
     private readonly AppSettingsService _settingsService;
     private readonly UpdatePipeline _updatePipeline;
+    private readonly List<OnboardingStep> _onboardingSteps = new()
+    {
+        new("content", "dashboard", "欢迎使用 Quotix", "这里是主要工作区。第一次打开会先进入首页，你可以快速查看客户、产品、报价数量和金额趋势。"),
+        new("dashboard", "dashboard", "首页", "首页适合每天先看一眼整体数据：最近报价、年度金额、金额趋势都集中在这里。"),
+        new("product-db", "product-db", "产品列表", "先把 NDT 或 RVI 的价表、货期导入产品列表。报价页的快捷输入会从这里读取产品数据。"),
+        new("header-db", "header-db", "收录信息", "在这里维护负责人、客户和报价说明。默认负责人和默认报价说明会自动带到新建报价单里。"),
+        new("new-quotation", "new-quotation", "新建报价", "录入客户信息和产品明细。编号输入框支持快捷搜索，选中条目后会自动填充说明、单价等字段。"),
+        new("history", "history", "报价历史", "保存后的报价会进入历史记录。你可以继续编辑、更新报价单，或者重新导出文件。"),
+        new("settings", null, "设置", "设置里可以调整导出路径、快捷输入映射、外观、产品数据、更新和问题反馈。之后也能从这里重新打开本指引。")
+    };
+    private int _onboardingIndex;
 
     /// <summary>
     /// 更新弹窗是否处于后台下载模式（弹窗已关闭但下载仍在继续）
@@ -62,6 +79,11 @@ public partial class MainWindow : FluentWindow
             Dispatcher.Invoke(() => SyncNavSelection("new-quotation")));
         WeakReferenceMessenger.Default.Register<OpenTabMessage>(this, (r, m) =>
             Dispatcher.Invoke(() => SyncNavSelection(m.Value)));
+        WeakReferenceMessenger.Default.Register<ShowOnboardingGuideMessage>(this, (r, m) =>
+        {
+            m.Reply(true);
+            Dispatcher.Invoke(() => ShowOnboardingGuide(markAsSeen: false));
+        });
     }
 
     /// <summary>
@@ -179,6 +201,130 @@ public partial class MainWindow : FluentWindow
 
         // 异步检查更新（不阻塞 UI 加载）
         _ = AutoCheckUpdateAsync();
+
+        if (!_settingsService.HasSeenOnboarding)
+        {
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.ContextIdle,
+                new Action(() => ShowOnboardingGuide(markAsSeen: false)));
+        }
+    }
+
+    /// <summary>显示首次使用引导。</summary>
+    private void ShowOnboardingGuide(bool markAsSeen)
+    {
+        _onboardingIndex = 0;
+        TutorialOverlay.Visibility = Visibility.Visible;
+        if (markAsSeen)
+            _settingsService.HasSeenOnboarding = true;
+        ShowOnboardingStep();
+    }
+
+    /// <summary>刷新当前引导步骤的文字、页面和高亮位置。</summary>
+    private void ShowOnboardingStep()
+    {
+        if (_onboardingIndex < 0)
+            _onboardingIndex = 0;
+        if (_onboardingIndex >= _onboardingSteps.Count)
+        {
+            FinishOnboarding();
+            return;
+        }
+
+        var step = _onboardingSteps[_onboardingIndex];
+        NavigateForOnboarding(step);
+
+        TutorialStepText.Text = $"{_onboardingIndex + 1} / {_onboardingSteps.Count}";
+        TutorialTitleText.Text = step.Title;
+        TutorialBodyText.Text = step.Body;
+        TutorialPrevButton.IsEnabled = _onboardingIndex > 0;
+        TutorialNextButton.Content = _onboardingIndex == _onboardingSteps.Count - 1 ? "完成" : "下一步";
+
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Loaded,
+            new Action(() => UpdateOnboardingHighlight(step)));
+    }
+
+    /// <summary>根据引导步骤切换到对应页面。</summary>
+    private void NavigateForOnboarding(OnboardingStep step)
+    {
+        if (step.Target == "settings")
+        {
+            SettingsOverlay.Visibility = Visibility.Visible;
+            UpdateSettingsCardClip();
+            return;
+        }
+
+        SettingsOverlay.Visibility = Visibility.Collapsed;
+
+        switch (step.PageTag)
+        {
+            case "dashboard":
+                VM.OpenDashboardTab();
+                SyncNavSelection("dashboard");
+                break;
+            case "product-db":
+                VM.OpenProductDatabaseTab();
+                SyncNavSelection("product-db");
+                break;
+            case "header-db":
+                VM.OpenHeaderDatabaseTab();
+                SyncNavSelection("header-db");
+                break;
+            case "new-quotation":
+                VM.OpenNewQuotationTab();
+                SyncNavSelection("new-quotation");
+                break;
+            case "history":
+                VM.OpenHistoryTab();
+                SyncNavSelection("history");
+                break;
+        }
+    }
+
+    /// <summary>更新引导高亮框位置。</summary>
+    private void UpdateOnboardingHighlight(OnboardingStep step)
+    {
+        var target = GetOnboardingTarget(step.Target);
+        if (target == null || !target.IsVisible || target.ActualWidth <= 0 || target.ActualHeight <= 0)
+        {
+            TutorialHighlight.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        TutorialHighlight.Visibility = Visibility.Visible;
+        var rootPoint = target.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
+        var overlayPoint = TutorialOverlay.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
+        var x = Math.Max(8, rootPoint.X - overlayPoint.X - 6);
+        var y = Math.Max(8, rootPoint.Y - overlayPoint.Y - 6);
+        var width = Math.Min(RootLayout.ActualWidth - x - 8, target.ActualWidth + 12);
+        var height = Math.Min(RootLayout.ActualHeight - y - 8, target.ActualHeight + 12);
+
+        Canvas.SetLeft(TutorialHighlight, x);
+        Canvas.SetTop(TutorialHighlight, y);
+        TutorialHighlight.Width = Math.Max(40, width);
+        TutorialHighlight.Height = Math.Max(36, height);
+    }
+
+    /// <summary>获取当前引导步骤需要高亮的界面元素。</summary>
+    private FrameworkElement? GetOnboardingTarget(string target) => target switch
+    {
+        "content" => MainContentHost,
+        "dashboard" => DashboardNavItem,
+        "product-db" => ProductDbNavItem,
+        "header-db" => HeaderDbNavItem,
+        "new-quotation" => NewQuotationNavItem,
+        "history" => HistoryNavItem,
+        "settings" => SettingsCard,
+        _ => null
+    };
+
+    /// <summary>完成或跳过引导。</summary>
+    private void FinishOnboarding()
+    {
+        TutorialOverlay.Visibility = Visibility.Collapsed;
+        TutorialHighlight.Visibility = Visibility.Collapsed;
+        _settingsService.HasSeenOnboarding = true;
     }
 
     // ══════════════════════════════════════
@@ -381,6 +527,26 @@ public partial class MainWindow : FluentWindow
     private void SettingsOverlay_Close(object sender, RoutedEventArgs e)
     {
         SettingsOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>引导上一步。</summary>
+    private void TutorialPrev_Click(object sender, RoutedEventArgs e)
+    {
+        _onboardingIndex--;
+        ShowOnboardingStep();
+    }
+
+    /// <summary>引导下一步或完成。</summary>
+    private void TutorialNext_Click(object sender, RoutedEventArgs e)
+    {
+        _onboardingIndex++;
+        ShowOnboardingStep();
+    }
+
+    /// <summary>跳过引导。</summary>
+    private void TutorialSkip_Click(object sender, RoutedEventArgs e)
+    {
+        FinishOnboarding();
     }
 
     /// <summary>

@@ -593,13 +593,41 @@
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
                                     <ui:TextBlock Text="新手教程" FontSize="14" FontWeight="Medium"
                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ui:TextBlock Text="从准备数据到导出报价单，按日常使用顺序快速熟悉 Quotix"
+                                    <ui:TextBlock Text="重新打开首次安装后的界面操作指引"
                                                   FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                   Margin="0,2,0,0"/>
                                 </StackPanel>
                             </Grid>
 
                             <Border CornerRadius="8"
+                                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1" Padding="14,12" Margin="0,0,0,12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <ui:TextBlock Text="界面操作指引" FontSize="13" FontWeight="SemiBold"
+                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <ui:TextBlock Text="高亮导航和功能区域，一步步说明每个入口适合做什么。"
+                                                      FontSize="12"
+                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                      TextWrapping="Wrap"
+                                                      Margin="0,3,16,0"/>
+                                    </StackPanel>
+                                    <ui:Button Grid.Column="1"
+                                               Content="开始引导"
+                                               Appearance="Primary"
+                                               Height="34"
+                                               MinWidth="92"
+                                               Command="{Binding StartOnboardingGuideCommand}"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Visibility="Collapsed"
+                                    CornerRadius="8"
                                     Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                     BorderThickness="1" Padding="14,12" Margin="0,0,0,12">
@@ -614,7 +642,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <Grid>
+                            <Grid Visibility="Collapsed">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>

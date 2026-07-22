@@ -155,6 +155,13 @@ public partial class SettingsViewModel : ObservableObject
         WeakReferenceMessenger.Default.Send(new AboutRequestedMessage());
     }
 
+    /// <summary>重新打开界面操作引导。</summary>
+    [RelayCommand]
+    private void StartOnboardingGuide()
+    {
+        WeakReferenceMessenger.Default.Send(new ShowOnboardingGuideMessage());
+    }
+
     /// <summary>点击检查更新按钮：已有更新直接弹窗，否则先检查再弹窗</summary>
     [RelayCommand]
     private async Task CheckUpdate()

@@ -37,7 +37,7 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid>
+    <Grid x:Name="RootLayout">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -138,35 +138,35 @@
                         </ui:NavigationView.Resources>
 
                         <ui:NavigationView.MenuItems>
-                            <ui:NavigationViewItem Content="首页"
+                            <ui:NavigationViewItem x:Name="DashboardNavItem" Content="首页"
                                 Tag="dashboard"
                                 Click="OnNavItemClick">
                                 <ui:NavigationViewItem.Icon>
                                     <ui:SymbolIcon Symbol="Home24"/>
                                 </ui:NavigationViewItem.Icon>
                             </ui:NavigationViewItem>
-                            <ui:NavigationViewItem Content="新建报价"
+                            <ui:NavigationViewItem x:Name="NewQuotationNavItem" Content="新建报价"
                                 Tag="new-quotation"
                                 Click="OnNavItemClick">
                                 <ui:NavigationViewItem.Icon>
                                     <ui:SymbolIcon Symbol="DocumentAdd24"/>
                                 </ui:NavigationViewItem.Icon>
                             </ui:NavigationViewItem>
-                            <ui:NavigationViewItem Content="报价历史"
+                            <ui:NavigationViewItem x:Name="HistoryNavItem" Content="报价历史"
                                 Tag="history"
                                 Click="OnNavItemClick">
                                 <ui:NavigationViewItem.Icon>
                                     <ui:SymbolIcon Symbol="History24"/>
                                 </ui:NavigationViewItem.Icon>
                             </ui:NavigationViewItem>
-                            <ui:NavigationViewItem Content="产品列表"
+                            <ui:NavigationViewItem x:Name="ProductDbNavItem" Content="产品列表"
                                 Tag="product-db"
                                 Click="OnNavItemClick">
                                 <ui:NavigationViewItem.Icon>
                                     <ui:SymbolIcon Symbol="Box24"/>
                                 </ui:NavigationViewItem.Icon>
                             </ui:NavigationViewItem>
-                            <ui:NavigationViewItem Content="收录信息"
+                            <ui:NavigationViewItem x:Name="HeaderDbNavItem" Content="收录信息"
                                 Tag="header-db"
                                 Click="OnNavItemClick">
                                 <ui:NavigationViewItem.Icon>
@@ -188,7 +188,7 @@
                                 </ui:NavigationViewItem.Content>
                             </ui:NavigationViewItem>
 
-                            <ui:NavigationViewItem Tag="settings"
+                            <ui:NavigationViewItem x:Name="SettingsNavItem" Tag="settings"
                                 Click="OnNavItemClick">
                                 <ui:NavigationViewItem.Icon>
                                     <ui:SymbolIcon Symbol="Settings24"/>
@@ -204,7 +204,7 @@
             </Border>
 
             <!-- 右侧内容区 -->
-            <Border Grid.Column="1" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+            <Border x:Name="MainContentHost" Grid.Column="1" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
                 <ContentControl Content="{Binding ActiveTabContent}"/>
             </Border>
 
@@ -603,6 +603,103 @@
                                        Click="UpdateOverlay_PrimaryClick"/>
                         </StackPanel>
                     </Grid>
+                </Border>
+            </Grid>
+
+            <!-- 首次使用引导层 -->
+            <Grid x:Name="TutorialOverlay"
+                  Grid.ColumnSpan="2"
+                  Visibility="Collapsed"
+                  Background="#99000000"
+                  Panel.ZIndex="3000">
+                <Canvas x:Name="TutorialCanvas">
+                    <Border x:Name="TutorialHighlight"
+                            Width="120" Height="48"
+                            CornerRadius="12"
+                            BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                            BorderThickness="3"
+                            Background="#22FFFFFF"
+                            IsHitTestVisible="False">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="28" ShadowDepth="0"
+                                              Opacity="0.45" Color="#0078D4"/>
+                        </Border.Effect>
+                    </Border>
+                </Canvas>
+
+                <Border x:Name="TutorialCard"
+                        Width="420"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,0,34"
+                        CornerRadius="14"
+                        Padding="22,18"
+                        Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="1">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="34" ShadowDepth="8"
+                                          Opacity="0.32" Color="Black"/>
+                    </Border.Effect>
+
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <ui:TextBlock x:Name="TutorialStepText"
+                                          Grid.Column="0"
+                                          FontSize="12"
+                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                          VerticalAlignment="Center"/>
+                            <Button Grid.Column="1"
+                                    Width="28" Height="28"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Cursor="Hand"
+                                    Click="TutorialSkip_Click">
+                                <ui:SymbolIcon Symbol="Dismiss20" FontSize="16"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </Button>
+                        </Grid>
+
+                        <ui:TextBlock x:Name="TutorialTitleText"
+                                      FontSize="18"
+                                      FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                      Margin="0,0,0,8"/>
+                        <ui:TextBlock x:Name="TutorialBodyText"
+                                      FontSize="13"
+                                      LineHeight="20"
+                                      TextWrapping="Wrap"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      Margin="0,0,0,18"/>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <ui:Button x:Name="TutorialPrevButton"
+                                       Content="上一步"
+                                       Appearance="Secondary"
+                                       Height="34"
+                                       MinWidth="78"
+                                       Margin="0,0,8,0"
+                                       Click="TutorialPrev_Click"/>
+                            <ui:Button Content="跳过"
+                                       Appearance="Secondary"
+                                       Height="34"
+                                       MinWidth="70"
+                                       Margin="0,0,8,0"
+                                       Click="TutorialSkip_Click"/>
+                            <ui:Button x:Name="TutorialNextButton"
+                                       Content="下一步"
+                                       Appearance="Primary"
+                                       Height="34"
+                                       MinWidth="86"
+                                       Click="TutorialNext_Click"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Border>
             </Grid>
         </Grid>
