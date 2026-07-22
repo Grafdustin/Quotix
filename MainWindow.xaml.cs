@@ -36,32 +36,32 @@ public partial class MainWindow : FluentWindow
     private readonly List<OnboardingStep> _onboardingSteps = new()
     {
         new("content", "dashboard", "欢迎使用 Quotix",
-            "Quotix 的主要操作都围绕左侧导航和右侧工作区完成。引导会自动切换页面，只负责说明，不会改动你的业务数据。",
-            "建议先跟着看一遍，熟悉后可以在设置里随时重新打开。"),
-        new("dashboard", "dashboard", "首页看整体",
-            "首页用来快速扫一眼当前业务情况：客户数量、产品数量、报价数量、年度金额和最近报价都会集中显示。",
-            "适合每天打开软件后先确认报价走势和最近记录。"),
-        new("product-db", "product-db", "第一步：准备产品数据",
-            "产品列表负责导入和查看 NDT/RVI 的价表、货期数据。快捷输入、产品自动填充和报价单计算都依赖这里的数据。",
-            "如果快捷输入搜不到产品，优先检查这里是否导入了正确的表。"),
-        new("header-db", "header-db", "第二步：维护常用信息",
-            "收录信息用于维护负责人、客户库和报价说明。设置默认负责人后，新建报价单会自动填入；客户信息也可以在报价时快速引用。",
-            "常用客户和默认报价说明维护好后，后续建单会省很多重复输入。"),
-        new("new-quotation", "new-quotation", "第三步：新建报价",
-            "新建报价页录入公司信息、客户信息、报价说明和产品明细。产品编号输入框会触发快捷输入，选中条目后自动填充说明、单价等字段。",
-            "保存时会生成报价历史；导出时会生成可发送给客户的报价单文件。"),
-        new("quick-code", "new-quotation", "快捷输入的用法",
-            "在产品编号输入框输入关键字，会出现匹配列表。选择产品后，系统按照设置里的字段映射，把编号、说明、单价写入对应输入框。",
-            "映射不对时，到设置 > 快捷输入里调整 NDT/RVI 对应列即可。"),
-        new("history", "history", "第四步：管理报价历史",
-            "报价历史保存每一张报价单。你可以搜索记录、继续编辑、更新报价单，也可以重新导出文件。",
-            "客户反复改需求时，建议从历史记录继续编辑，避免重复新建。"),
-        new("settings", null, "设置和维护",
-            "设置里可以调整导出路径、快捷输入映射、外观、产品导入、更新检查、问题反馈，以及重新打开这个界面引导。",
-            "如果软件行为不符合预期，通常先看设置里的快捷输入、产品列表和反馈入口。"),
+            "从左侧选择页面，在右侧完成录入、导入、查看和导出。",
+            "点击下一步，按顺序走一遍常用操作。"),
+        new("dashboard", "dashboard", "查看首页",
+            "先看客户数量、产品数量、报价数量、年度金额和最近报价。",
+            "每天打开后，先确认这里的数据走势。"),
+        new("product-db", "product-db", "导入产品数据",
+            "进入产品列表，导入 NDT/RVI 价表和货期表。",
+            "快捷输入搜不到产品时，先检查这里的数据。"),
+        new("header-db", "header-db", "维护收录信息",
+            "进入收录信息，录入负责人、客户和报价说明。",
+            "把常用负责人设为默认，新建报价会自动带入。"),
+        new("new-quotation", "new-quotation", "新建报价单",
+            "进入新建报价，填写公司信息、客户信息、报价说明和产品明细。",
+            "填完后保存报价单，需要文件时再导出。"),
+        new("quick-code", "new-quotation", "使用快捷输入",
+            "在编号输入框里输入产品关键字，弹出列表后选择产品。",
+            "选中后会按映射填入编号、说明和单价。"),
+        new("history", "history", "查看报价历史",
+            "进入报价历史，搜索已保存报价，继续编辑或重新导出。",
+            "客户改需求时，从历史记录继续编辑。"),
+        new("settings", null, "打开设置",
+            "进入设置，调整导出路径、快捷输入映射、外观、产品导入、更新和问题反馈。",
+            "需要重新看引导时，在教程里点开始引导。"),
         new("settings", null, "完成",
-            "你已经看完基础流程：先准备数据，再维护常用信息，最后新建报价并在历史里管理。这个顺序最稳，也最省时间。",
-            "点完成后，新安装引导不会再次自动弹出。")
+            "按这个顺序使用：导入产品、维护信息、新建报价、查看历史。",
+            "点完成，开始正式使用。")
     };
     private int _onboardingIndex;
 
@@ -322,11 +322,12 @@ public partial class MainWindow : FluentWindow
         TutorialOverlay.UpdateLayout();
 
         TutorialHighlight.Visibility = Visibility.Visible;
-        var point = target.TransformToAncestor(TutorialOverlay).Transform(new Point(0, 0));
-        var x = Math.Max(8, point.X - 6);
-        var y = Math.Max(8, point.Y - 6);
-        var width = Math.Min(RootLayout.ActualWidth - x - 8, target.ActualWidth + 12);
-        var height = Math.Min(RootLayout.ActualHeight - y - 8, target.ActualHeight + 12);
+        var rootPoint = target.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
+        var overlayPoint = TutorialOverlay.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
+        var x = Math.Max(8, rootPoint.X - overlayPoint.X - 6);
+        var y = Math.Max(8, rootPoint.Y - overlayPoint.Y - 6);
+        var width = Math.Min(TutorialOverlay.ActualWidth - x - 8, target.ActualWidth + 12);
+        var height = Math.Min(TutorialOverlay.ActualHeight - y - 8, target.ActualHeight + 12);
 
         Canvas.SetLeft(TutorialHighlight, x);
         Canvas.SetTop(TutorialHighlight, y);
