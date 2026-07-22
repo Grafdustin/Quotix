@@ -338,9 +338,9 @@ public partial class MainWindow : FluentWindow
                 : RootNavView.OpenPaneLength;
 
             x = Math.Max(6, navPoint.X - navOverlayPoint.X + 6);
-            y += 5;
+            y += 12;
             width = Math.Max(48, navWidth - 14);
-            height = 60;
+            height = 44;
         }
 
         Canvas.SetLeft(TutorialHighlight, x);
