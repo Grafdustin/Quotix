@@ -610,7 +610,7 @@
             <Grid x:Name="TutorialOverlay"
                   Grid.ColumnSpan="2"
                   Visibility="Collapsed"
-                  Background="#18000000"
+                  Background="Transparent"
                   Panel.ZIndex="3000">
                 <Canvas x:Name="TutorialCanvas">
                     <Border x:Name="TutorialHighlight"
@@ -628,7 +628,7 @@
                 </Canvas>
 
                 <Border x:Name="TutorialCard"
-                        Width="420"
+                        Width="360"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Bottom"
                         Margin="0,0,0,34"
@@ -679,6 +679,7 @@
                                       Margin="0,0,0,12"/>
 
                         <ui:TextBlock x:Name="TutorialHintText"
+                                      Visibility="Collapsed"
                                       FontSize="12"
                                       LineHeight="18"
                                       TextWrapping="Wrap"

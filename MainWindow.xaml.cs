@@ -35,33 +35,30 @@ public partial class MainWindow : FluentWindow
     private readonly UpdatePipeline _updatePipeline;
     private readonly List<OnboardingStep> _onboardingSteps = new()
     {
-        new("content", "dashboard", "欢迎使用 Quotix",
-            "从左侧选择页面，在右侧完成录入、导入、查看和导出。",
-            "点击下一步，按顺序走一遍常用操作。"),
-        new("dashboard", "dashboard", "查看首页",
-            "先看客户数量、产品数量、报价数量、年度金额和最近报价。",
-            "每天打开后，先确认这里的数据走势。"),
-        new("product-db", "product-db", "导入产品数据",
-            "进入产品列表，导入 NDT/RVI 价表和货期表。",
-            "快捷输入搜不到产品时，先检查这里的数据。"),
-        new("header-db", "header-db", "维护收录信息",
-            "进入收录信息，录入负责人、客户和报价说明。",
-            "把常用负责人设为默认，新建报价会自动带入。"),
-        new("new-quotation", "new-quotation", "新建报价单",
-            "进入新建报价，填写公司信息、客户信息、报价说明和产品明细。",
-            "填完后保存报价单，需要文件时再导出。"),
-        new("quick-code", "new-quotation", "使用快捷输入",
-            "在编号输入框里输入产品关键字，弹出列表后选择产品。",
-            "选中后会按映射填入编号、说明和单价。"),
-        new("history", "history", "查看报价历史",
-            "进入报价历史，搜索已保存报价，继续编辑或重新导出。",
-            "客户改需求时，从历史记录继续编辑。"),
-        new("settings", null, "打开设置",
-            "进入设置，调整导出路径、快捷输入映射、外观、产品导入、更新和问题反馈。",
-            "需要重新看引导时，在教程里点开始引导。"),
+        new("dashboard", "dashboard", "首页",
+            "查看客户、产品、报价和金额趋势。",
+            ""),
+        new("product-db", "product-db", "产品列表",
+            "导入 NDT/RVI 价表和货期表。",
+            ""),
+        new("header-db", "header-db", "收录信息",
+            "录入负责人、客户和报价说明。",
+            ""),
+        new("new-quotation", "new-quotation", "新建报价",
+            "填写客户信息和产品明细。",
+            ""),
+        new("quick-code", "new-quotation", "快捷输入",
+            "在编号框输入关键字，选择产品。",
+            ""),
+        new("history", "history", "报价历史",
+            "搜索、编辑或重新导出报价。",
+            ""),
+        new("settings", null, "设置",
+            "调整导出、快捷输入、外观、更新和反馈。",
+            ""),
         new("settings", null, "完成",
-            "按这个顺序使用：导入产品、维护信息、新建报价、查看历史。",
-            "点完成，开始正式使用。")
+            "按顺序使用：产品列表、收录信息、新建报价、报价历史。",
+            "")
     };
     private int _onboardingIndex;
 
@@ -260,6 +257,9 @@ public partial class MainWindow : FluentWindow
         TutorialTitleText.Text = step.Title;
         TutorialBodyText.Text = step.Body;
         TutorialHintText.Text = step.Hint;
+        TutorialHintText.Visibility = string.IsNullOrWhiteSpace(step.Hint)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
         TutorialProgressBar.Value = (_onboardingIndex + 1) * 100.0 / _onboardingSteps.Count;
         TutorialPrevButton.IsEnabled = _onboardingIndex > 0;
         TutorialNextButton.Content = _onboardingIndex == _onboardingSteps.Count - 1 ? "完成" : "下一步";
@@ -328,6 +328,14 @@ public partial class MainWindow : FluentWindow
         var y = Math.Max(8, rootPoint.Y - overlayPoint.Y - 6);
         var width = Math.Min(TutorialOverlay.ActualWidth - x - 8, target.ActualWidth + 12);
         var height = Math.Min(TutorialOverlay.ActualHeight - y - 8, target.ActualHeight + 12);
+
+        if (target is NavigationViewItem)
+        {
+            x += 16;
+            y += 5;
+            width = Math.Max(48, width - 32);
+            height = Math.Max(36, height - 10);
+        }
 
         Canvas.SetLeft(TutorialHighlight, x);
         Canvas.SetTop(TutorialHighlight, y);
