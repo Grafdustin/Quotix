@@ -738,8 +738,8 @@ public partial class MainWindow : FluentWindow
     private void UpdatePaneToggleIcon()
     {
         PaneToggleIcon.Symbol = RootNavView.IsPaneOpen
-            ? SymbolRegular.PanelLeft20
-            : SymbolRegular.PanelRight20;
+            ? SymbolRegular.PanelLeftContract20
+            : SymbolRegular.PanelLeftExpand20;
     }
 
     /// <summary>
