@@ -146,8 +146,10 @@ namespace Quotix.Services
 
             var downloadWatch = Stopwatch.StartNew();
             var lastReportSeconds = 0d;
+            var lastEtaReportSeconds = 0d;
             long lastReportedBytes = 0;
-            var speedSamples = new Queue<double>();
+            var smoothedSpeed = 0d;
+            var validSpeedSamples = 0;
 
             try
             {
@@ -179,8 +181,10 @@ namespace Quotix.Services
                     State.Eta = null;
                     downloadWatch.Restart();
                     lastReportSeconds = 0;
+                    lastEtaReportSeconds = 0;
                     lastReportedBytes = 0;
-                    speedSamples.Clear();
+                    smoothedSpeed = 0;
+                    validSpeedSamples = 0;
 
                     try
                     {
@@ -214,24 +218,39 @@ namespace Quotix.Services
                                 if (totalBytes > 0)
                                     State.Progress = totalRead * 100.0 / totalBytes;
 
-                                // 每 0.5 秒更新一次网速和剩余时间，使用近期速度平滑，避免总平均速度导致 ETA 失真。
-                                var elapsed = downloadWatch.Elapsed.TotalSeconds - lastReportSeconds;
-                                if (elapsed >= 0.5)
+                                // 使用较长采样周期和指数平滑，避免网络瞬时波动导致剩余时间快速跳动。
+                                var currentSeconds = downloadWatch.Elapsed.TotalSeconds;
+                                var elapsed = currentSeconds - lastReportSeconds;
+                                if (elapsed >= 1)
                                 {
                                     var bytesInInterval = totalRead - lastReportedBytes;
                                     var instantSpeed = elapsed > 0 ? bytesInInterval / elapsed : 0;
                                     if (instantSpeed > 0)
                                     {
-                                        speedSamples.Enqueue(instantSpeed);
-                                        while (speedSamples.Count > 6)
-                                            speedSamples.Dequeue();
+                                        smoothedSpeed = validSpeedSamples == 0
+                                            ? instantSpeed
+                                            : smoothedSpeed * 0.75 + instantSpeed * 0.25;
+                                        validSpeedSamples++;
                                     }
 
-                                    var smoothedSpeed = speedSamples.Count > 0 ? speedSamples.Average() : 0;
                                     State.SpeedBytesPerSec = smoothedSpeed;
-                                    State.Eta = CalculateEta(totalBytes, totalRead, smoothedSpeed);
 
-                                    lastReportSeconds = downloadWatch.Elapsed.TotalSeconds;
+                                    if (validSpeedSamples >= 3
+                                        && currentSeconds - lastEtaReportSeconds >= 2)
+                                    {
+                                        var overallSpeed = currentSeconds > 0
+                                            ? totalRead / currentSeconds
+                                            : smoothedSpeed;
+                                        var estimatedSpeed = smoothedSpeed * 0.7 + overallSpeed * 0.3;
+                                        var rawEta = CalculateEta(totalBytes, totalRead, estimatedSpeed);
+                                        State.Eta = SmoothEta(
+                                            State.Eta,
+                                            rawEta,
+                                            currentSeconds - lastEtaReportSeconds);
+                                        lastEtaReportSeconds = currentSeconds;
+                                    }
+
+                                    lastReportSeconds = currentSeconds;
                                     lastReportedBytes = totalRead;
                                 }
                             }
@@ -944,6 +963,21 @@ namespace Quotix.Services
                 return null;
 
             return TimeSpan.FromSeconds(Math.Ceiling(seconds));
+        }
+
+        private static TimeSpan? SmoothEta(
+            TimeSpan? previousEta,
+            TimeSpan? currentEta,
+            double elapsedSeconds)
+        {
+            if (!currentEta.HasValue)
+                return null;
+            if (!previousEta.HasValue)
+                return currentEta;
+
+            var expectedSeconds = Math.Max(0, previousEta.Value.TotalSeconds - elapsedSeconds);
+            var smoothedSeconds = expectedSeconds * 0.65 + currentEta.Value.TotalSeconds * 0.35;
+            return TimeSpan.FromSeconds(Math.Max(1, Math.Ceiling(smoothedSeconds)));
         }
 
         /// <summary>
