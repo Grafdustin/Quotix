@@ -106,14 +106,15 @@
                                             Click="TogglePane_Click">
                                         <Grid Width="18" Height="18">
                                             <Path x:Name="PaneToggleIcon"
-                                                  Stroke="{DynamicResource TextFillColorPrimaryBrush}"
-                                                  StrokeThickness="1.5"
+                                                  Stroke="{Binding Foreground, ElementName=PaneToggleButton}"
+                                                  StrokeThickness="1.35"
                                                   StrokeStartLineCap="Round"
                                                   StrokeEndLineCap="Round"
                                                   StrokeLineJoin="Round"
                                                   Stretch="Uniform"
-                                                  Width="16"
-                                                  Height="16"
+                                                  Width="18"
+                                                  Height="18"
+                                                  SnapsToDevicePixels="True"
                                                   HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"/>
                                         </Grid>
