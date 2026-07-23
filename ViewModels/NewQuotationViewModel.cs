@@ -91,6 +91,17 @@ public partial class NewQuotationViewModel : ObservableObject
     /// 快速搜索上下文，取值为 "product"、"owner" 或 "customer"。
     /// </summary>
     [ObservableProperty] private string _quickSearchContext = "product";
+
+    public string QuickSearchEmptyText => QuickSearchContext switch
+    {
+        "owner" => "未找到匹配的负责人，请先在「收录信息 → 负责人库」中新增，或检查输入的姓名。",
+        "customer" => "未找到匹配的客户，请先在「收录信息 → 客户库」中新增，或检查输入的公司名称。",
+        _ => "无匹配数据。请先在「设置 → 快捷输入」中配置“编号”列，或在产品数据库中导入数据。"
+    };
+
+    partial void OnQuickSearchContextChanged(string value)
+        => OnPropertyChanged(nameof(QuickSearchEmptyText));
+
     /// <summary>
     /// 快速搜索结果集合。
     /// </summary>

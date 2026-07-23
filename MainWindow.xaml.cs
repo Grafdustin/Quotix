@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Automation;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -20,47 +19,12 @@ namespace Quotix;
 /// </summary>
 public partial class MainWindow : FluentWindow
 {
-    private sealed record OnboardingStep(
-        string Target,
-        string? PageTag,
-        string Title,
-        string Body,
-        string Hint);
-
     /// <summary>
     /// 获取当前数据上下文作为 MainViewModel。
     /// </summary>
     private MainViewModel VM => (MainViewModel)DataContext;
     private readonly AppSettingsService _settingsService;
     private readonly UpdatePipeline _updatePipeline;
-    private readonly List<OnboardingStep> _onboardingSteps = new()
-    {
-        new("dashboard", "dashboard", "首页",
-            "查看客户、产品、报价和金额趋势。",
-            ""),
-        new("product-db", "product-db", "产品列表",
-            "导入 NDT/RVI 价表和货期表。",
-            ""),
-        new("header-db", "header-db", "收录信息",
-            "录入负责人、客户和报价说明。",
-            ""),
-        new("new-quotation", "new-quotation", "新建报价",
-            "填写客户信息和产品明细。",
-            ""),
-        new("quick-code", "new-quotation", "快捷输入",
-            "在编号框输入关键字，选择产品。",
-            "提示:请先在设置菜单的产品列表中导入excel，再去设置的快捷输入中编辑映射列"),
-        new("history", "history", "报价历史",
-            "搜索、编辑或重新导出报价。",
-            ""),
-        new("settings", null, "设置",
-            "调整导出、快捷输入、外观、更新和反馈。",
-            ""),
-        new("", "dashboard", "结束",
-            "在设置中导入选择的产品列表的Excel文件、按照提示内容开始吧。",
-            "")
-    };
-    private int _onboardingIndex;
     private readonly DispatcherTimer _updateCheckTimer = new();
     private bool _isCheckingUpdate;
     private string _lastPromptedUpdateVersion = "";
@@ -103,11 +67,6 @@ public partial class MainWindow : FluentWindow
             Dispatcher.Invoke(() => SyncNavSelection("new-quotation")));
         WeakReferenceMessenger.Default.Register<OpenTabMessage>(this, (r, m) =>
             Dispatcher.Invoke(() => SyncNavSelection(m.Value)));
-        WeakReferenceMessenger.Default.Register<ShowOnboardingGuideMessage>(this, (r, m) =>
-        {
-            m.Reply(true);
-            Dispatcher.Invoke(() => ShowOnboardingGuide(markAsSeen: false));
-        });
     }
 
     /// <summary>
@@ -228,218 +187,6 @@ public partial class MainWindow : FluentWindow
         // 异步检查更新（不阻塞 UI 加载），并在程序运行中持续检查新发布版本。
         _ = AutoCheckUpdateAsync();
         _updateCheckTimer.Start();
-
-        if (!_settingsService.HasSeenOnboarding)
-        {
-            Dispatcher.BeginInvoke(
-                DispatcherPriority.ContextIdle,
-                new Action(() => ShowOnboardingGuide(markAsSeen: false)));
-        }
-    }
-
-    /// <summary>显示首次使用引导。</summary>
-    private void ShowOnboardingGuide(bool markAsSeen)
-    {
-        _onboardingIndex = 0;
-        TutorialOverlay.Visibility = Visibility.Visible;
-        if (markAsSeen)
-            _settingsService.HasSeenOnboarding = true;
-        ShowOnboardingStep();
-    }
-
-    /// <summary>刷新当前引导步骤的文字、页面和高亮位置。</summary>
-    private void ShowOnboardingStep()
-    {
-        if (_onboardingIndex < 0)
-            _onboardingIndex = 0;
-        if (_onboardingIndex >= _onboardingSteps.Count)
-        {
-            FinishOnboarding();
-            return;
-        }
-
-        var step = _onboardingSteps[_onboardingIndex];
-        NavigateForOnboarding(step);
-
-        TutorialStepText.Text = $"{_onboardingIndex + 1} / {_onboardingSteps.Count}";
-        TutorialTitleText.Text = step.Title;
-        TutorialBodyText.Text = step.Body;
-        TutorialHintText.Text = step.Hint;
-        TutorialHintText.Visibility = string.IsNullOrWhiteSpace(step.Hint)
-            ? Visibility.Collapsed
-            : Visibility.Visible;
-        TutorialProgressBar.Value = (_onboardingIndex + 1) * 100.0 / _onboardingSteps.Count;
-        TutorialPrevButton.IsEnabled = _onboardingIndex > 0;
-        TutorialNextButton.Content = _onboardingIndex == _onboardingSteps.Count - 1 ? "完成" : "下一步";
-
-        Dispatcher.BeginInvoke(
-            DispatcherPriority.Loaded,
-            new Action(() => UpdateOnboardingHighlight(step)));
-    }
-
-    /// <summary>根据引导步骤切换到对应页面。</summary>
-    private void NavigateForOnboarding(OnboardingStep step)
-    {
-        if (step.Target == "settings")
-        {
-            SettingsOverlay.Visibility = Visibility.Visible;
-            UpdateSettingsCardClip();
-            return;
-        }
-
-        SettingsOverlay.Visibility = Visibility.Collapsed;
-
-        switch (step.PageTag)
-        {
-            case "dashboard":
-                VM.OpenDashboardTab();
-                SyncNavSelection("dashboard");
-                break;
-            case "product-db":
-                VM.OpenProductDatabaseTab();
-                SyncNavSelection("product-db");
-                break;
-            case "header-db":
-                VM.OpenHeaderDatabaseTab();
-                SyncNavSelection("header-db");
-                break;
-            case "new-quotation":
-                VM.OpenNewQuotationTab();
-                SyncNavSelection("new-quotation");
-                break;
-            case "history":
-                VM.OpenHistoryTab();
-                SyncNavSelection("history");
-                break;
-        }
-    }
-
-    /// <summary>更新引导高亮框位置。</summary>
-    private void UpdateOnboardingHighlight(OnboardingStep step)
-    {
-        var target = GetOnboardingTarget(step.Target);
-        if (target == null || !target.IsVisible || target.ActualWidth <= 0 || target.ActualHeight <= 0)
-        {
-            TutorialHighlight.Visibility = Visibility.Collapsed;
-            CenterOnboardingCard();
-            return;
-        }
-
-        target.BringIntoView();
-        MainContentHost.UpdateLayout();
-        TutorialOverlay.UpdateLayout();
-
-        TutorialHighlight.Visibility = Visibility.Visible;
-        var rootPoint = target.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
-        var overlayPoint = TutorialOverlay.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
-        var x = Math.Max(8, rootPoint.X - overlayPoint.X - 6);
-        var y = Math.Max(8, rootPoint.Y - overlayPoint.Y - 6);
-        var width = Math.Min(TutorialOverlay.ActualWidth - x - 8, target.ActualWidth + 12);
-        var height = Math.Min(TutorialOverlay.ActualHeight - y - 8, target.ActualHeight + 12);
-
-        if (target is NavigationViewItem)
-        {
-            var navPoint = RootNavView.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
-            var navOverlayPoint = TutorialOverlay.TransformToAncestor(RootLayout).Transform(new Point(0, 0));
-            var navWidth = RootNavView.ActualWidth > 0
-                ? RootNavView.ActualWidth
-                : RootNavView.OpenPaneLength;
-
-            x = Math.Max(6, navPoint.X - navOverlayPoint.X + 6);
-            y += 8;
-            width = Math.Max(48, navWidth - 14);
-            height = 32;
-        }
-
-        Canvas.SetLeft(TutorialHighlight, x);
-        Canvas.SetTop(TutorialHighlight, y);
-        TutorialHighlight.Width = Math.Max(40, width);
-        TutorialHighlight.Height = Math.Max(36, height);
-
-        PositionOnboardingCard(x, y, width, height);
-    }
-
-    /// <summary>把引导说明卡放到高亮区域附近，并避免超出视窗。</summary>
-    private void PositionOnboardingCard(double x, double y, double width, double height)
-    {
-        TutorialCard.UpdateLayout();
-
-        const double gap = 16;
-        const double edge = 18;
-        var overlayWidth = Math.Max(1, TutorialOverlay.ActualWidth);
-        var overlayHeight = Math.Max(1, TutorialOverlay.ActualHeight);
-        var cardWidth = TutorialCard.ActualWidth > 0 ? TutorialCard.ActualWidth : TutorialCard.Width;
-        var cardHeight = TutorialCard.ActualHeight > 0 ? TutorialCard.ActualHeight : 230;
-
-        var left = x + width + gap;
-        var top = y;
-
-        if (left + cardWidth > overlayWidth - edge)
-            left = x - cardWidth - gap;
-
-        if (left < edge)
-        {
-            left = Math.Min(overlayWidth - cardWidth - edge, Math.Max(edge, x + width / 2 - cardWidth / 2));
-            top = y + height + gap;
-        }
-
-        if (top + cardHeight > overlayHeight - edge)
-            top = y - cardHeight - gap;
-        if (top < edge)
-            top = edge;
-
-        TutorialCard.HorizontalAlignment = HorizontalAlignment.Left;
-        TutorialCard.VerticalAlignment = VerticalAlignment.Top;
-        TutorialCard.Margin = new Thickness(left, top, 0, 0);
-    }
-
-    /// <summary>目标不可用时把引导说明卡放回底部居中。</summary>
-    private void CenterOnboardingCard()
-    {
-        TutorialCard.HorizontalAlignment = HorizontalAlignment.Center;
-        TutorialCard.VerticalAlignment = VerticalAlignment.Bottom;
-        TutorialCard.Margin = new Thickness(0, 0, 0, 34);
-    }
-
-    /// <summary>获取当前引导步骤需要高亮的界面元素。</summary>
-    private FrameworkElement? GetOnboardingTarget(string target) => target switch
-    {
-        "content" => MainContentHost,
-        "dashboard" => DashboardNavItem,
-        "product-db" => ProductDbNavItem,
-        "header-db" => HeaderDbNavItem,
-        "new-quotation" => NewQuotationNavItem,
-        "quick-code" => FindVisualByAutomationId(MainContentHost, "QuotationCodeInput"),
-        "history" => HistoryNavItem,
-        "settings" => SettingsCard,
-        _ => null
-    };
-
-    /// <summary>按 AutomationId 在视觉树里查找元素，用于定位模板内部控件。</summary>
-    private static FrameworkElement? FindVisualByAutomationId(DependencyObject root, string automationId)
-    {
-        var count = VisualTreeHelper.GetChildrenCount(root);
-        for (var i = 0; i < count; i++)
-        {
-            var child = VisualTreeHelper.GetChild(root, i);
-            if (child is FrameworkElement element
-                && AutomationProperties.GetAutomationId(element) == automationId)
-                return element;
-
-            var nested = FindVisualByAutomationId(child, automationId);
-            if (nested != null)
-                return nested;
-        }
-
-        return null;
-    }
-
-    /// <summary>完成或跳过引导。</summary>
-    private void FinishOnboarding()
-    {
-        TutorialOverlay.Visibility = Visibility.Collapsed;
-        TutorialHighlight.Visibility = Visibility.Collapsed;
-        _settingsService.HasSeenOnboarding = true;
     }
 
     // ══════════════════════════════════════
@@ -670,26 +417,6 @@ public partial class MainWindow : FluentWindow
     private void SettingsOverlay_Close(object sender, RoutedEventArgs e)
     {
         SettingsOverlay.Visibility = Visibility.Collapsed;
-    }
-
-    /// <summary>引导上一步。</summary>
-    private void TutorialPrev_Click(object sender, RoutedEventArgs e)
-    {
-        _onboardingIndex--;
-        ShowOnboardingStep();
-    }
-
-    /// <summary>引导下一步或完成。</summary>
-    private void TutorialNext_Click(object sender, RoutedEventArgs e)
-    {
-        _onboardingIndex++;
-        ShowOnboardingStep();
-    }
-
-    /// <summary>跳过引导。</summary>
-    private void TutorialSkip_Click(object sender, RoutedEventArgs e)
-    {
-        FinishOnboarding();
     }
 
     /// <summary>

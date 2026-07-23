@@ -10,7 +10,7 @@ using Wpf.Ui.Controls;
 namespace Quotix.Views;
 
 /// <summary>
-/// 价格计算器对话框，支持对报价项进行批量乘法或除法计算。
+/// 价格计算器对话框，支持对报价项进行批量加减乘除计算。
 /// </summary>
 public partial class PriceCalculatorDialog : FluentWindow
 {
@@ -94,6 +94,7 @@ public partial class PriceCalculatorDialog : FluentWindow
         while (source != null)
         {
             if (source is System.Windows.Controls.Primitives.ButtonBase ||
+                source is System.Windows.Controls.Primitives.RangeBase ||
                 source is System.Windows.Controls.TextBox ||
                 source is ComboBox)
             {
@@ -114,8 +115,8 @@ public partial class PriceCalculatorDialog : FluentWindow
         if (!decimal.TryParse(ValueInput.Text, out var value))
             return;
 
-        var isMultiply = OperationCombo.SelectedIndex == 0;
-        if (!isMultiply && value == 0)
+        var operation = OperationCombo.SelectedIndex;
+        if (operation == 1 && value == 0)
             return;
 
         var roundMode = RoundModeCombo.SelectedIndex; // 0=无取整, 1=向上取整, 2=向下取整, 3=四舍五入
@@ -123,7 +124,14 @@ public partial class PriceCalculatorDialog : FluentWindow
         {
             item.OriginalPrice = item.UnitPrice.ToString("F2");
 
-            var result = isMultiply ? item.UnitPrice * value : item.UnitPrice / value;
+            var result = operation switch
+            {
+                0 => item.UnitPrice * value,
+                1 => item.UnitPrice / value,
+                2 => item.UnitPrice + value,
+                3 => item.UnitPrice - value,
+                _ => item.UnitPrice
+            };
 
             item.UnitPrice = roundMode switch
             {

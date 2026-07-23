@@ -5,8 +5,8 @@
 [Setup]
 AppName=Quotix
 AppVersion={#MyAppVersion}
-AppPublisher=NISYO
-AppPublisherURL=https://quotix.app
+AppPublisher=Grafdustin
+AppPublisherURL=https://github.com/Grafdustin/Quotix
 DefaultDirName={localappdata}\Programs\Quotix
 DefaultGroupName=Quotix
 OutputDir=.\Out
@@ -20,8 +20,8 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; 文件版本信息（与产品版本同步）
 VersionInfoVersion={#MyAppVersion}
-VersionInfoCompany=NISYO
-VersionInfoCopyright=Copyright (C) 2026 NISYO
+VersionInfoCompany=Grafdustin
+VersionInfoCopyright=Copyright (C) 2026 Grafdustin
 UninstallDisplayIcon={app}\Launcher\Quotix.exe
 UninstallFilesDir={app}\Uninstall
 WizardStyle=modern

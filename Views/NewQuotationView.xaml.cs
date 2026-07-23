@@ -352,7 +352,7 @@ public partial class NewQuotationView : UserControl
         Keyboard.ClearFocus();
     }
 
-    // ==================== 长文本原地展开 ====================
+    // ==================== 长文本原位向下悬浮展开 ====================
 
     private void OverflowField_GotFocus(object sender, RoutedEventArgs e)
     {
@@ -404,13 +404,13 @@ public partial class NewQuotationView : UserControl
 
         _expandedOverflowBox = sourceBox;
         FloatingTextPreview.SetIsEnabled(sourceBox, false);
+        SetOverflowFieldLayer(sourceBox, true);
         sourceBox.TextWrapping = TextWrapping.Wrap;
         sourceBox.AcceptsReturn = true;
+        sourceBox.VerticalAlignment = VerticalAlignment.Top;
         sourceBox.VerticalContentAlignment = VerticalAlignment.Top;
         sourceBox.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
         sourceBox.Height = CalculateExpandedFieldHeight(sourceBox);
-
-        Dispatcher.BeginInvoke(() => sourceBox.BringIntoView(), DispatcherPriority.Loaded);
     }
 
     private void CollapseOverflowField(TextBox? sourceBox)
@@ -420,11 +420,30 @@ public partial class NewQuotationView : UserControl
         sourceBox.Height = CollapsedOverflowFieldHeight;
         sourceBox.TextWrapping = TextWrapping.NoWrap;
         sourceBox.AcceptsReturn = false;
+        sourceBox.VerticalAlignment = VerticalAlignment.Top;
         sourceBox.VerticalContentAlignment = VerticalAlignment.Center;
         sourceBox.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+        SetOverflowFieldLayer(sourceBox, false);
 
         if (_expandedOverflowBox == sourceBox)
             _expandedOverflowBox = null;
+    }
+
+    private static void SetOverflowFieldLayer(TextBox sourceBox, bool expanded)
+    {
+        Panel.SetZIndex(sourceBox, expanded ? 10 : 0);
+
+        DependencyObject? current = sourceBox;
+        while (current != null)
+        {
+            if (current is ContentPresenter presenter)
+            {
+                Panel.SetZIndex(presenter, expanded ? 1000 : 0);
+                break;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
     }
 
     private double CalculateExpandedFieldHeight(TextBox textBox)

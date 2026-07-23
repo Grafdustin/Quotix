@@ -69,11 +69,6 @@ public sealed class ProgressMessage : ValueChangedMessage<ProgressState>
 public sealed class ShowUpdateOverlayMessage : RequestMessage<bool> { }
 
 /// <summary>
-/// 显示首次使用引导请求消息。
-/// </summary>
-public sealed class ShowOnboardingGuideMessage : RequestMessage<bool> { }
-
-/// <summary>
 /// 快捷输入启用状态变更消息，携带当前是否启用快捷输入。
 /// </summary>
 public sealed class QuickInputEnabledChangedMessage : ValueChangedMessage<bool>

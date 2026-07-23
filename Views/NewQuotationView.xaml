@@ -430,9 +430,9 @@
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="36"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="*" MinWidth="90"/>
+                                    <ColumnDefinition Width="*" MinWidth="90"/>
+                                    <ColumnDefinition Width="*" MinWidth="90"/>
                                     <ColumnDefinition Width="72"/>
                                     <ColumnDefinition Width="120"/>
                                     <ColumnDefinition Width="120"/>
@@ -468,7 +468,9 @@
                                 <DataTemplate>
                                     <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                             BorderThickness="0,0,0,1"
-                                            Padding="10,6">
+                                            Padding="10,6"
+                                            Height="47"
+                                            ClipToBounds="False">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="Background" Value="Transparent"/>
@@ -480,12 +482,12 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <Grid>
+                                        <Grid Height="34" VerticalAlignment="Top" ClipToBounds="False">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="36"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="120"/>
-                                                <ColumnDefinition Width="2*"/>
+                                                <ColumnDefinition Width="*" MinWidth="90"/>
+                                                <ColumnDefinition Width="*" MinWidth="90"/>
+                                                <ColumnDefinition Width="*" MinWidth="90"/>
                                                 <ColumnDefinition Width="72"/>
                                                 <ColumnDefinition Width="120"/>
                                                 <ColumnDefinition Width="120"/>
@@ -501,8 +503,9 @@
                                             <!-- 产品名称 -->
                                             <ui:TextBox Grid.Column="1"
                                                         Text="{Binding ItemName, UpdateSourceTrigger=PropertyChanged}"
-                                                        FontSize="13" Height="34" VerticalContentAlignment="Center"
-                                                        TextWrapping="NoWrap"
+                                                         FontSize="13" Height="34" VerticalContentAlignment="Center"
+                                                         VerticalAlignment="Top"
+                                                         TextWrapping="NoWrap"
                                                         AcceptsReturn="False"
                                                         VerticalScrollBarVisibility="Disabled"
                                                         common:FloatingTextPreview.IsEnabled="False"
@@ -526,8 +529,9 @@
                                             <!-- 说明 -->
                                             <ui:TextBox Grid.Column="3"
                                                         Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                                                        FontSize="13" Height="34" VerticalContentAlignment="Center"
-                                                        TextWrapping="NoWrap"
+                                                         FontSize="13" Height="34" VerticalContentAlignment="Center"
+                                                         VerticalAlignment="Top"
+                                                         TextWrapping="NoWrap"
                                                         AcceptsReturn="False"
                                                         VerticalScrollBarVisibility="Disabled"
                                                         common:FloatingTextPreview.IsEnabled="False"
@@ -700,7 +704,7 @@
                         </ListBox.ItemTemplate>
                         </ListBox>
                         <!-- 空结果占位提示（仅当结果数为 0 时显示） -->
-                        <ui:TextBlock Text="无匹配数据。请先在「设置 → 快捷输入」中配置“编号”列，或在产品数据库中导入数据。"
+                        <ui:TextBlock Text="{Binding QuickSearchEmptyText}"
                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                       TextWrapping="Wrap" HorizontalAlignment="Center"
                                       Margin="16,24" Visibility="{Binding QuickSearchResults.Count, Converter={StaticResource CountToVis}, ConverterParameter=Zero}"/>

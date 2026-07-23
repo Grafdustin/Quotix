@@ -117,7 +117,6 @@ public partial class SettingsViewModel : ObservableObject
         new("appearance", "外观", SymbolRegular.WeatherMoon16),
         new("products", "产品列表", SymbolRegular.Box24),
         new("feedback", "问题反馈", SymbolRegular.Chat16),
-        // new("tutorial", "教程", SymbolRegular.Info16),
         new("about", "关于", SymbolRegular.Info16),
     };
 
@@ -152,13 +151,6 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand] private void About()
     {
         WeakReferenceMessenger.Default.Send(new AboutRequestedMessage());
-    }
-
-    /// <summary>重新打开界面操作引导。</summary>
-    [RelayCommand]
-    private void StartOnboardingGuide()
-    {
-        WeakReferenceMessenger.Default.Send(new ShowOnboardingGuideMessage());
     }
 
     /// <summary>点击检查更新按钮：已有更新直接弹窗，否则先检查再弹窗</summary>
