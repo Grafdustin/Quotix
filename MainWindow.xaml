@@ -105,10 +105,17 @@
                                             Padding="0"
                                             Click="TogglePane_Click">
                                         <Grid Width="18" Height="18">
-                                            <ui:SymbolIcon x:Name="PaneToggleIcon"
-                                                           FontSize="18"
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center"/>
+                                            <Path x:Name="PaneToggleIcon"
+                                                  Stroke="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  StrokeThickness="1.5"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  StrokeLineJoin="Round"
+                                                  Stretch="Uniform"
+                                                  Width="16"
+                                                  Height="16"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
                                         </Grid>
                                     </Button>
                                 </Grid>
