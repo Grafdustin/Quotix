@@ -740,8 +740,8 @@ public partial class MainWindow : FluentWindow
         // 面板展开时显示左箭头（点击后向左收起）
         // 面板收起时显示右箭头（点击后向右展开）
         PaneToggleIcon.Symbol = RootNavView.IsPaneOpen
-            ? SymbolRegular.PanelLeft20
-            : SymbolRegular.PanelRight20;
+            ? SymbolRegular.PanelLeftContract20
+            : SymbolRegular.PanelLeftExpand20;
     }
 
     /// <summary>
