@@ -65,6 +65,9 @@ public partial class NewQuotationViewModel : ObservableObject
     // 币种
     [ObservableProperty] private string _currency = "RMB";
     [ObservableProperty] private string _currencySymbol = "¥";
+    [ObservableProperty] private bool _isRmbCurrencyAvailable;
+    [ObservableProperty] private bool _isUsdCurrencyAvailable;
+    [ObservableProperty] private bool _isCurrencySwitchVisible;
 
     // 报价项集合
     public ObservableCollection<QuotationItemViewModel> Items { get; } = new();
@@ -79,8 +82,7 @@ public partial class NewQuotationViewModel : ObservableObject
     [ObservableProperty] private bool _isEditing;
 
     // ---- 快速输入 ----
-    [ObservableProperty] private string _quickInputDatabase = "NDT";
-    /// <summary>快捷输入总开关（由设置页控制，关闭后编号列不触发产品快速搜索）</summary>
+    /// <summary>快捷输入总开关（由设置页控制，关闭后禁用产品、负责人和客户快速搜索）</summary>
     private bool _quickInputEnabled = true;
     /// <summary>全局模糊搜索开关（由设置页控制，开启后使用高级分散匹配算法）</summary>
     private bool _quickInputFuzzyEnabled = true;
@@ -111,9 +113,9 @@ public partial class NewQuotationViewModel : ObservableObject
     private CancellationTokenSource? _searchCts;
     private static readonly TimeSpan DebounceInterval = TimeSpan.FromMilliseconds(120);
 
-    // 产品搜索索引缓存（只加载一次，切换 NDT/RVI 时清除）
-    private List<QuickSearchIndex>? _cachedProductIndex;
-    private string _cachedDatabaseType = "";
+    // 两套产品库分别缓存，搜索时合并已配置映射的结果。
+    private readonly Dictionary<string, List<QuickSearchIndex>> _cachedProductIndexes =
+        new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// 预建搜索索引：避免每次击键都遍历 JSON 数据。
@@ -154,6 +156,8 @@ public partial class NewQuotationViewModel : ObservableObject
         WeakReferenceMessenger.Default.Register<QuickInputEnabledChangedMessage>(this, (r, m) =>
         {
             _quickInputEnabled = m.Value;
+            if (!m.Value)
+                CloseQuickSearch();
         });
 
         // 订阅设置页全局模糊搜索开关变化，实时同步匹配算法
@@ -165,20 +169,22 @@ public partial class NewQuotationViewModel : ObservableObject
 
         WeakReferenceMessenger.Default.Register<QuickInputMappingChangedMessage>(this, (r, m) =>
         {
-            if (m.Value != QuickInputDatabase) return;
+            if (m.Value is not ("NDT" or "RVI")) return;
 
             InvalidateProductSearchCache();
+            RefreshCurrencyAvailability();
             RefreshQuickSearchIfVisible();
         });
 
         WeakReferenceMessenger.Default.Register<ProductDataChangedMessage>(this, (r, m) =>
         {
-            var currentTable = QuickInputDatabase == "NDT" ? "products_ndt" : "products_rvi_change";
-            if (m.Value != currentTable) return;
+            if (m.Value is not ("products_ndt" or "products_rvi_change")) return;
 
             InvalidateProductSearchCache();
             RefreshQuickSearchIfVisible();
         });
+
+        RefreshCurrencyAvailability();
 
         // 统一管理报价项属性变更订阅，避免 Add/Remove/加载已有报价时悬空回调与内存泄漏（见 OnItemsCollectionChanged）
         Items.CollectionChanged += OnItemsCollectionChanged;
@@ -273,6 +279,10 @@ public partial class NewQuotationViewModel : ObservableObject
     [RelayCommand]
     private void SwitchCurrency(string currency)
     {
+        if ((currency == "RMB" && !IsRmbCurrencyAvailable)
+            || (currency == "USD" && !IsUsdCurrencyAvailable))
+            return;
+
         Currency = currency;
     }
 
@@ -472,28 +482,19 @@ public partial class NewQuotationViewModel : ObservableObject
     // ==================== 快速输入（防抖 + 取消 + 缓存） ====================
 
     /// <summary>
-    /// 切换快速输入数据库（NDT 或 RVI）。
-    /// </summary>
-    /// <param name="db">目标数据库类型</param>
-    [RelayCommand]
-    private void SwitchQuickDatabase(string db)
-    {
-        QuickInputDatabase = db;
-        InvalidateProductSearchCache();
-
-        if (IsQuickSearchVisible)
-            _ = TriggerSearch(QuickSearchText, debounce: false);
-    }
-
-    /// <summary>
     /// 编码字段获得焦点时调用，激活产品搜索模式。
     /// </summary>
     /// <param name="rowIndex">当前行索引</param>
     public void OnCodeFieldFocused(int rowIndex)
     {
-        if (!_quickInputEnabled) return;
-        ActiveItemIndex = rowIndex;
         QuickSearchContext = "product";
+        if (!_quickInputEnabled)
+        {
+            CloseQuickSearch();
+            return;
+        }
+
+        ActiveItemIndex = rowIndex;
         if (Items.Count > rowIndex)
             QuickSearchText = Items[rowIndex].Code;
     }
@@ -504,6 +505,12 @@ public partial class NewQuotationViewModel : ObservableObject
     public void OnOwnerFieldFocused()
     {
         QuickSearchContext = "owner";
+        if (!_quickInputEnabled)
+        {
+            CloseQuickSearch();
+            return;
+        }
+
         QuickSearchText = CompanyContact;
     }
 
@@ -513,6 +520,12 @@ public partial class NewQuotationViewModel : ObservableObject
     public void OnCustomerFieldFocused()
     {
         QuickSearchContext = "customer";
+        if (!_quickInputEnabled)
+        {
+            CloseQuickSearch();
+            return;
+        }
+
         QuickSearchText = CustomerName;
     }
 
@@ -548,17 +561,15 @@ public partial class NewQuotationViewModel : ObservableObject
 
     private void StartQuickSearch(string text, bool debounce)
     {
+        if (!_quickInputEnabled)
+        {
+            CloseQuickSearch();
+            return;
+        }
+
         QuickSearchText = text;
         if (QuickSearchContext == "product")
         {
-            if (!_quickInputEnabled)
-            {
-                CancelSearch();
-                QuickSearchResults.Clear();
-                IsQuickSearchVisible = false;
-                return;
-            }
-
             IsQuickSearchVisible = true;
         }
         else
@@ -627,8 +638,7 @@ public partial class NewQuotationViewModel : ObservableObject
     /// <summary>清理产品快速搜索索引缓存，下次搜索会按最新数据和映射重建。</summary>
     private void InvalidateProductSearchCache()
     {
-        _cachedProductIndex = null;
-        _cachedDatabaseType = "";
+        _cachedProductIndexes.Clear();
     }
 
     /// <summary>快捷输入弹窗打开时按当前文本重新搜索，使设置变更实时生效。</summary>
@@ -652,56 +662,63 @@ public partial class NewQuotationViewModel : ObservableObject
 
         if (QuickSearchContext == "product")
         {
-            // 确保索引缓存已加载
-            var dbType = QuickInputDatabase;
-            if (_cachedProductIndex == null || _cachedDatabaseType != dbType)
+            var sources = new List<(string Database, string CodeColumn, List<QuickSearchIndex> Index)>();
+            foreach (var dbType in new[] { "NDT", "RVI" })
             {
-                _cachedProductIndex = await System.Threading.Tasks.Task.Run(() => BuildSearchIndex(dbType), ct);
-                _cachedDatabaseType = dbType;
+                var map = _settingsService.QuickInput.Mappings
+                    .TryGetValue(dbType, out var configuredMap) && configuredMap != null
+                    ? configuredMap
+                    : null;
+                var codeColumn = map != null && map.TryGetValue("编号", out var cc) ? cc : "";
+                if (string.IsNullOrWhiteSpace(codeColumn))
+                    continue;
+
+                if (!_cachedProductIndexes.TryGetValue(dbType, out var index))
+                {
+                    index = await System.Threading.Tasks.Task.Run(() => BuildSearchIndex(dbType), ct);
+                    _cachedProductIndexes[dbType] = index;
+                }
+
+                sources.Add((dbType, codeColumn, index));
             }
 
             ct.ThrowIfCancellationRequested();
-            var index = _cachedProductIndex;
 
-            // 取设置中映射到“编号”的列，作为弹窗唯一显示内容（严格使用映射，不加兜底）
-            var map = _settingsService.QuickInput.Mappings
-                .TryGetValue(dbType, out var m) && m != null ? m : null;
-            var codeColumn = map != null && map.TryGetValue("编号", out var cc) ? cc : "";
-
-            // 在后台线程过滤与打分：按映射的所有列（编号 / 说明 / 单价）取最高匹配分
+            // 同时匹配两套已配置编号映射的产品库。
             var matches = await System.Threading.Tasks.Task.Run(() =>
             {
-                var list = new List<QuickSearchResult>(200);
-                foreach (var p in index)
+                var list = new List<QuickSearchResult>(400);
+                foreach (var source in sources)
                 {
-                    // 显示内容 = 编号映射列的值；未配置该列则不显示（不做兜底回退）
-                    if (string.IsNullOrEmpty(codeColumn)
-                        || !p.RawData.TryGetValue(codeColumn, out var display)
-                        || string.IsNullOrEmpty(display))
-                        continue;
-
-                    // 仅对“编号”列值（即弹窗显示内容本身）做模糊匹配，与前端 UPC 单列打分一致；
-                    // 不按“说明/单价”等其它映射列命中，避免把编号本身不相关的产品也带出来。
-                    double score = 0;
-                    if (!string.IsNullOrEmpty(lower))
+                    foreach (var p in source.Index)
                     {
-                        score = FuzzySearch.Match(display, lower, fuzzy);
-                        if (score <= 0) continue;
+                        if (!p.RawData.TryGetValue(source.CodeColumn, out var display)
+                            || string.IsNullOrEmpty(display))
+                            continue;
+
+                        double score = 0;
+                        if (!string.IsNullOrEmpty(lower))
+                        {
+                            score = FuzzySearch.Match(display, lower, fuzzy);
+                            if (score <= 0) continue;
+                        }
+
+                        list.Add(new QuickSearchResult
+                        {
+                            Title = display,
+                            Subtitle = "",
+                            PriceText = "",
+                            RawData = p.RawData,
+                            ResultType = "product",
+                            SourceDatabase = source.Database,
+                            Score = score,
+                            HighlightIndices = FuzzySearch.GetHighlightIndices(display, query ?? "")
+                        });
                     }
-
-                    list.Add(new QuickSearchResult
-                    {
-                        Title = display,
-                        Subtitle = "",
-                        PriceText = "",
-                        RawData = p.RawData,
-                        ResultType = "product",
-                        Score = score,
-                        HighlightIndices = FuzzySearch.GetHighlightIndices(display, query ?? "")
-                    });
-                    if (list.Count >= 200) break;
                 }
                 list.Sort(CompareQuickResults);
+                if (list.Count > 200)
+                    list.RemoveRange(200, list.Count - 200);
                 return list;
             }, ct);
 
@@ -901,9 +918,9 @@ public partial class NewQuotationViewModel : ObservableObject
         {
             var item = Items[ActiveItemIndex];
 
-            // 按设置中的字段映射（编号 / 说明 / 单价）填充，未配置的列保持原值
+            // 按设置中的字段映射填充；单价根据当前币种读取 RMB 或 USD 对应列。
             var map = _settingsService.QuickInput.Mappings
-                .TryGetValue(QuickInputDatabase, out var m) && m != null ? m : null;
+                .TryGetValue(result.SourceDatabase, out var m) && m != null ? m : null;
 
             if (map != null && result.RawData != null)
             {
@@ -921,7 +938,9 @@ public partial class NewQuotationViewModel : ObservableObject
                         case "说明":
                             item.Description = val;
                             break;
-                        case "单价":
+                        case "单价RMB" when Currency == "RMB":
+                        case "单价" when Currency == "RMB":
+                        case "单价USD" when Currency == "USD":
                             if (decimal.TryParse(val, NumberStyles.Any, null, out var price))
                                 item.UnitPrice = price;
                             break;
@@ -960,6 +979,31 @@ public partial class NewQuotationViewModel : ObservableObject
         CancelSearch();
         IsQuickSearchVisible = false;
         QuickSearchResults.Clear();
+    }
+
+    private void RefreshCurrencyAvailability()
+    {
+        var maps = new[] { "NDT", "RVI" }
+            .Select(db => _settingsService.QuickInput.Mappings.TryGetValue(db, out var map) ? map : null)
+            .Where(map => map != null)
+            .ToList();
+
+        var hasRmbMapping = maps.Any(map =>
+            (map!.TryGetValue("单价RMB", out var rmbColumn)
+                && !string.IsNullOrWhiteSpace(rmbColumn))
+            || (map.TryGetValue("单价", out var legacyPriceColumn)
+                && !string.IsNullOrWhiteSpace(legacyPriceColumn)));
+        var hasUsdMapping = maps.Any(map =>
+            map!.TryGetValue("单价USD", out var usdColumn)
+            && !string.IsNullOrWhiteSpace(usdColumn));
+
+        IsRmbCurrencyAvailable = hasRmbMapping;
+        IsUsdCurrencyAvailable = hasUsdMapping;
+        IsCurrencySwitchVisible = hasRmbMapping && hasUsdMapping;
+        if (Currency == "RMB" && !hasRmbMapping && hasUsdMapping)
+            Currency = "USD";
+        else if (Currency == "USD" && !hasUsdMapping)
+            Currency = "RMB";
     }
 
     /// <summary>

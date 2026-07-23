@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
 
@@ -14,6 +16,9 @@ namespace Quotix.Views;
 /// </summary>
 public partial class PriceCalculatorDialog : FluentWindow
 {
+    private const uint WmNcLeftButtonDown = 0x00A1;
+    private static readonly IntPtr HtCaption = new(2);
+
     private readonly List<CalculatorItem> _items;
     private readonly List<CalculatorItem> _backup;
 
@@ -56,18 +61,30 @@ public partial class PriceCalculatorDialog : FluentWindow
     /// </summary>
     private void DragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ButtonState != MouseButtonState.Pressed || IsInteractiveElement(e.OriginalSource as DependencyObject))
+        if (e.ChangedButton != MouseButton.Left
+            || e.ButtonState != MouseButtonState.Pressed
+            || e.ClickCount != 1
+            || IsInteractiveElement(e.OriginalSource as DependencyObject))
             return;
 
-        try
-        {
-            DragMove();
-        }
-        catch (InvalidOperationException)
-        {
-            // 鼠标状态在拖动开始前变化时忽略，避免影响弹窗操作。
-        }
+        var windowHandle = new WindowInteropHelper(this).Handle;
+        if (windowHandle == IntPtr.Zero)
+            return;
+
+        e.Handled = true;
+        ReleaseCapture();
+        _ = SendMessage(windowHandle, WmNcLeftButtonDown, HtCaption, IntPtr.Zero);
     }
+
+    [DllImport("user32.dll")]
+    private static extern bool ReleaseCapture();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(
+        IntPtr windowHandle,
+        uint message,
+        IntPtr wParam,
+        IntPtr lParam);
 
     /// <summary>
     /// 限制输入只能为数字和小数点。

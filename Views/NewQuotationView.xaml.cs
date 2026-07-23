@@ -29,7 +29,10 @@ public partial class NewQuotationView : UserControl
     private NewQuotationViewModel? _subscribedVm;
     private bool _suppressQuickSearchEvents;
     private bool _quickResultsRefreshQueued;
+    private bool _suppressDateScrollClose;
+    private DispatcherTimer? _dateScrollCloseArmTimer;
     private TextBox? _expandedOverflowBox;
+    private bool _syncingOverflowEditor;
     private const double CollapsedOverflowFieldHeight = 34;
     private const double ExpandedOverflowFieldMaxHeight = 150;
 
@@ -125,12 +128,24 @@ public partial class NewQuotationView : UserControl
 
     private void MainScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
+        if (_suppressDateScrollClose)
+        {
+            if (QuoteDatePickerHeader.IsDropDownOpen)
+                ArmDateScrollClose();
+        }
+        else if (QuoteDatePickerHeader.IsDropDownOpen)
+        {
+            QuoteDatePickerHeader.IsDropDownOpen = false;
+        }
+
         RepositionQuickSearchPopup();
+        RepositionOverflowEditorPopup();
     }
 
     private void MainScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         RepositionQuickSearchPopup();
+        RepositionOverflowEditorPopup();
     }
 
     private void RepositionQuickSearchPopup()
@@ -169,48 +184,6 @@ public partial class NewQuotationView : UserControl
         CollapseOverflowField(_expandedOverflowBox);
         if (DataContext is NewQuotationViewModel vm)
             vm.QuickSearchResults.Clear();
-    }
-
-    // ==================== 快速数据库切换 ====================
-
-    /// <summary>
-    /// 切换到 NDT 数据库。
-    /// </summary>
-    private void QuickNDTButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is not NewQuotationViewModel vm) return;
-        vm.SwitchQuickDatabaseCommand.Execute("NDT");
-    }
-
-    /// <summary>
-    /// 切换到 RVI 数据库。
-    /// </summary>
-    private void QuickRVIButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is not NewQuotationViewModel vm) return;
-        vm.SwitchQuickDatabaseCommand.Execute("RVI");
-    }
-
-    /// <summary>
-    /// 切换快速输入数据库后，将焦点重新交还当前上下文对应的输入框。
-    /// 配合 StaysOpen=True，使弹窗在「再次点击快速输入按钮」时保持打开并继续可输入。
-    /// </summary>
-    private void RefocusQuickInputBox()
-    {
-        if (DataContext is not NewQuotationViewModel vm) return;
-        // 延后到本次点击处理完成后再聚焦，避免与按钮抢焦点导致弹窗被误关
-        Dispatcher.BeginInvoke(() =>
-        {
-            TextBox? target = vm.QuickSearchContext switch
-            {
-                "product" => _lastCodeBox,
-                "owner" => CompanyContactBox,
-                "customer" => CustomerNameBox,
-                _ => null
-            };
-            if (target != null && target.IsLoaded)
-                target.Focus();
-        });
     }
 
     // ==================== 编码字段（产品快速输入） ====================
@@ -370,8 +343,17 @@ public partial class NewQuotationView : UserControl
 
     private void OverflowField_LostFocus(object sender, RoutedEventArgs e)
     {
-        if (sender is TextBox tb)
+        if (sender is not TextBox tb) return;
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (_expandedOverflowBox != tb)
+                return;
+            if (OverflowEditorPopup.IsOpen && OverflowEditor.IsKeyboardFocusWithin)
+                return;
+
             CollapseOverflowField(tb);
+        }, DispatcherPriority.Input);
     }
 
     private void OverflowField_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -404,45 +386,130 @@ public partial class NewQuotationView : UserControl
 
         _expandedOverflowBox = sourceBox;
         FloatingTextPreview.SetIsEnabled(sourceBox, false);
-        SetOverflowFieldLayer(sourceBox, true);
-        sourceBox.TextWrapping = TextWrapping.Wrap;
-        sourceBox.AcceptsReturn = true;
-        sourceBox.VerticalAlignment = VerticalAlignment.Top;
-        sourceBox.VerticalContentAlignment = VerticalAlignment.Top;
-        sourceBox.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-        sourceBox.Height = CalculateExpandedFieldHeight(sourceBox);
+
+        _syncingOverflowEditor = true;
+        OverflowEditor.Text = sourceBox.Text;
+        _syncingOverflowEditor = false;
+
+        OverflowEditor.Width = Math.Max(90, sourceBox.ActualWidth);
+        OverflowEditor.Height = CalculateExpandedFieldHeight(sourceBox);
+        OverflowEditorPopup.PlacementTarget = sourceBox;
+        OverflowEditorPopup.HorizontalOffset = 0;
+        OverflowEditorPopup.VerticalOffset = 0;
+        OverflowEditorPopup.IsOpen = true;
+
+        var caretIndex = sourceBox.CaretIndex;
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!OverflowEditorPopup.IsOpen) return;
+            EnsureOverflowEditorVisible();
+            OverflowEditor.Focus();
+            OverflowEditor.CaretIndex = Math.Min(caretIndex, OverflowEditor.Text.Length);
+        }, DispatcherPriority.Input);
     }
 
     private void CollapseOverflowField(TextBox? sourceBox)
     {
         if (sourceBox == null) return;
 
-        sourceBox.Height = CollapsedOverflowFieldHeight;
-        sourceBox.TextWrapping = TextWrapping.NoWrap;
-        sourceBox.AcceptsReturn = false;
-        sourceBox.VerticalAlignment = VerticalAlignment.Top;
-        sourceBox.VerticalContentAlignment = VerticalAlignment.Center;
-        sourceBox.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
-        SetOverflowFieldLayer(sourceBox, false);
-
+        FloatingTextPreview.SetIsEnabled(sourceBox, true);
         if (_expandedOverflowBox == sourceBox)
+        {
             _expandedOverflowBox = null;
+            OverflowEditorPopup.IsOpen = false;
+            OverflowEditorPopup.PlacementTarget = null;
+        }
     }
 
-    private static void SetOverflowFieldLayer(TextBox sourceBox, bool expanded)
+    private void OverflowEditor_TextChanged(object sender, TextChangedEventArgs e)
     {
-        Panel.SetZIndex(sourceBox, expanded ? 10 : 0);
+        if (_syncingOverflowEditor || _expandedOverflowBox == null)
+            return;
 
-        DependencyObject? current = sourceBox;
-        while (current != null)
+        _expandedOverflowBox.Text = OverflowEditor.Text;
+        OverflowEditor.Height = CalculateExpandedFieldHeight(_expandedOverflowBox);
+        EnsureOverflowEditorVisible();
+    }
+
+    private void OverflowEditor_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+
+        CollapseOverflowField(_expandedOverflowBox);
+        Keyboard.ClearFocus();
+        e.Handled = true;
+    }
+
+    private void OverflowEditor_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
         {
-            if (current is ContentPresenter presenter)
+            if (!OverflowEditorPopup.IsOpen || OverflowEditor.IsKeyboardFocusWithin)
+                return;
+
+            CollapseOverflowField(_expandedOverflowBox);
+        }, DispatcherPriority.Input);
+    }
+
+    private void OverflowEditorPopup_Closed(object? sender, EventArgs e)
+    {
+        if (_expandedOverflowBox != null)
+            FloatingTextPreview.SetIsEnabled(_expandedOverflowBox, true);
+
+        _expandedOverflowBox = null;
+        OverflowEditorPopup.PlacementTarget = null;
+    }
+
+    private void RepositionOverflowEditorPopup()
+    {
+        if (!OverflowEditorPopup.IsOpen || _expandedOverflowBox == null)
+            return;
+
+        try
+        {
+            var point = _expandedOverflowBox.TransformToAncestor(MainScrollViewer)
+                .Transform(new Point(0, 0));
+            if (point.Y + _expandedOverflowBox.ActualHeight < 0
+                || point.Y > MainScrollViewer.ViewportHeight)
             {
-                Panel.SetZIndex(presenter, expanded ? 1000 : 0);
-                break;
+                CollapseOverflowField(_expandedOverflowBox);
+                return;
             }
 
-            current = VisualTreeHelper.GetParent(current);
+            OverflowEditor.Width = Math.Max(90, _expandedOverflowBox.ActualWidth);
+            OverflowEditorPopup.HorizontalOffset += 0.01;
+            OverflowEditorPopup.HorizontalOffset -= 0.01;
+        }
+        catch (InvalidOperationException)
+        {
+            CollapseOverflowField(_expandedOverflowBox);
+        }
+    }
+
+    private void EnsureOverflowEditorVisible()
+    {
+        if (!OverflowEditorPopup.IsOpen || _expandedOverflowBox == null)
+            return;
+
+        try
+        {
+            var point = _expandedOverflowBox.TransformToAncestor(MainScrollViewer)
+                .Transform(new Point(0, 0));
+            var viewportHeight = MainScrollViewer.ViewportHeight > 0
+                ? MainScrollViewer.ViewportHeight
+                : MainScrollViewer.ActualHeight;
+            const double bottomMargin = 16;
+            var overflow = point.Y + OverflowEditor.Height + bottomMargin - viewportHeight;
+            if (overflow <= 0)
+                return;
+
+            MainScrollViewer.ScrollToVerticalOffset(MainScrollViewer.VerticalOffset + overflow);
+            MainScrollViewer.UpdateLayout();
+            RepositionOverflowEditorPopup();
+        }
+        catch (InvalidOperationException)
+        {
+            CollapseOverflowField(_expandedOverflowBox);
         }
     }
 
@@ -709,22 +776,113 @@ public partial class NewQuotationView : UserControl
         }
     }
 
-    /// <summary>
-    /// 日期选择器加载时调用，调整弹出日历的对齐方式。
-    /// </summary>
     private void QuoteDatePicker_Loaded(object sender, RoutedEventArgs e)
     {
         if (sender is not DatePicker dp) return;
         dp.ApplyTemplate();
 
         if (dp.Template.FindName("PART_Popup", dp) is not Popup popup) return;
-        if (dp.Template.FindName("PART_Button", dp) is not Button btn) return;
+        if (dp.Template.FindName("PART_Button", dp) is not Button button) return;
 
-        // 日历卡片右上角对齐按钮右下角
+        popup.PlacementTarget = dp;
+        popup.Placement = PlacementMode.Bottom;
+        var pendingOpen = false;
+        button.PreviewMouseLeftButtonDown += (_, args) =>
+        {
+            if (dp.IsDropDownOpen)
+                return;
+
+            args.Handled = true;
+            pendingOpen = true;
+            _suppressDateScrollClose = true;
+            _dateScrollCloseArmTimer?.Stop();
+            PrepareQuoteDatePopup(dp, popup);
+        };
+        button.PreviewMouseLeftButtonUp += (_, args) =>
+        {
+            if (!pendingOpen)
+                return;
+
+            args.Handled = true;
+            pendingOpen = false;
+            Dispatcher.BeginInvoke(
+                () => dp.IsDropDownOpen = true,
+                DispatcherPriority.Input);
+        };
         popup.Opened += (_, _) =>
         {
-            // 右边缘对齐
-            popup.HorizontalOffset = -(popup.Child.RenderSize.Width - btn.ActualWidth);
+            Dispatcher.BeginInvoke(
+                () => AlignQuoteDatePopup(dp, popup),
+                DispatcherPriority.Loaded);
+            ArmDateScrollClose();
+        };
+        popup.Closed += (_, _) =>
+        {
+            _dateScrollCloseArmTimer?.Stop();
+            _suppressDateScrollClose = false;
         };
     }
+
+    private void PrepareQuoteDatePopup(DatePicker datePicker, Popup popup)
+    {
+        popup.Child.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var popupSize = popup.Child.DesiredSize;
+        var targetPosition = datePicker.TransformToAncestor(MainScrollViewer)
+            .Transform(new Point(0, 0));
+        var viewportHeight = MainScrollViewer.ViewportHeight > 0
+            ? MainScrollViewer.ViewportHeight
+            : MainScrollViewer.ActualHeight;
+        const double margin = 12;
+        var overflow = targetPosition.Y + datePicker.ActualHeight + 6
+            + popupSize.Height + margin - viewportHeight;
+        if (overflow > 0)
+        {
+            var targetOffset = Math.Min(
+                MainScrollViewer.ScrollableHeight,
+                MainScrollViewer.VerticalOffset + overflow);
+            if (Math.Abs(MainScrollViewer.VerticalOffset - targetOffset) >= 0.5)
+            {
+                MainScrollViewer.ScrollToVerticalOffset(targetOffset);
+                MainScrollViewer.UpdateLayout();
+            }
+        }
+
+        popup.HorizontalOffset = datePicker.ActualWidth - popupSize.Width;
+        popup.VerticalOffset = 6;
+    }
+
+    private static void AlignQuoteDatePopup(DatePicker datePicker, Popup popup)
+    {
+        if (!popup.IsOpen || popup.Child == null)
+            return;
+
+        popup.Child.UpdateLayout();
+        var dpi = VisualTreeHelper.GetDpi(datePicker);
+        var targetBottomRight = datePicker.PointToScreen(
+            new Point(datePicker.ActualWidth, datePicker.ActualHeight));
+        var popupTopLeft = popup.Child.PointToScreen(new Point(0, 0));
+        var popupTopRight = popup.Child.PointToScreen(
+            new Point(popup.Child.RenderSize.Width, 0));
+
+        popup.HorizontalOffset += (targetBottomRight.X - popupTopRight.X) / dpi.DpiScaleX;
+        popup.VerticalOffset +=
+            (targetBottomRight.Y + (6 * dpi.DpiScaleY) - popupTopLeft.Y) / dpi.DpiScaleY;
+    }
+
+    private void ArmDateScrollClose()
+    {
+        _dateScrollCloseArmTimer ??= new DispatcherTimer(
+            TimeSpan.FromMilliseconds(200),
+            DispatcherPriority.ApplicationIdle,
+            (_, _) =>
+            {
+                _dateScrollCloseArmTimer!.Stop();
+                _suppressDateScrollClose = false;
+            },
+            Dispatcher);
+
+        _dateScrollCloseArmTimer.Stop();
+        _dateScrollCloseArmTimer.Start();
+    }
+
 }

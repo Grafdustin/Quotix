@@ -23,6 +23,9 @@ public class QuickSearchResult
     /// <summary>搜索类型: product / owner / customer</summary>
     public string ResultType { get; set; } = "product";
 
+    /// <summary>产品结果来源数据库: NDT / RVI</summary>
+    public string SourceDatabase { get; set; } = "";
+
     /// <summary>匹配度分数（仅用于结果排序，不参与显示）</summary>
     public double Score { get; set; }
 

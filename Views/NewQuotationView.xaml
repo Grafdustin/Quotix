@@ -20,7 +20,8 @@
 
                 <!-- ═══════════════ 顶部工具栏 ═══════════════ -->
                 <Border Style="{StaticResource AppCardModern}"
-                        Padding="20,16" Margin="0,0,0,20">
+                        Padding="20,16" Margin="0,0,0,20"
+                        Visibility="Collapsed">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -30,26 +31,13 @@
 
                         <!-- 左侧：快速输入 + 币种 -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- 快速输入 -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
-                                <ui:TextBlock Text="快速输入" FontSize="12" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <ui:Button x:Name="QuickNDTButton" Content="NDT"
-                                           MinWidth="56" Height="34" FontSize="13"
-                                           Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance},                                            ConverterParameter=NDT}"
-                                           Click="QuickNDTButton_Click"/>
-                                <ui:Button x:Name="QuickRVIButton" Content="RVI"
-                                           MinWidth="56" Height="34" FontSize="13" Margin="6,0,0,0"
-                                           Appearance="{Binding QuickInputDatabase, Converter={StaticResource QuickDbAppearance},                                            ConverterParameter=RVI}"
-                                           Click="QuickRVIButton_Click"/>
-                            </StackPanel>
-
                             <Border Width="1" Margin="0,6" VerticalAlignment="Stretch"
+                                    Visibility="{Binding IsCurrencySwitchVisible, Converter={StaticResource BoolToVis}}"
                                     Background="{DynamicResource CardStrokeColorDefaultBrush}"/>
 
                             <!-- 币种 -->
-                            <StackPanel Orientation="Horizontal" Margin="20,0,16,0">
+                            <StackPanel Orientation="Horizontal" Margin="20,0,16,0"
+                                        Visibility="{Binding IsCurrencySwitchVisible, Converter={StaticResource BoolToVis}}">
                                 <ui:TextBlock Text="币种" FontSize="12" FontWeight="SemiBold"
                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                               VerticalAlignment="Center" Margin="0,0,10,0"/>
@@ -169,7 +157,10 @@
                                                         BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                                                         BorderThickness="1"
                                                         CornerRadius="8"
-                                                        Padding="6">
+                                                        Padding="4">
+                                                    <Border.LayoutTransform>
+                                                        <ScaleTransform ScaleX="0.78" ScaleY="0.78"/>
+                                                    </Border.LayoutTransform>
                                                     <StackPanel>
                                                         <!-- 日历本体 -->
                                                         <Calendar x:Name="PART_Calendar"
@@ -177,11 +168,12 @@
                                                                   DisplayDate="{TemplateBinding DisplayDate}"
                                                                   FirstDayOfWeek="{TemplateBinding FirstDayOfWeek}"
                                                                   IsTodayHighlighted="True"
-                                                                  FontSize="12"
+                                                                  Width="250" Height="260"
+                                                                  FontSize="10"
                                                                   Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
                                                             <Calendar.CalendarDayButtonStyle>
                                                                 <Style TargetType="CalendarDayButton">
-                                                                    <Setter Property="FontSize" Value="12"/>
+                                                                    <Setter Property="FontSize" Value="10"/>
                                                                     <Setter Property="Background"
                                                                             Value="{DynamicResource SolidBackgroundFillColorBaseBrush}"/>
                                                                     <Setter Property="BorderThickness" Value="0"/>
@@ -191,14 +183,14 @@
                                                             </Calendar.CalendarDayButtonStyle>
                                                             <Calendar.CalendarButtonStyle>
                                                                 <Style TargetType="CalendarButton">
-                                                                    <Setter Property="FontSize" Value="11"/>
+                                                                    <Setter Property="FontSize" Value="10"/>
                                                                     <Setter Property="FontWeight" Value="SemiBold"/>
                                                                     <Setter Property="Foreground"
                                                                             Value="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                                     <Setter Property="Background"
                                                                             Value="{DynamicResource SolidBackgroundFillColorBaseBrush}"/>
                                                                     <Setter Property="BorderThickness" Value="0"/>
-                                                                    <Setter Property="Height" Value="28"/>
+                                                                    <Setter Property="Height" Value="24"/>
                                                                     <Setter Property="IsEnabled" Value="False"/>
                                                                 </Style>
                                                             </Calendar.CalendarButtonStyle>
@@ -359,13 +351,29 @@
                 <!-- ═══════════════ 报价说明 ═══════════════ -->
                 <Border Style="{StaticResource AppCardModern}" Padding="24,22" Margin="0,0,0,20">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
-                            <ui:SymbolIcon Symbol="DocumentBulletList24" FontSize="16"
-                                           Foreground="{DynamicResource AccentFillColorPrimaryBrush}"/>
-                            <ui:TextBlock Text="报价说明" FontSize="15" FontWeight="SemiBold"
-                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                          Margin="8,0,0,0"/>
-                        </StackPanel>
+                        <Grid Margin="0,0,0,18">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ui:SymbolIcon Symbol="DocumentBulletList24" FontSize="16"
+                                               Foreground="{DynamicResource AccentFillColorPrimaryBrush}"/>
+                                <ui:TextBlock Text="报价说明" FontSize="15" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                              Margin="8,0,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center">
+                                <ui:TextBlock Text="日期" FontSize="12" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <DatePicker x:Name="QuoteDatePickerHeader"
+                                            SelectedDate="{Binding QuoteDateValue}"
+                                            Template="{Binding Template, ElementName=QuoteDatePicker}"
+                                            Width="160" Height="34" FontSize="13"
+                                            VerticalContentAlignment="Center"
+                                            Loaded="QuoteDatePicker_Loaded"/>
+                            </StackPanel>
+                        </Grid>
 
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -416,13 +424,30 @@
                 <Border Style="{StaticResource AppCardModern}" Padding="0">
                     <StackPanel>
                         <!-- 表单标题 -->
-                        <StackPanel Orientation="Horizontal" Margin="24,22,24,0">
-                            <ui:SymbolIcon Symbol="Calculator24" FontSize="16"
-                                           Foreground="{DynamicResource AccentFillColorPrimaryBrush}"/>
-                            <ui:TextBlock Text="报价表单" FontSize="15" FontWeight="SemiBold"
-                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                          Margin="8,0,0,0"/>
-                        </StackPanel>
+                        <Grid Margin="24,22,24,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ui:SymbolIcon Symbol="Calculator24" FontSize="16"
+                                               Foreground="{DynamicResource AccentFillColorPrimaryBrush}"/>
+                                <ui:TextBlock Text="报价表单" FontSize="15" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                              Margin="8,0,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding IsCurrencySwitchVisible, Converter={StaticResource BoolToVis}}">
+                                <ui:TextBlock Text="币种" FontSize="12" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <ui:Button Content="¥ RMB" Height="34" MinWidth="72" FontSize="13"
+                                           Command="{Binding SwitchCurrencyCommand}" CommandParameter="RMB"
+                                           Appearance="{Binding Currency, Converter={StaticResource CurrencyBg}, ConverterParameter=RMB}"/>
+                                <ui:Button Content="$ USD" Height="34" MinWidth="72" FontSize="13" Margin="6,0,0,0"
+                                           Command="{Binding SwitchCurrencyCommand}" CommandParameter="USD"
+                                           Appearance="{Binding Currency, Converter={StaticResource CurrencyBg}, ConverterParameter=USD}"/>
+                            </StackPanel>
+                        </Grid>
 
                         <!-- 表头 -->
                         <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
@@ -508,7 +533,7 @@
                                                          TextWrapping="NoWrap"
                                                         AcceptsReturn="False"
                                                         VerticalScrollBarVisibility="Disabled"
-                                                        common:FloatingTextPreview.IsEnabled="False"
+                                                        common:FloatingTextPreview.IsEnabled="True"
                                                         Margin="0,0,8,0"
                                                         Tag="ItemName"
                                                         GotFocus="OverflowField_GotFocus"
@@ -534,7 +559,7 @@
                                                          TextWrapping="NoWrap"
                                                         AcceptsReturn="False"
                                                         VerticalScrollBarVisibility="Disabled"
-                                                        common:FloatingTextPreview.IsEnabled="False"
+                                                        common:FloatingTextPreview.IsEnabled="True"
                                                         Margin="0,0,8,0"
                                                         Tag="Description"
                                                         GotFocus="OverflowField_GotFocus"
@@ -631,6 +656,24 @@
 
             </StackPanel>
         </ScrollViewer>
+
+        <!-- 产品名称/说明的原位悬浮编辑层，不参与表格布局，避免展开内容被行高裁剪 -->
+        <Popup x:Name="OverflowEditorPopup"
+               Placement="Relative"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               PopupAnimation="Fade"
+               Closed="OverflowEditorPopup_Closed">
+            <ui:TextBox x:Name="OverflowEditor"
+                        FontSize="13"
+                        TextWrapping="Wrap"
+                        AcceptsReturn="True"
+                        VerticalContentAlignment="Top"
+                        VerticalScrollBarVisibility="Auto"
+                        TextChanged="OverflowEditor_TextChanged"
+                        LostKeyboardFocus="OverflowEditor_LostKeyboardFocus"
+                        PreviewKeyDown="OverflowEditor_PreviewKeyDown"/>
+        </Popup>
 
         <!-- ═══════════════ 快速搜索 Popup ═══════════════ -->
         <!-- Placement=Top：弹窗只在输入栏上方显示，左边缘与输入框左边缘对齐 -->

@@ -129,14 +129,13 @@ public static class FloatingTextPreview
 
         private void OnMouseEnter(object sender, MouseEventArgs e)
         {
-            if (HasPreviewText())
+            if (HasPreviewText() && !_textBox.IsKeyboardFocusWithin)
                 _openTimer.Start();
         }
 
         private void OnKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            if (HasPreviewText())
-                _openTimer.Start();
+            Close();
         }
 
         private void OnLayoutUpdated(object? sender, EventArgs e)
@@ -172,7 +171,10 @@ public static class FloatingTextPreview
 
         private void ShowOrUpdate()
         {
-            if (!HasPreviewText() || (!_textBox.IsMouseOver && !_textBox.IsKeyboardFocusWithin) || !_textBox.IsVisible)
+            if (!HasPreviewText()
+                || !_textBox.IsMouseOver
+                || _textBox.IsKeyboardFocusWithin
+                || !_textBox.IsVisible)
                 return;
 
             EnsurePopup();

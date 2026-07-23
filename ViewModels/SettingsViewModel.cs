@@ -80,7 +80,8 @@ public partial class SettingsViewModel : ObservableObject
         {
             ("编号", "编号"),
             ("说明", "说明"),
-            ("单价", "单价"),
+            ("单价RMB", "单价 RMB"),
+            ("单价USD", "单价 USD"),
         };
         _quickInputDb = "NDT";
         LoadColumnOptions();
@@ -320,7 +321,7 @@ public partial class SettingsViewModel : ObservableObject
 
     // ==================== 快捷输入设置 ====================
 
-    /// <summary>快捷输入字段（固定三项：编号 / 说明 / 单价），Key 同时作为映射字典的键</summary>
+    /// <summary>快捷输入字段（编号 / 说明 / RMB 单价 / USD 单价），Key 同时作为映射字典的键</summary>
     private List<(string Key, string Label)> TargetFields { get; set; } = new();
 
     [ObservableProperty] private bool _quickInputEnabled;
@@ -418,11 +419,19 @@ public partial class SettingsViewModel : ObservableObject
             var rows = new ObservableCollection<QuickInputMappingRow>();
             foreach (var field in TargetFields)
             {
+                var selectedColumn = stored.TryGetValue(field.Key, out var col) ? col : "";
+                if (field.Key == "单价RMB"
+                    && string.IsNullOrEmpty(selectedColumn)
+                    && stored.TryGetValue("单价", out var legacyPriceColumn))
+                {
+                    selectedColumn = legacyPriceColumn;
+                }
+
                 var row = new QuickInputMappingRow
                 {
                     TargetKey = field.Key,
                     TargetLabel = field.Label,
-                    SelectedColumn = stored.TryGetValue(field.Key, out var col) ? col : ""
+                    SelectedColumn = selectedColumn
                 };
                 row.PropertyChanged += Row_PropertyChanged;
                 rows.Add(row);

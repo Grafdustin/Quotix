@@ -174,7 +174,8 @@ public class QuickInputSettings
 
     /// <summary>
     /// 字段映射。外层 key 为数据库类型（"NDT" / "RVI"）；
-    /// 内层 key 为报价单输入框（"编号" / "说明" / "单价"），value 为数据表列名（空字符串表示不映射）。
+    /// 内层 key 为报价单输入框（"编号" / "说明" / "单价RMB" / "单价USD"），
+    /// value 为数据表列名（空字符串表示不映射）。
     /// </summary>
     public Dictionary<string, Dictionary<string, string>> Mappings { get; set; } = new();
 }
