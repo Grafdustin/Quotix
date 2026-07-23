@@ -415,42 +415,6 @@
                     </Border>
                 </StackPanel>
 
-                <!-- ====== 更新 ====== -->
-                <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=update}">
-                    <Border CornerRadius="10"
-                            Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
-                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1" Padding="16,14">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
-                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
-                                <ui:SymbolIcon Symbol="ArrowSync16" FontSize="18"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
-                                <ui:TextBlock Text="检查更新" FontSize="14" FontWeight="Medium"
-                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                <ui:TextBlock Text="{Binding UpdateStatusText}" FontSize="12"
-                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                              Margin="0,2,0,0"/>
-                            </StackPanel>
-
-                            <ui:Button Grid.Column="2" Content="检查更新"
-                                       Appearance="Primary"
-                                       Height="34" FontSize="12"
-                                       Command="{Binding CheckUpdateCommand}"/>
-                        </Grid>
-                    </Border>
-                </StackPanel>
-
                 <!-- ====== 问题反馈 ====== -->
                 <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=feedback}">
                     <Border CornerRadius="10"
@@ -691,6 +655,39 @@
                                 </Border>
                             </WrapPanel>
                         </StackPanel>
+                    </Border>
+
+                    <Border CornerRadius="10" Margin="0,12,0,0"
+                            Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16,14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                <ui:SymbolIcon Symbol="ArrowSync16" FontSize="18"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ui:TextBlock Text="检查更新" FontSize="14" FontWeight="Medium"
+                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <ui:TextBlock Text="{Binding UpdateStatusText}" FontSize="12"
+                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                              Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <ui:Button Grid.Column="2" Content="检查更新"
+                                       Appearance="Primary"
+                                       Height="34" FontSize="12"
+                                       Command="{Binding CheckUpdateCommand}"/>
+                        </Grid>
                     </Border>
                 </StackPanel>
 
