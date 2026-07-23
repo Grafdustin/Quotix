@@ -737,10 +737,9 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void UpdatePaneToggleIcon()
     {
-        // 展开时显示左侧栏图标，折叠时显示窄侧栏图标。
-        PaneToggleIcon.Data = Geometry.Parse(RootNavView.IsPaneOpen
-            ? "M3.75 4.5 A1.75 1.75 0 0 1 5.5 2.75 H12.5 A1.75 1.75 0 0 1 14.25 4.5 V11.5 A1.75 1.75 0 0 1 12.5 13.25 H5.5 A1.75 1.75 0 0 1 3.75 11.5 Z M8 3 V13"
-            : "M3.75 4.5 A1.75 1.75 0 0 1 5.5 2.75 H12.5 A1.75 1.75 0 0 1 14.25 4.5 V11.5 A1.75 1.75 0 0 1 12.5 13.25 H5.5 A1.75 1.75 0 0 1 3.75 11.5 Z M6.25 3 V13");
+        PaneToggleIcon.Symbol = RootNavView.IsPaneOpen
+            ? SymbolRegular.PanelLeft20
+            : SymbolRegular.PanelRight20;
     }
 
     /// <summary>
