@@ -118,12 +118,10 @@ public class QuotationService
 
     // ============ 更新 ============
 
-    /// <summary>更新报价单，重新计算金额并替换所有明细项</summary>
+    /// <summary>更新报价单，按最新报价日期更新编号，并替换所有明细项</summary>
     public void UpdateQuotation(Quotation q)
     {
-        if (string.IsNullOrWhiteSpace(q.QuoteNumber))
-            q.QuoteNumber = GetQuotation(q.Id)?.QuoteNumber;
-        EnsureQuoteNumber(q);
+        q.QuoteNumber = GenerateQuoteNumber(q.QuoteDate);
 
         q.UpdatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         q.TotalAmount = q.Items.Sum(i => i.TotalPrice);
