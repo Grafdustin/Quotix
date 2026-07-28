@@ -124,7 +124,6 @@ public partial class NewQuotationViewModel : ObservableObject
     /// </summary>
     private class QuickSearchIndex
     {
-        public string SearchText = "";           // 全字段拼接（小写），用于 Contains 匹配
         public string Title = "";
         public string Subtitle = "";
         public string PriceText = "";
@@ -883,7 +882,7 @@ public partial class NewQuotationViewModel : ObservableObject
     }
 
     /// <summary>
-    /// 构建搜索索引：加载全部产品，预计算 SearchText（只做一次，后缓存）。
+    /// 构建搜索索引：加载全部产品并缓存快捷输入所需字段。
     /// </summary>
     /// <param name="dbType">数据库类型（NDT 或 RVI）</param>
     /// <returns>搜索索引列表</returns>
@@ -908,8 +907,7 @@ public partial class NewQuotationViewModel : ObservableObject
             }
             if (dict == null || dict.Count == 0) continue;
 
-            // 一次性遍历，同时提取 searchText / title / subtitle / price / rawData
-            var sb = new System.Text.StringBuilder();
+            // 一次性遍历，同时提取 title / subtitle / price / rawData
             string title = "", subtitle = "", priceText = "";
             var rawData = new Dictionary<string, string>(dict.Count);
 
@@ -917,8 +915,6 @@ public partial class NewQuotationViewModel : ObservableObject
             {
                 var val = kv.Value ?? "";
                 rawData[kv.Key] = val;
-                if (!string.IsNullOrEmpty(val))
-                    sb.Append(val).Append(' ');
 
                 var keyLower = kv.Key.ToLowerInvariant();
                 // 匹配标题
@@ -936,7 +932,6 @@ public partial class NewQuotationViewModel : ObservableObject
 
             index.Add(new QuickSearchIndex
             {
-                SearchText = sb.ToString().ToLowerInvariant(),
                 Title = title,
                 Subtitle = subtitle,
                 PriceText = priceText,
