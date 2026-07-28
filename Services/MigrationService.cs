@@ -35,13 +35,16 @@ public class MigrationService
         // 3. 补列（幂等操作，已存在则跳过）
         AddMissingColumns(conn);
 
-        // 4. 创建索引
+        // 4. 清理旧版本可能遗留的孤立报价明细
+        CleanOrphanedQuotationItems(conn);
+
+        // 5. 创建索引
         CreateIndexes(conn);
 
-        // 5. 创建 FTS5 全文索引虚拟表
+        // 6. 创建 FTS5 全文索引虚拟表
         CreateFts(conn);
 
-        // 6. 首次启动时重建 FTS 索引（从 products 表同步数据）
+        // 7. 首次启动时重建 FTS 索引（从 products 表同步数据）
         RebuildFtsIfNeeded(conn);
     }
 
@@ -90,6 +93,20 @@ public class MigrationService
         TryExec(conn, "ALTER TABLE products ADD COLUMN created_at TEXT");
         TryExec(conn, "ALTER TABLE products ADD COLUMN updated_at TEXT");
         TryExec(conn, "ALTER TABLE quotations ADD COLUMN notes_json TEXT");
+    }
+
+    /// <summary>删除找不到所属报价单的历史明细记录</summary>
+    private static void CleanOrphanedQuotationItems(SqliteConnection conn)
+    {
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            DELETE FROM quotation_items
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM quotations
+                WHERE quotations.id = quotation_items.quotation_id
+            )";
+        cmd.ExecuteNonQuery();
     }
 
     /// <summary>创建业务索引（幂等）</summary>

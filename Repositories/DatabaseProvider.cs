@@ -29,6 +29,9 @@ public class DatabaseProvider : IDisposable
     {
         var conn = new SqliteConnection($"Data Source={DbPath}");
         conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "PRAGMA foreign_keys = ON;";
+        cmd.ExecuteNonQuery();
         return conn;
     }
 

@@ -121,9 +121,20 @@ public class QuotationRepository : BaseRepository
         cmd.ExecuteNonQuery();
     }
 
-    /// <summary>根据 ID 删除报价单主记录</summary>
-    public void Delete(string id) =>
-        Execute("DELETE FROM quotations WHERE id = @id", new() { ["@id"] = id });
+    /// <summary>在同一事务内删除报价单及其所有明细项</summary>
+    public void Delete(string id)
+    {
+        RunInTransaction((conn, tx) =>
+        {
+            DeleteItems(conn, tx, id);
+
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "DELETE FROM quotations WHERE id = @id";
+            cmd.AddParam("@id", id);
+            cmd.ExecuteNonQuery();
+        });
+    }
 
     // ============ 实体映射 ============
 
