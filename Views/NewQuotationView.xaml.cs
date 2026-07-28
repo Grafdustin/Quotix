@@ -647,9 +647,17 @@ public partial class NewQuotationView : UserControl
         }
 
         ProductDetailsPopup.DataContext = result;
-        ProductDetailsPopup.PlacementTarget = item;
-        ProductDetailsScrollViewer.ScrollToTop();
+        ProductDetailsPopup.PlacementTarget = QuickSearchPopupBorder;
         ProductDetailsPopup.IsOpen = true;
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!ProductDetailsPopup.IsOpen
+                || !ReferenceEquals(ProductDetailsPopup.DataContext, result))
+                return;
+
+            ProductDetailsPanel.UpdateLayout();
+            ProductDetailsScrollViewer.ScrollToTop();
+        }, DispatcherPriority.Loaded);
     }
 
     private void QuickResultItem_MouseLeave(object sender, MouseEventArgs e)
