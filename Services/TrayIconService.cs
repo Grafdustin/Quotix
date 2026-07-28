@@ -2,6 +2,9 @@ using System.Drawing;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using Wpf.Ui.Controls;
 using Forms = System.Windows.Forms;
 
 namespace Quotix.Services;
@@ -13,6 +16,7 @@ public sealed class TrayIconService : IDisposable
 {
     private readonly AppSettingsService _settingsService;
     private Forms.NotifyIcon? _notifyIcon;
+    private ContextMenu? _contextMenu;
     private Icon? _icon;
     private Action? _restoreAction;
     private Action? _exitAction;
@@ -31,17 +35,12 @@ public sealed class TrayIconService : IDisposable
         _exitAction = exitAction;
         _icon = LoadApplicationIcon();
 
-        var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("打开 Quotix", null, (_, _) => InvokeOnUi(_restoreAction));
-        menu.Items.Add("打开导出文件夹", null, (_, _) => OpenExportFolder());
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("退出", null, (_, _) => InvokeOnUi(_exitAction));
+        _contextMenu = CreateContextMenu();
 
         _notifyIcon = new Forms.NotifyIcon
         {
             Icon = _icon,
             Text = "Quotix",
-            ContextMenuStrip = menu,
             Visible = true
         };
         _notifyIcon.MouseClick += OnMouseClick;
@@ -51,6 +50,57 @@ public sealed class TrayIconService : IDisposable
     {
         if (e.Button == Forms.MouseButtons.Left)
             InvokeOnUi(_restoreAction);
+        else if (e.Button == Forms.MouseButtons.Right)
+            ShowContextMenu();
+    }
+
+    private ContextMenu CreateContextMenu()
+    {
+        var menu = new ContextMenu
+        {
+            MinWidth = 184,
+            Placement = PlacementMode.MousePoint
+        };
+
+        var openItem = new Wpf.Ui.Controls.MenuItem
+        {
+            Header = "打开 Quotix",
+            Icon = new SymbolIcon(SymbolRegular.Window20, 16, false)
+        };
+        openItem.Click += (_, _) => InvokeOnUi(_restoreAction);
+
+        var exportItem = new Wpf.Ui.Controls.MenuItem
+        {
+            Header = "打开导出文件夹",
+            Icon = new SymbolIcon(SymbolRegular.FolderOpen20, 16, false)
+        };
+        exportItem.Click += (_, _) => OpenExportFolder();
+
+        var exitItem = new Wpf.Ui.Controls.MenuItem
+        {
+            Header = "退出",
+            Icon = new SymbolIcon(SymbolRegular.Power20, 16, false)
+        };
+        exitItem.Click += (_, _) => InvokeOnUi(_exitAction);
+
+        menu.Items.Add(openItem);
+        menu.Items.Add(exportItem);
+        menu.Items.Add(new Separator());
+        menu.Items.Add(exitItem);
+        return menu;
+    }
+
+    private void ShowContextMenu()
+    {
+        InvokeOnUi(() =>
+        {
+            if (_contextMenu == null)
+                return;
+
+            _contextMenu.IsOpen = false;
+            _contextMenu.Placement = PlacementMode.MousePoint;
+            _contextMenu.IsOpen = true;
+        });
     }
 
     private static void InvokeOnUi(Action? action)
@@ -87,11 +137,17 @@ public sealed class TrayIconService : IDisposable
 
     public void Dispose()
     {
+        if (_contextMenu != null)
+        {
+            _contextMenu.IsOpen = false;
+            _contextMenu.Items.Clear();
+            _contextMenu = null;
+        }
+
         if (_notifyIcon != null)
         {
             _notifyIcon.Visible = false;
             _notifyIcon.MouseClick -= OnMouseClick;
-            _notifyIcon.ContextMenuStrip?.Dispose();
             _notifyIcon.Dispose();
             _notifyIcon = null;
         }
