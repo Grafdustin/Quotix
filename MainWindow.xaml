@@ -116,6 +116,7 @@
                                 <Grid Width="48">
                                     <Button x:Name="ThemeToggleButton" Height="36" Width="36"
                                             HorizontalAlignment="Center"
+                                            Margin="-8,0,8,0"
                                             Background="Transparent"
                                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                             BorderThickness="0" Cursor="Hand"
