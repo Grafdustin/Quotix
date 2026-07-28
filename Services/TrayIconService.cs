@@ -160,38 +160,50 @@ public sealed class TrayIconService : IDisposable
 
     private static void PositionMenu(IntPtr menuHandle, NativePoint anchor)
     {
-        if (!GetWindowRect(menuHandle, out var menuRect))
+        var previousDpiContext = SetThreadDpiAwarenessContext(DpiAwarenessContextPerMonitorAwareV2);
+        try
         {
-            return;
+            if (!GetCursorPos(out anchor)
+                || !GetWindowRect(menuHandle, out var menuRect))
+            {
+                return;
+            }
+
+            var monitor = MonitorFromPoint(anchor, MonitorDefaultToNearest);
+            var monitorInfo = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+            if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref monitorInfo))
+                return;
+
+            var width = menuRect.Right - menuRect.Left;
+            var height = menuRect.Bottom - menuRect.Top;
+            var x = anchor.X;
+            var y = anchor.Y - height;
+
+            x = Math.Clamp(x, monitorInfo.WorkArea.Left, monitorInfo.WorkArea.Right - width);
+            y = Math.Clamp(y, monitorInfo.WorkArea.Top, monitorInfo.WorkArea.Bottom - height);
+
+            SetWindowPos(
+                menuHandle,
+                IntPtr.Zero,
+                x,
+                y,
+                0,
+                0,
+                SetWindowPosNoSize | SetWindowPosNoZOrder | SetWindowPosNoActivate);
         }
-
-        var monitor = MonitorFromPoint(anchor, MonitorDefaultToNearest);
-        var monitorInfo = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref monitorInfo))
-            return;
-
-        const int gap = 8;
-        var width = menuRect.Right - menuRect.Left;
-        var height = menuRect.Bottom - menuRect.Top;
-        var x = anchor.X + gap;
-        var y = anchor.Y - height - gap;
-
-        x = Math.Clamp(x, monitorInfo.WorkArea.Left, monitorInfo.WorkArea.Right - width);
-        y = Math.Clamp(y, monitorInfo.WorkArea.Top, monitorInfo.WorkArea.Bottom - height);
-
-        SetWindowPos(
-            menuHandle,
-            IntPtr.Zero,
-            x,
-            y,
-            0,
-            0,
-            SetWindowPosNoSize | SetWindowPosNoZOrder | SetWindowPosNoActivate);
+        finally
+        {
+            if (previousDpiContext != IntPtr.Zero)
+                SetThreadDpiAwarenessContext(previousDpiContext);
+        }
     }
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr dpiContext);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -223,6 +235,7 @@ public sealed class TrayIconService : IDisposable
     private const uint SetWindowPosNoSize = 0x0001;
     private const uint SetWindowPosNoZOrder = 0x0004;
     private const uint SetWindowPosNoActivate = 0x0010;
+    private static readonly IntPtr DpiAwarenessContextPerMonitorAwareV2 = new(-4);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint
