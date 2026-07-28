@@ -400,15 +400,11 @@
                                         <ui:TextBox Grid.Column="1"
                                                     Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
                                                     PlaceholderText="标题"
-                                                    IsReadOnly="True"
-                                                    IsTabStop="False"
                                                     MinWidth="0" MinHeight="36"
                                                     VerticalContentAlignment="Center"/>
                                         <ui:TextBox Grid.Column="3"
                                                     Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
                                                     PlaceholderText="内容"
-                                                    IsReadOnly="True"
-                                                    IsTabStop="False"
                                                     MinWidth="0" MinHeight="36"
                                                     VerticalContentAlignment="Center"/>
                                     </Grid>
