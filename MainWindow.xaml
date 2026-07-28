@@ -84,7 +84,7 @@
                         x:Name="RootNavView"
                         PaneDisplayMode="Left"
                         IsPaneOpen="True"
-            OpenPaneLength="144"
+            OpenPaneLength="200"
                         CompactPaneLength="48"
                         IsBackButtonVisible="Collapsed"
                         IsPaneToggleVisible="False"
