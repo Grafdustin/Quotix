@@ -172,7 +172,7 @@
                                 Tag="header-db"
                                 Click="OnNavItemClick">
                                 <ui:NavigationViewItem.Icon>
-                                    <ui:SymbolIcon Symbol="Table24"/>
+                                    <ui:SymbolIcon Symbol="DatabasePerson24"/>
                                 </ui:NavigationViewItem.Icon>
                             </ui:NavigationViewItem>
                         </ui:NavigationView.MenuItems>
