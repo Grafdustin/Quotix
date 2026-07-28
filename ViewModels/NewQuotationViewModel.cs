@@ -568,13 +568,10 @@ public partial class NewQuotationViewModel : ObservableObject
         }
 
         QuickSearchText = text;
-        if (QuickSearchContext == "product")
+        if (!debounce)
         {
-            IsQuickSearchVisible = true;
-        }
-        else
-        {
-            IsQuickSearchVisible = true;
+            IsQuickSearchVisible = false;
+            QuickSearchResults.Clear();
         }
 
         _ = TriggerSearch(text, debounce);
