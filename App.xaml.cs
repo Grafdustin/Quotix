@@ -23,9 +23,13 @@ public partial class App : Application
 {
     /// <summary>单实例互斥体名称</summary>
     private const string AppMutexName = "Quotix_SingleInstance_Mutex";
+    private const string ShowWindowEventName = "Quotix_ShowWindow_Event";
 
     /// <summary>单实例互斥体</summary>
     private static Mutex? _singleInstanceMutex;
+    private static EventWaitHandle? _showWindowEvent;
+    private CancellationTokenSource? _showWindowListenerCts;
+    private Task? _showWindowListenerTask;
 
     /// <summary>DI 容器</summary>
     private ServiceProvider? _serviceProvider;
@@ -50,6 +54,8 @@ public partial class App : Application
         _singleInstanceMutex = new Mutex(true, AppMutexName, out bool createdNew);
         if (!createdNew)
         {
+            SignalExistingInstance();
+
             var current = Process.GetCurrentProcess();
             foreach (var p in Process.GetProcessesByName(current.ProcessName))
             {
@@ -72,6 +78,10 @@ public partial class App : Application
 
         try
         {
+            _showWindowEvent = new EventWaitHandle(
+                false,
+                EventResetMode.AutoReset,
+                ShowWindowEventName);
             await StartApplicationAsync();
         }
         catch (Exception ex)
@@ -145,6 +155,7 @@ public partial class App : Application
 
         // 显式指定 MainWindow（保证应用生命周期与主窗口绑定）
         Application.Current.MainWindow = mainWindow;
+        StartShowWindowListener(mainWindow);
 
         // 主窗口关闭时退出应用
         mainWindow.Closed += (_, _) => Shutdown();
@@ -155,9 +166,50 @@ public partial class App : Application
     /// <summary>应用程序退出时释放资源</summary>
     protected override void OnExit(ExitEventArgs e)
     {
+        _showWindowListenerCts?.Cancel();
+        _showWindowEvent?.Set();
+        try { _showWindowListenerTask?.Wait(500); } catch { }
+        _showWindowListenerCts?.Dispose();
+        _showWindowEvent?.Dispose();
         _serviceProvider?.Dispose();
         _singleInstanceMutex?.Dispose();
         base.OnExit(e);
+    }
+
+    private static void SignalExistingInstance()
+    {
+        try
+        {
+            using var showWindowEvent = EventWaitHandle.OpenExisting(ShowWindowEventName);
+            showWindowEvent.Set();
+        }
+        catch
+        {
+            // 兼容尚未创建唤醒事件的旧版本，后续继续尝试窗口句柄恢复。
+        }
+    }
+
+    private void StartShowWindowListener(MainWindow mainWindow)
+    {
+        if (_showWindowEvent == null)
+            return;
+
+        _showWindowListenerCts = new CancellationTokenSource();
+        var token = _showWindowListenerCts.Token;
+        var showWindowEvent = _showWindowEvent;
+
+        _showWindowListenerTask = Task.Run(() =>
+        {
+            while (true)
+            {
+                showWindowEvent.WaitOne();
+                if (token.IsCancellationRequested)
+                    return;
+
+                mainWindow.Dispatcher.BeginInvoke(
+                    new Action(mainWindow.RestoreFromBackground));
+            }
+        });
     }
 
     /// <summary>获取异常的最内层消息</summary>

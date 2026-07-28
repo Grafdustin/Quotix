@@ -105,7 +105,7 @@ public partial class MainWindow : FluentWindow
         Hide();
     }
 
-    private void RestoreFromTray()
+    internal void RestoreFromBackground()
     {
         ShowInTaskbar = true;
         Show();
@@ -203,7 +203,7 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        _trayIconService.Initialize(RestoreFromTray, ExitFromTray);
+        _trayIconService.Initialize(RestoreFromBackground, ExitFromTray);
 
         // 恢复导航栏折叠状态
         RootNavView.IsPaneOpen = !_settingsService.NavigationCollapsed;
