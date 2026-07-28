@@ -52,6 +52,12 @@ public partial class NewQuotationView : UserControl
         // 独立于 DataContextChanged 的兜底订阅：确保无论 DataContext 在
         // 对象初始化器阶段还是 Loaded 之后才就绪，PropertyChanged 订阅都一定生效。
         SubscribeToVm();
+
+        Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+        {
+            if (DataContext is NewQuotationViewModel vm)
+                _ = vm.WarmUpQuickSearchAsync();
+        });
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

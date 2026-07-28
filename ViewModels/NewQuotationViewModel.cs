@@ -116,6 +116,8 @@ public partial class NewQuotationViewModel : ObservableObject
     // 两套产品库分别缓存，搜索时合并已配置映射的结果。
     private readonly Dictionary<string, List<QuickSearchIndex>> _cachedProductIndexes =
         new(StringComparer.OrdinalIgnoreCase);
+    private System.Threading.Tasks.Task? _productIndexWarmupTask;
+    private int _productIndexGeneration;
 
     /// <summary>
     /// 预建搜索索引：避免每次击键都遍历 JSON 数据。
@@ -635,7 +637,45 @@ public partial class NewQuotationViewModel : ObservableObject
     /// <summary>清理产品快速搜索索引缓存，下次搜索会按最新数据和映射重建。</summary>
     private void InvalidateProductSearchCache()
     {
+        _productIndexGeneration++;
         _cachedProductIndexes.Clear();
+        _productIndexWarmupTask = null;
+    }
+
+    /// <summary>在后台预建已配置产品库的搜索索引，避免首次激活快捷输入时等待数据库加载。</summary>
+    public System.Threading.Tasks.Task WarmUpQuickSearchAsync()
+    {
+        if (!_quickInputEnabled)
+            return System.Threading.Tasks.Task.CompletedTask;
+
+        return _productIndexWarmupTask ??=
+            WarmUpProductIndexesAsync(_productIndexGeneration);
+    }
+
+    private async System.Threading.Tasks.Task WarmUpProductIndexesAsync(int generation)
+    {
+        foreach (var dbType in new[] { "NDT", "RVI" })
+        {
+            var map = _settingsService.QuickInput.Mappings
+                .TryGetValue(dbType, out var configuredMap) && configuredMap != null
+                ? configuredMap
+                : null;
+            var codeColumn = map != null && map.TryGetValue("编号", out var cc) ? cc : "";
+            if (string.IsNullOrWhiteSpace(codeColumn)
+                || _cachedProductIndexes.ContainsKey(dbType))
+                continue;
+
+            try
+            {
+                var index = await System.Threading.Tasks.Task.Run(() => BuildSearchIndex(dbType));
+                if (generation == _productIndexGeneration)
+                    _cachedProductIndexes[dbType] = index;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Quotix] 快速搜索索引预热异常: {ex}");
+            }
+        }
     }
 
     /// <summary>快捷输入弹窗打开时按当前文本重新搜索，使设置变更实时生效。</summary>
@@ -659,6 +699,9 @@ public partial class NewQuotationViewModel : ObservableObject
 
         if (QuickSearchContext == "product")
         {
+            await WarmUpQuickSearchAsync().WaitAsync(ct);
+            ct.ThrowIfCancellationRequested();
+
             var sources = new List<(string Database, string CodeColumn, List<QuickSearchIndex> Index)>();
             foreach (var dbType in new[] { "NDT", "RVI" })
             {
