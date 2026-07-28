@@ -7,7 +7,7 @@
              Background="Transparent"
              Focusable="True">
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <Border x:Name="QuickInputFocusSink"
                 Width="0" Height="0"
                 Focusable="True"
@@ -759,8 +759,7 @@
 
         <!-- UPC 产品候选项的可交互详情面板 -->
         <Popup x:Name="ProductDetailsPopup"
-               Placement="Right"
-               HorizontalOffset="8"
+               Placement="Relative"
                StaysOpen="True"
                AllowsTransparency="True">
             <Border x:Name="ProductDetailsPanel"

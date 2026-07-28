@@ -188,12 +188,14 @@ public partial class NewQuotationView : UserControl
 
         RepositionQuickSearchPopup();
         RepositionOverflowEditorPopup();
+        RepositionProductDetailsPopup();
     }
 
     private void MainScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         RepositionQuickSearchPopup();
         RepositionOverflowEditorPopup();
+        RepositionProductDetailsPopup();
     }
 
     private void RepositionQuickSearchPopup()
@@ -647,7 +649,8 @@ public partial class NewQuotationView : UserControl
         }
 
         ProductDetailsPopup.DataContext = result;
-        ProductDetailsPopup.PlacementTarget = QuickSearchPopupBorder;
+        ProductDetailsPopup.PlacementTarget = RootGrid;
+        PositionProductDetailsPopup();
         ProductDetailsPopup.IsOpen = true;
         Dispatcher.BeginInvoke(() =>
         {
@@ -657,7 +660,59 @@ public partial class NewQuotationView : UserControl
 
             ProductDetailsPanel.UpdateLayout();
             ProductDetailsScrollViewer.ScrollToTop();
+            PositionProductDetailsPopup();
         }, DispatcherPriority.Loaded);
+    }
+
+    private void RepositionProductDetailsPopup()
+    {
+        if (!ProductDetailsPopup.IsOpen)
+            return;
+
+        PositionProductDetailsPopup();
+        ProductDetailsPopup.HorizontalOffset += 0.01;
+        ProductDetailsPopup.HorizontalOffset -= 0.01;
+    }
+
+    private void PositionProductDetailsPopup()
+    {
+        if (!RootGrid.IsLoaded
+            || !QuickSearchPopupBorder.IsLoaded
+            || RootGrid.ActualWidth <= 0
+            || RootGrid.ActualHeight <= 0)
+            return;
+
+        const double gap = 8;
+        const double edge = 8;
+        var dpi = VisualTreeHelper.GetDpi(RootGrid);
+        var rootScreen = RootGrid.PointToScreen(new Point(0, 0));
+        var quickScreen = QuickSearchPopupBorder.PointToScreen(new Point(0, 0));
+        var quickLeft = (quickScreen.X - rootScreen.X) / dpi.DpiScaleX;
+        var quickTop = (quickScreen.Y - rootScreen.Y) / dpi.DpiScaleY;
+
+        ProductDetailsPanel.Width = Math.Min(440, Math.Max(1, RootGrid.ActualWidth - (edge * 2)));
+        ProductDetailsPanel.MaxHeight = Math.Max(1, RootGrid.ActualHeight - (edge * 2));
+        ProductDetailsPanel.Measure(new Size(
+            ProductDetailsPanel.Width,
+            ProductDetailsPanel.MaxHeight));
+
+        var detailWidth = ProductDetailsPanel.DesiredSize.Width;
+        var detailHeight = Math.Min(
+            ProductDetailsPanel.DesiredSize.Height,
+            ProductDetailsPanel.MaxHeight);
+
+        var x = quickLeft + QuickSearchPopupBorder.ActualWidth + gap;
+        if (x + detailWidth > RootGrid.ActualWidth - edge)
+            x = quickLeft - detailWidth - gap;
+
+        x = Math.Clamp(x, edge, Math.Max(edge, RootGrid.ActualWidth - detailWidth - edge));
+        var y = Math.Clamp(
+            quickTop,
+            edge,
+            Math.Max(edge, RootGrid.ActualHeight - detailHeight - edge));
+
+        ProductDetailsPopup.HorizontalOffset = x;
+        ProductDetailsPopup.VerticalOffset = y;
     }
 
     private void QuickResultItem_MouseLeave(object sender, MouseEventArgs e)
