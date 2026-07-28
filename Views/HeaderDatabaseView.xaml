@@ -434,58 +434,69 @@
                         Padding="18,16"
                         Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                         CornerRadius="8">
-                    <StackPanel>
-                        <ItemsControl ItemsSource="{Binding DefaultQuotationNotes}"
-                                      HorizontalContentAlignment="Stretch">
-                            <ItemsControl.ItemContainerStyle>
-                                <Style TargetType="ContentPresenter">
-                                    <Setter Property="HorizontalAlignment" Value="Stretch"/>
-                                </Style>
-                            </ItemsControl.ItemContainerStyle>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Margin="0,0,0,10">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="34"/>
-                                            <ColumnDefinition Width="2*"/>
-                                            <ColumnDefinition Width="10"/>
-                                            <ColumnDefinition Width="5*"/>
-                                            <ColumnDefinition Width="10"/>
-                                            <ColumnDefinition Width="36"/>
-                                        </Grid.ColumnDefinitions>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                                        <ui:TextBlock Grid.Column="0"
-                                                      Text="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Converter={StaticResource Index}, StringFormat={}{0}.}"
-                                                      FontSize="12" FontWeight="SemiBold"
-                                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        <ui:TextBox Grid.Column="1"
-                                                    Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
-                                                    PlaceholderText="标题"
-                                                    MinWidth="0" MinHeight="36"
-                                                    VerticalContentAlignment="Center"/>
-                                        <ui:TextBox Grid.Column="3"
-                                                    Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
-                                                    PlaceholderText="内容"
-                                                    MinWidth="0" MinHeight="36"
-                                                    VerticalContentAlignment="Center"/>
-                                        <ui:Button Grid.Column="5" Width="34" Height="34" MinWidth="34"
-                                                   Padding="0"
-                                                   HorizontalContentAlignment="Center"
-                                                   VerticalContentAlignment="Center"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   Appearance="Secondary" ToolTip="删除"
-                                                   Command="{Binding DataContext.RemoveDefaultQuotationNoteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                   CommandParameter="{Binding}">
-                                            <ui:SymbolIcon Symbol="Delete16" FontSize="16"/>
-                                        </ui:Button>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <ScrollViewer Grid.Row="0"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      CanContentScroll="False"
+                                      PanningMode="VerticalOnly">
+                            <ItemsControl ItemsSource="{Binding DefaultQuotationNotes}"
+                                          HorizontalContentAlignment="Stretch">
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="ContentPresenter">
+                                        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="34"/>
+                                                <ColumnDefinition Width="2*"/>
+                                                <ColumnDefinition Width="10"/>
+                                                <ColumnDefinition Width="5*"/>
+                                                <ColumnDefinition Width="10"/>
+                                                <ColumnDefinition Width="36"/>
+                                            </Grid.ColumnDefinitions>
 
-                        <Grid Margin="34,6,0,0">
+                                            <ui:TextBlock Grid.Column="0"
+                                                          Text="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Converter={StaticResource Index}, StringFormat={}{0}.}"
+                                                          FontSize="12" FontWeight="SemiBold"
+                                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <ui:TextBox Grid.Column="1"
+                                                        Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                                        PlaceholderText="标题"
+                                                        MinWidth="0" MinHeight="36"
+                                                        VerticalContentAlignment="Center"/>
+                                            <ui:TextBox Grid.Column="3"
+                                                        Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
+                                                        PlaceholderText="内容"
+                                                        MinWidth="0" MinHeight="36"
+                                                        VerticalContentAlignment="Center"/>
+                                            <ui:Button Grid.Column="5" Width="34" Height="34" MinWidth="34"
+                                                       Padding="0"
+                                                       HorizontalContentAlignment="Center"
+                                                       VerticalContentAlignment="Center"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Appearance="Secondary" ToolTip="删除"
+                                                       Command="{Binding DataContext.RemoveDefaultQuotationNoteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       CommandParameter="{Binding}">
+                                                <ui:SymbolIcon Symbol="Delete16" FontSize="16"/>
+                                            </ui:Button>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <Grid Grid.Row="1" Margin="34,6,0,0">
                             <ui:Button Content="+ 添加说明" Appearance="Secondary"
                                        HorizontalAlignment="Left"
                                        Command="{Binding AddDefaultQuotationNoteCommand}"/>
@@ -497,7 +508,7 @@
                                            Command="{Binding SaveQuotationDescriptionDefaultsCommand}"/>
                             </StackPanel>
                         </Grid>
-                    </StackPanel>
+                    </Grid>
                 </Border>
             </Grid>
         </Border>
