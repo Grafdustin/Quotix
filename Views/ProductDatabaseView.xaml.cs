@@ -18,6 +18,10 @@ public partial class ProductDatabaseView : UserControl
     private ProductDatabaseViewModel? _currentVM;
     private ProductRowViewModel? _expandedRow;
     private bool _isRightDeselecting;
+    private readonly DispatcherTimer _copyToastTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(1500)
+    };
 
     /// <summary>
     /// 初始化 ProductDatabaseView 实例。
@@ -25,6 +29,7 @@ public partial class ProductDatabaseView : UserControl
     public ProductDatabaseView()
     {
         InitializeComponent();
+        _copyToastTimer.Tick += CopyToastTimer_Tick;
         DataContextChanged += OnDataContextChanged;
         Unloaded += OnUnloaded;
     }
@@ -82,6 +87,8 @@ public partial class ProductDatabaseView : UserControl
     /// </summary>
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _copyToastTimer.Stop();
+        CopyToast.Visibility = Visibility.Collapsed;
         EndRightDeselect();
         DetachVM();
     }
@@ -291,6 +298,31 @@ public partial class ProductDatabaseView : UserControl
             _currentVM.DatabaseCaptureIncludeHeaders,
             dpi.PixelsPerDip);
         Clipboard.SetImage(image);
+        ShowCopyToast();
+    }
+
+    private void ShowCopyToast()
+    {
+        _copyToastTimer.Stop();
+        CopyToast.BeginAnimation(OpacityProperty, null);
+        CopyToast.Opacity = 0;
+        CopyToast.Visibility = Visibility.Visible;
+        CopyToast.BeginAnimation(
+            OpacityProperty,
+            new DoubleAnimation(1, TimeSpan.FromMilliseconds(120)));
+        _copyToastTimer.Start();
+    }
+
+    private void CopyToastTimer_Tick(object? sender, EventArgs e)
+    {
+        _copyToastTimer.Stop();
+        var animation = new DoubleAnimation(0, TimeSpan.FromMilliseconds(180));
+        animation.Completed += (_, _) =>
+        {
+            CopyToast.Visibility = Visibility.Collapsed;
+            CopyToast.BeginAnimation(OpacityProperty, null);
+        };
+        CopyToast.BeginAnimation(OpacityProperty, animation);
     }
 
     private static string GetCaptureCellText(ProductRowViewModel row, string header)

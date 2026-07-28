@@ -266,5 +266,35 @@
                 </DockPanel>
             </Grid>
         </Border>
+
+        <Border x:Name="CopyToast"
+                Panel.ZIndex="10"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,0,0,54"
+                Padding="14,9"
+                CornerRadius="6"
+                Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                IsHitTestVisible="False"
+                Opacity="0"
+                Visibility="Collapsed">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.18"/>
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal">
+                <ui:SymbolIcon Symbol="CheckmarkCircle20"
+                               FontSize="16"
+                               Foreground="{DynamicResource AccentFillColorPrimaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+                <ui:TextBlock Text="已复制截图"
+                              FontSize="13"
+                              FontWeight="Medium"
+                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                              VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>
