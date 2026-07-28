@@ -72,8 +72,18 @@ public class Quotation
     /// <summary>关联 Excel 文件名</summary>
     public string? Filename { get; set; }
 
+    /// <summary>可自定义的报价说明列表。</summary>
+    public List<QuotationNote> Notes { get; set; } = new();
+
     /// <summary>报价单明细项列表</summary>
     public List<QuotationItem> Items { get; set; } = new();
+}
+
+/// <summary>报价说明中的一项标题和内容。</summary>
+public class QuotationNote
+{
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
 }
 
 /// <summary>报价单明细项模型</summary>

@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using System.Text.Json;
 using Quotix.Common;
 using Quotix.Models;
 
@@ -58,11 +59,11 @@ public class QuotationRepository : BaseRepository
             INSERT INTO quotations (id, quote_number, company_contact, company_phone, company_tel, company_email,
                 customer_name, customer_contact, customer_phone, customer_email, quote_date,
                 total_amount, calculation_info, status, created_by, created_at, updated_at,
-                currency, validity, payment, delivery_time, delivery_method, filename)
+                currency, validity, payment, delivery_time, delivery_method, notes_json, filename)
             VALUES (@id, @quote_number, @company_contact, @company_phone, @company_tel, @company_email,
                 @customer_name, @customer_contact, @customer_phone, @customer_email, @quote_date,
                 @total_amount, @calculation_info, @status, @created_by, @created_at, @updated_at,
-                @currency, @validity, @payment, @delivery_time, @delivery_method, @filename)";
+                @currency, @validity, @payment, @delivery_time, @delivery_method, @notes_json, @filename)";
         AddQuotationParams(cmd, q);
         cmd.AddParam("@id", q.Id);
         cmd.ExecuteNonQuery();
@@ -102,7 +103,8 @@ public class QuotationRepository : BaseRepository
             customer_contact=@customer_contact, customer_phone=@customer_phone, customer_email=@customer_email,
             quote_date=@quote_date, total_amount=@total_amount, calculation_info=@calculation_info,
             status=@status, updated_at=@updated_at, currency=@currency, validity=@validity,
-            payment=@payment, delivery_time=@delivery_time, delivery_method=@delivery_method, filename=@filename
+            payment=@payment, delivery_time=@delivery_time, delivery_method=@delivery_method,
+            notes_json=@notes_json, filename=@filename
             WHERE id=@id";
         AddQuotationParams(cmd, q);
         cmd.AddParam("@id", q.Id);
@@ -150,6 +152,7 @@ public class QuotationRepository : BaseRepository
         Payment = r.GetSafeString("payment"),
         DeliveryTime = r.GetSafeString("delivery_time"),
         DeliveryMethod = r.GetSafeString("delivery_method"),
+        Notes = DeserializeNotes(r.GetSafeString("notes_json")),
         Filename = r.GetSafeString("filename")
     };
 
@@ -194,6 +197,22 @@ public class QuotationRepository : BaseRepository
         cmd.AddParam("@payment", q.Payment);
         cmd.AddParam("@delivery_time", q.DeliveryTime);
         cmd.AddParam("@delivery_method", q.DeliveryMethod);
+        cmd.AddParam("@notes_json", JsonSerializer.Serialize(q.Notes));
         cmd.AddParam("@filename", q.Filename);
+    }
+
+    private static List<QuotationNote> DeserializeNotes(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new();
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<QuotationNote>>(json) ?? new();
+        }
+        catch (JsonException)
+        {
+            return new();
+        }
     }
 }

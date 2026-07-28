@@ -375,48 +375,48 @@
                             </StackPanel>
                         </Grid>
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="14"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
+                        <ItemsControl ItemsSource="{Binding QuotationNotes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="34"/>
+                                            <ColumnDefinition Width="0.45*" MinWidth="120"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="*" MinWidth="220"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="34"/>
+                                        </Grid.ColumnDefinitions>
 
-                            <StackPanel Grid.Row="0" Grid.Column="0">
-                                <ui:TextBlock Text="有效期" FontSize="12" FontWeight="Medium"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              Margin="0,0,0,6"/>
-                                <ui:TextBox Text="{Binding Validity, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
+                                        <ui:TextBlock Grid.Column="0"
+                                                      Text="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Converter={StaticResource Index}, StringFormat={}{0}.}"
+                                                      FontSize="12" FontWeight="SemiBold"
+                                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <ui:TextBox Grid.Column="1"
+                                                    Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                                    PlaceholderText="标题"
+                                                    Height="36" VerticalContentAlignment="Center"/>
+                                        <ui:TextBox Grid.Column="3"
+                                                    Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
+                                                    PlaceholderText="内容"
+                                                    Height="36" VerticalContentAlignment="Center"/>
+                                        <ui:Button Grid.Column="5" Width="34" Height="34"
+                                                   Appearance="Secondary" ToolTip="删除"
+                                                   Command="{Binding DataContext.RemoveQuotationNoteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                   CommandParameter="{Binding}">
+                                            <ui:SymbolIcon Symbol="Delete16" FontSize="16"/>
+                                        </ui:Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-                            <StackPanel Grid.Row="0" Grid.Column="2">
-                                <ui:TextBlock Text="付款方式" FontSize="12" FontWeight="Medium"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              Margin="0,0,0,6"/>
-                                <ui:TextBox Text="{Binding Payment, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-
-                            <StackPanel Grid.Row="2" Grid.Column="0">
-                                <ui:TextBlock Text="交货期" FontSize="12" FontWeight="Medium"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              Margin="0,0,0,6"/>
-                                <ui:TextBox Text="{Binding DeliveryTime, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-
-                            <StackPanel Grid.Row="2" Grid.Column="2">
-                                <ui:TextBlock Text="交货方式" FontSize="12" FontWeight="Medium"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              Margin="0,0,0,6"/>
-                                <ui:TextBox Text="{Binding DeliveryMethod, UpdateSourceTrigger=PropertyChanged}"
-                                            TextWrapping="NoWrap" AcceptsReturn="False"
-                                            VerticalContentAlignment="Center"/>
-                            </StackPanel>
-                        </Grid>
+                        <ui:Button Content="+ 添加说明"
+                                   Appearance="Secondary"
+                                   HorizontalAlignment="Left"
+                                   Margin="34,2,0,0"
+                                   Command="{Binding AddQuotationNoteCommand}"/>
                     </StackPanel>
                 </Border>
 

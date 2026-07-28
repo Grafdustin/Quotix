@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using Quotix.Models;
 
 namespace Quotix.Services;
 
@@ -22,6 +23,7 @@ public class AppSettingsService
     {
         var settingsExists = File.Exists(SettingsPath);
         _current = LoadFromDisk();
+        _current.QuotationDescriptionDefaults.EnsureNotes();
         // 确保默认配置（如"快捷输入默认开启"）在首次运行或旧文件缺失时落盘。
         // 若用户已显式关闭，反序列化后 _current.QuickInput.Enabled 即为 false，写入不会覆盖其选择。
         if (!settingsExists)
@@ -177,6 +179,66 @@ public class QuotationDescriptionDefaults
     public string Payment { get; set; } = "预付30%，发货前付全款";
     public string DeliveryTime { get; set; } = "8-12周";
     public string DeliveryMethod { get; set; } = "客户项目现场，含海运、内陆运输费用及相关保险费用";
+    public List<QuotationNote>? Notes { get; set; }
+
+    public IReadOnlyList<QuotationNote> GetNotes()
+    {
+        EnsureNotes();
+        return Notes!;
+    }
+
+    public void SetNotes(IEnumerable<QuotationNote> notes)
+    {
+        Notes = notes
+            .Where(note => !string.IsNullOrWhiteSpace(note.Title)
+                || !string.IsNullOrWhiteSpace(note.Content))
+            .Select(note => new QuotationNote
+            {
+                Title = note.Title?.Trim() ?? "",
+                Content = note.Content?.Trim() ?? ""
+            })
+            .ToList();
+        EnsureNotes();
+        SyncLegacyFields();
+    }
+
+    public void EnsureNotes()
+    {
+        if (Notes is { Count: > 0 })
+            return;
+
+        Notes = CreateBuiltInNotes(Validity, Payment, DeliveryTime, DeliveryMethod);
+    }
+
+    public static List<QuotationNote> CreateBuiltInNotes(
+        string? validity = null,
+        string? payment = null,
+        string? deliveryTime = null,
+        string? deliveryMethod = null)
+        =>
+        [
+            new() { Title = "报价有效期", Content = validity ?? "1个月" },
+            new() { Title = "付款方式", Content = payment ?? "预付30%，发货前付全款" },
+            new() { Title = "交货期", Content = deliveryTime ?? "8-12周" },
+            new()
+            {
+                Title = "交货方式",
+                Content = deliveryMethod ?? "客户项目现场，含海运、内陆运输费用及相关保险费用"
+            }
+        ];
+
+    private void SyncLegacyFields()
+    {
+        Validity = FindContent("报价有效期", "有效期") ?? Validity;
+        Payment = FindContent("付款方式") ?? Payment;
+        DeliveryTime = FindContent("交货期", "货期") ?? DeliveryTime;
+        DeliveryMethod = FindContent("交货方式", "交付方式") ?? DeliveryMethod;
+    }
+
+    private string? FindContent(params string[] titles)
+        => Notes?.FirstOrDefault(note =>
+            titles.Any(title => string.Equals(note.Title, title, StringComparison.OrdinalIgnoreCase)))
+            ?.Content;
 }
 
 /// <summary>快捷输入设置实体（序列化到 settings.json）</summary>

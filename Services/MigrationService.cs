@@ -57,7 +57,8 @@ public class MigrationService
                 customer_email TEXT, quote_date TEXT, total_amount REAL DEFAULT 0,
                 calculation_info TEXT, status TEXT DEFAULT 'draft', created_by TEXT NOT NULL,
                 created_at TEXT, updated_at TEXT, currency TEXT DEFAULT 'RMB',
-                validity TEXT, payment TEXT, delivery_time TEXT, delivery_method TEXT, filename TEXT
+                validity TEXT, payment TEXT, delivery_time TEXT, delivery_method TEXT,
+                notes_json TEXT, filename TEXT
             );
             CREATE TABLE IF NOT EXISTS quotation_items (
                 id TEXT PRIMARY KEY, quotation_id TEXT NOT NULL, item_name TEXT NOT NULL,
@@ -88,6 +89,7 @@ public class MigrationService
         TryExec(conn, "ALTER TABLE products ADD COLUMN created_by TEXT");
         TryExec(conn, "ALTER TABLE products ADD COLUMN created_at TEXT");
         TryExec(conn, "ALTER TABLE products ADD COLUMN updated_at TEXT");
+        TryExec(conn, "ALTER TABLE quotations ADD COLUMN notes_json TEXT");
     }
 
     /// <summary>创建业务索引（幂等）</summary>

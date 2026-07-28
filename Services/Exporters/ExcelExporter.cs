@@ -169,23 +169,33 @@ public class ExcelExporter : IExporter
         int totalRowNum = DataStartRow + q.Items.Count;
         int r = totalRowNum + 2;
 
-        // 清空模板中残留的说明文字（10 行范围）
-        for (int i = r; i <= r + 10; i++)
+        var notes = q.Notes.Count > 0
+            ? q.Notes
+            : QuotationDescriptionDefaults.CreateBuiltInNotes(
+                q.Validity,
+                q.Payment,
+                q.DeliveryTime,
+                q.DeliveryMethod);
+        var firstNoteRow = r + 2;
+        var noteStyle = ws.Cell(firstNoteRow, 1).Style;
+        var noteRowHeight = ws.Row(firstNoteRow).Height;
+
+        // 清空模板原有说明以及本次动态列表将使用的范围。
+        var clearEndRow = r + Math.Max(10, (notes.Count * 2) + 2);
+        for (int i = r; i <= clearEndRow; i++)
             ws.Cell(i, 1).Value = "";
 
         ws.Cell(r, 1).Value = "报价说明";
         r += 2; // 跳过空行
 
-        ws.Cell(r, 1).Value = $"1. 报价有效期：{q.Validity ?? "1个月"}";
-        r += 2;
-
-        ws.Cell(r, 1).Value = $"2. 付款方式：{q.Payment ?? "预付30%，发货前付全款"}";
-        r += 2;
-
-        ws.Cell(r, 1).Value = $"3. 交货期：{q.DeliveryTime ?? "8-12周"}";
-        r += 2;
-
-        ws.Cell(r, 1).Value = $"4. 交货方式：{q.DeliveryMethod ?? "客户项目现场，含海运、内陆运输费用及相关保险费用"}";
+        for (var index = 0; index < notes.Count; index++)
+        {
+            var note = notes[index];
+            ws.Cell(r, 1).Style = noteStyle;
+            ws.Row(r).Height = noteRowHeight;
+            ws.Cell(r, 1).Value = $"{index + 1}. {note.Title}：{note.Content}";
+            r += 2;
+        }
     }
 
     // ═══════════════════════════════════════════════

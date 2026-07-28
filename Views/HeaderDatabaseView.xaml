@@ -434,72 +434,57 @@
                         Padding="18,16"
                         Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                         CornerRadius="8">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding DefaultQuotationNotes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="34"/>
+                                            <ColumnDefinition Width="0.45*" MinWidth="120"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="*" MinWidth="220"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="34"/>
+                                        </Grid.ColumnDefinitions>
 
-                        <Grid Grid.Row="0" Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="92"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <ui:TextBlock Grid.Column="0" Text="有效期" FontSize="13"
-                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                          VerticalAlignment="Center"/>
-                            <ui:TextBox Grid.Column="1" Text="{Binding DefaultValidity, UpdateSourceTrigger=PropertyChanged}"
-                                        Height="36" VerticalContentAlignment="Center"/>
+                                        <ui:TextBlock Grid.Column="0"
+                                                      Text="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Converter={StaticResource Index}, StringFormat={}{0}.}"
+                                                      FontSize="12" FontWeight="SemiBold"
+                                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <ui:TextBox Grid.Column="1"
+                                                    Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                                    PlaceholderText="标题"
+                                                    Height="36" VerticalContentAlignment="Center"/>
+                                        <ui:TextBox Grid.Column="3"
+                                                    Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
+                                                    PlaceholderText="内容"
+                                                    Height="36" VerticalContentAlignment="Center"/>
+                                        <ui:Button Grid.Column="5" Width="34" Height="34"
+                                                   Appearance="Secondary" ToolTip="删除"
+                                                   Command="{Binding DataContext.RemoveDefaultQuotationNoteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                   CommandParameter="{Binding}">
+                                            <ui:SymbolIcon Symbol="Delete16" FontSize="16"/>
+                                        </ui:Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Grid Margin="34,6,0,0">
+                            <ui:Button Content="+ 添加说明" Appearance="Secondary"
+                                       HorizontalAlignment="Left"
+                                       Command="{Binding AddDefaultQuotationNoteCommand}"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <ui:Button Content="恢复初始" Appearance="Secondary" MinWidth="92"
+                                           Command="{Binding ResetQuotationDescriptionDefaultsCommand}"/>
+                                <ui:Button Content="保存默认" Appearance="Primary" MinWidth="92"
+                                           Margin="8,0,0,0"
+                                           Command="{Binding SaveQuotationDescriptionDefaultsCommand}"/>
+                            </StackPanel>
                         </Grid>
-
-                        <Grid Grid.Row="1" Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="92"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <ui:TextBlock Grid.Column="0" Text="付款方式" FontSize="13"
-                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                          VerticalAlignment="Center"/>
-                            <ui:TextBox Grid.Column="1" Text="{Binding DefaultPayment, UpdateSourceTrigger=PropertyChanged}"
-                                        Height="36" VerticalContentAlignment="Center"/>
-                        </Grid>
-
-                        <Grid Grid.Row="2" Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="92"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <ui:TextBlock Grid.Column="0" Text="货期" FontSize="13"
-                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                          VerticalAlignment="Center"/>
-                            <ui:TextBox Grid.Column="1" Text="{Binding DefaultDeliveryTime, UpdateSourceTrigger=PropertyChanged}"
-                                        Height="36" VerticalContentAlignment="Center"/>
-                        </Grid>
-
-                        <Grid Grid.Row="3" Margin="0,0,0,16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="92"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <ui:TextBlock Grid.Column="0" Text="交付方式" FontSize="13"
-                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                          VerticalAlignment="Top" Margin="0,8,0,0"/>
-                            <ui:TextBox Grid.Column="1" Text="{Binding DefaultDeliveryMethod, UpdateSourceTrigger=PropertyChanged}"
-                                        Height="36" TextWrapping="NoWrap" AcceptsReturn="False"
-                                        VerticalContentAlignment="Center"/>
-                        </Grid>
-
-                        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-                            <ui:Button Content="恢复初始" Appearance="Secondary" MinWidth="92"
-                                       Command="{Binding ResetQuotationDescriptionDefaultsCommand}"/>
-                            <ui:Button Content="保存默认" Appearance="Primary" MinWidth="92"
-                                       Margin="8,0,0,0"
-                                       Command="{Binding SaveQuotationDescriptionDefaultsCommand}"/>
-                        </StackPanel>
-                    </Grid>
+                    </StackPanel>
                 </Border>
             </Grid>
         </Border>

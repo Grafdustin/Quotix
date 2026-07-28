@@ -40,6 +40,7 @@ public partial class NewQuotationViewModel : ObservableObject
     [ObservableProperty] private string _payment = "预付30%，发货前付全款";
     [ObservableProperty] private string _deliveryTime = "8-12周";
     [ObservableProperty] private string _deliveryMethod = "客户项目现场，含海运、内陆运输费用及相关保险费用";
+    public ObservableCollection<QuotationNote> QuotationNotes { get; } = new();
     [ObservableProperty] private string _quoteDate = "";
     
     /// <summary>
@@ -203,6 +204,7 @@ public partial class NewQuotationViewModel : ObservableObject
         Payment = defaults.Payment;
         DeliveryTime = defaults.DeliveryTime;
         DeliveryMethod = defaults.DeliveryMethod;
+        ReplaceQuotationNotes(defaults.GetNotes());
         QuoteDate = $"{DateTime.Now.Year}年{DateTime.Now.Month}月{DateTime.Now.Day}日";
     }
 
@@ -353,6 +355,7 @@ public partial class NewQuotationViewModel : ObservableObject
             Payment = Payment,
             DeliveryTime = DeliveryTime,
             DeliveryMethod = DeliveryMethod,
+            Notes = GetQuotationNotes(),
             QuoteDate = QuoteDate,
             Filename = filename,
             Currency = Currency,
@@ -459,6 +462,13 @@ public partial class NewQuotationViewModel : ObservableObject
         Payment = q.Payment ?? "";
         DeliveryTime = q.DeliveryTime ?? "";
         DeliveryMethod = q.DeliveryMethod ?? "";
+        ReplaceQuotationNotes(q.Notes.Count > 0
+            ? q.Notes
+            : QuotationDescriptionDefaults.CreateBuiltInNotes(
+                q.Validity,
+                q.Payment,
+                q.DeliveryTime,
+                q.DeliveryMethod));
         QuoteDate = q.QuoteDate ?? $"{DateTime.Now.Year}年{DateTime.Now.Month}月{DateTime.Now.Day}日";
         Filename = q.Filename ?? "";
         Currency = string.IsNullOrWhiteSpace(q.Currency) ? "RMB" : q.Currency;
@@ -621,6 +631,48 @@ public partial class NewQuotationViewModel : ObservableObject
             // 搜索失败不应中断 UI；记录以便排查
             System.Diagnostics.Debug.WriteLine($"[Quotix] 快速搜索异常: {ex}");
         }
+    }
+
+    [RelayCommand]
+    private void AddQuotationNote()
+        => QuotationNotes.Add(new QuotationNote());
+
+    [RelayCommand]
+    private void RemoveQuotationNote(QuotationNote? note)
+    {
+        if (note == null)
+            return;
+
+        QuotationNotes.Remove(note);
+        if (QuotationNotes.Count == 0)
+            AddQuotationNote();
+    }
+
+    private List<QuotationNote> GetQuotationNotes()
+        => QuotationNotes
+            .Where(note => !string.IsNullOrWhiteSpace(note.Title)
+                || !string.IsNullOrWhiteSpace(note.Content))
+            .Select(note => new QuotationNote
+            {
+                Title = note.Title?.Trim() ?? "",
+                Content = note.Content?.Trim() ?? ""
+            })
+            .ToList();
+
+    private void ReplaceQuotationNotes(IEnumerable<QuotationNote> notes)
+    {
+        QuotationNotes.Clear();
+        foreach (var note in notes)
+        {
+            QuotationNotes.Add(new QuotationNote
+            {
+                Title = note.Title,
+                Content = note.Content
+            });
+        }
+
+        if (QuotationNotes.Count == 0)
+            AddQuotationNote();
     }
 
     /// <summary>

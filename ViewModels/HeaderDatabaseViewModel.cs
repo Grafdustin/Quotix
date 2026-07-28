@@ -107,19 +107,13 @@ public partial class HeaderDatabaseViewModel : ObservableObject
     [ObservableProperty] private string _newCustomerEmail = "";
 
     // 报价说明默认值
-    [ObservableProperty] private string _defaultValidity = "";
-    [ObservableProperty] private string _defaultPayment = "";
-    [ObservableProperty] private string _defaultDeliveryTime = "";
-    [ObservableProperty] private string _defaultDeliveryMethod = "";
+    public ObservableCollection<QuotationNote> DefaultQuotationNotes { get; } = new();
 
     private void LoadSettings()
     {
         DefaultOwnerId = _settingsService.DefaultOwnerId;
         var defaults = _settingsService.QuotationDescriptionDefaults;
-        DefaultValidity = defaults.Validity;
-        DefaultPayment = defaults.Payment;
-        DefaultDeliveryTime = defaults.DeliveryTime;
-        DefaultDeliveryMethod = defaults.DeliveryMethod;
+        ReplaceDefaultQuotationNotes(defaults.GetNotes());
     }
 
     /// <summary>
@@ -284,10 +278,7 @@ public partial class HeaderDatabaseViewModel : ObservableObject
     private void SaveQuotationDescriptionDefaults()
     {
         var defaults = _settingsService.QuotationDescriptionDefaults;
-        defaults.Validity = DefaultValidity;
-        defaults.Payment = DefaultPayment;
-        defaults.DeliveryTime = DefaultDeliveryTime;
-        defaults.DeliveryMethod = DefaultDeliveryMethod;
+        defaults.SetNotes(DefaultQuotationNotes);
         _settingsService.SaveQuotationDescriptionDefaults();
         _dialog.ShowInfo("报价说明默认值已保存", "成功");
     }
@@ -298,10 +289,38 @@ public partial class HeaderDatabaseViewModel : ObservableObject
     [RelayCommand]
     private void ResetQuotationDescriptionDefaults()
     {
-        DefaultValidity = "1个月";
-        DefaultPayment = "预付30%，发货前付全款";
-        DefaultDeliveryTime = "8-12周";
-        DefaultDeliveryMethod = "客户项目现场，含海运、内陆运输费用及相关保险费用";
+        ReplaceDefaultQuotationNotes(QuotationDescriptionDefaults.CreateBuiltInNotes());
+    }
+
+    [RelayCommand]
+    private void AddDefaultQuotationNote()
+        => DefaultQuotationNotes.Add(new QuotationNote());
+
+    [RelayCommand]
+    private void RemoveDefaultQuotationNote(QuotationNote? note)
+    {
+        if (note == null)
+            return;
+
+        DefaultQuotationNotes.Remove(note);
+        if (DefaultQuotationNotes.Count == 0)
+            AddDefaultQuotationNote();
+    }
+
+    private void ReplaceDefaultQuotationNotes(IEnumerable<QuotationNote> notes)
+    {
+        DefaultQuotationNotes.Clear();
+        foreach (var note in notes)
+        {
+            DefaultQuotationNotes.Add(new QuotationNote
+            {
+                Title = note.Title,
+                Content = note.Content
+            });
+        }
+
+        if (DefaultQuotationNotes.Count == 0)
+            AddDefaultQuotationNote();
     }
 
     /// <summary>
