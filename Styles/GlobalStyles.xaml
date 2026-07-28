@@ -142,10 +142,21 @@
                     <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
                     <Setter Property="FontSize" Value="11"/>
-                    <Setter Property="Height" Value="38"/>
+                    <Setter Property="Height" Value="Auto"/>
+                    <Setter Property="MinHeight" Value="38"/>
                     <Setter Property="Padding" Value="14,0"/>
                     <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
                     <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                    <Setter Property="ContentTemplate">
+                        <Setter.Value>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           TextWrapping="Wrap"
+                                           TextTrimming="None"
+                                           VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </Setter.Value>
+                    </Setter>
                 </Style>
             </Setter.Value>
         </Setter>
