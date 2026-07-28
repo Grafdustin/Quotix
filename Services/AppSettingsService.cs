@@ -52,13 +52,6 @@ public class AppSettingsService
         set { _current.DefaultExportPath = value; SaveToDisk(); }
     }
 
-    /// <summary>最小化窗口时是否隐藏到系统托盘。</summary>
-    public bool MinimizeToTray
-    {
-        get => _current.MinimizeToTray;
-        set { _current.MinimizeToTray = value; SaveToDisk(); }
-    }
-
     /// <summary>关闭主窗口时是否继续在后台运行。</summary>
     public bool CloseToTray
     {
@@ -153,9 +146,6 @@ public class AppSettings
 
     /// <summary>用户设置的默认导出路径</summary>
     public string? DefaultExportPath { get; set; }
-
-    /// <summary>最小化窗口时隐藏到系统托盘。</summary>
-    public bool MinimizeToTray { get; set; } = true;
 
     /// <summary>关闭主窗口时隐藏到系统托盘并继续运行。</summary>
     public bool CloseToTray { get; set; } = true;

@@ -183,17 +183,6 @@ public partial class SettingsViewModel : ObservableObject
     // —— 偏好设置 ——
     private readonly AppSettingsService _settingsService;
 
-    public bool MinimizeToTray
-    {
-        get => _settingsService.MinimizeToTray;
-        set
-        {
-            if (_settingsService.MinimizeToTray == value) return;
-            _settingsService.MinimizeToTray = value;
-            OnPropertyChanged();
-        }
-    }
-
     public bool CloseToTray
     {
         get => _settingsService.CloseToTray;

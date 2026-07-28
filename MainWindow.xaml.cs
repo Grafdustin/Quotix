@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -32,10 +31,6 @@ public partial class MainWindow : FluentWindow
     private bool _isCheckingUpdate;
     private string _lastPromptedUpdateVersion = "";
     private bool _isExiting;
-    private WindowState _lastVisibleWindowState = WindowState.Normal;
-    private HwndSource? _windowSource;
-    private const int WmSysCommand = 0x0112;
-    private const int ScMinimize = 0xF020;
 
     /// <summary>
     /// 更新弹窗是否处于后台下载模式（弹窗已关闭但下载仍在继续）
@@ -60,10 +55,8 @@ public partial class MainWindow : FluentWindow
         LoadIcon();
         LoadTitleBarIcon();
         Loaded += OnLoaded;
-        SourceInitialized += OnSourceInitialized;
         Closing += OnClosing;
         Closed += OnClosed;
-        StateChanged += OnWindowStateChanged;
         _updateCheckTimer.Interval = TimeSpan.FromMinutes(30);
         _updateCheckTimer.Tick += UpdateCheckTimer_Tick;
 
@@ -90,37 +83,11 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void OnClosed(object? sender, EventArgs e)
     {
-        _windowSource?.RemoveHook(WindowMessageHook);
-        _windowSource = null;
         _trayIconService.Dispose();
         _updateCheckTimer.Stop();
         _updateCheckTimer.Tick -= UpdateCheckTimer_Tick;
         _updatePipeline.State.PropertyChanged -= OnUpdateStateChanged;
         _updatePipeline.Dispose();
-    }
-
-    private void OnSourceInitialized(object? sender, EventArgs e)
-    {
-        _windowSource = PresentationSource.FromVisual(this) as HwndSource;
-        _windowSource?.AddHook(WindowMessageHook);
-    }
-
-    private IntPtr WindowMessageHook(
-        IntPtr hwnd,
-        int message,
-        IntPtr wParam,
-        IntPtr lParam,
-        ref bool handled)
-    {
-        if (message == WmSysCommand
-            && (wParam.ToInt64() & 0xFFF0) == ScMinimize
-            && _settingsService.MinimizeToTray)
-        {
-            HideToTray();
-            handled = true;
-        }
-
-        return IntPtr.Zero;
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -130,18 +97,6 @@ public partial class MainWindow : FluentWindow
 
         e.Cancel = true;
         HideToTray();
-    }
-
-    private void OnWindowStateChanged(object? sender, EventArgs e)
-    {
-        if (WindowState != WindowState.Minimized)
-        {
-            _lastVisibleWindowState = WindowState;
-            return;
-        }
-
-        if (_settingsService.MinimizeToTray)
-            HideToTray();
     }
 
     private void HideToTray()
@@ -154,9 +109,8 @@ public partial class MainWindow : FluentWindow
     {
         ShowInTaskbar = true;
         Show();
-        WindowState = _lastVisibleWindowState == WindowState.Maximized
-            ? WindowState.Maximized
-            : WindowState.Normal;
+        if (WindowState == WindowState.Minimized)
+            WindowState = WindowState.Normal;
         Activate();
     }
 
