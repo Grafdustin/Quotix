@@ -27,6 +27,7 @@ public partial class NewQuotationView : UserControl
     private TextBox? _lastCodeBox;
     /// <summary>已订阅 PropertyChanged 的 VM 引用，用于切换/卸载时退订，避免重复订阅与 view 被 VM 强引用泄漏</summary>
     private NewQuotationViewModel? _subscribedVm;
+    private Window? _hostWindow;
     private bool _suppressQuickSearchEvents;
     private bool _quickResultsRefreshQueued;
     private bool _suppressDateScrollClose;
@@ -52,12 +53,37 @@ public partial class NewQuotationView : UserControl
         // 独立于 DataContextChanged 的兜底订阅：确保无论 DataContext 在
         // 对象初始化器阶段还是 Loaded 之后才就绪，PropertyChanged 订阅都一定生效。
         SubscribeToVm();
+        SubscribeToHostWindow();
 
         Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
         {
             if (DataContext is NewQuotationViewModel vm)
                 _ = vm.WarmUpQuickSearchAsync();
         });
+    }
+
+    private void SubscribeToHostWindow()
+    {
+        var hostWindow = Window.GetWindow(this);
+        if (_hostWindow == hostWindow)
+            return;
+
+        if (_hostWindow != null)
+            _hostWindow.Deactivated -= HostWindow_Deactivated;
+
+        _hostWindow = hostWindow;
+        if (_hostWindow != null)
+            _hostWindow.Deactivated += HostWindow_Deactivated;
+    }
+
+    private void HostWindow_Deactivated(object? sender, EventArgs e)
+    {
+        QuickSearchPopup.IsOpen = false;
+        _lastCodeBox = null;
+        _lastCodeRowIndex = -1;
+
+        if (DataContext is NewQuotationViewModel vm)
+            vm.CloseQuickSearch();
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -98,6 +124,12 @@ public partial class NewQuotationView : UserControl
             var visible = _subscribedVm?.IsQuickSearchVisible == true;
             if (visible)
             {
+                if (_hostWindow?.IsActive != true)
+                {
+                    _subscribedVm?.CloseQuickSearch();
+                    return;
+                }
+
                 // 先定位再打开，避免弹出瞬间 PlacementTarget 未就绪
                 PositionQuickSearchPopup();
                 QuickSearchPopup.IsOpen = true;
@@ -177,6 +209,12 @@ public partial class NewQuotationView : UserControl
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        if (_hostWindow != null)
+        {
+            _hostWindow.Deactivated -= HostWindow_Deactivated;
+            _hostWindow = null;
+        }
+
         if (_subscribedVm != null)
         {
             _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
