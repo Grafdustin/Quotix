@@ -57,7 +57,7 @@ public partial class PriceCalculatorDialog : FluentWindow
     }
 
     /// <summary>
-    /// 在窗口空白区域按住左键时拖动计算器窗口。
+    /// 在交互控件未处理点击时拖动计算器窗口。
     /// </summary>
     private void DragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
