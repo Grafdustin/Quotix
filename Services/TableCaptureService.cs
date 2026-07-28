@@ -27,6 +27,7 @@ public static class TableCaptureService
         if (headers.Count == 0 || rows.Count == 0)
             throw new ArgumentException("截图范围不能为空。");
 
+        var renderPixelsPerDip = Math.Max(2, pixelsPerDip);
         var regularTypeface = new Typeface(
             new FontFamily("Microsoft YaHei UI"),
             FontStyles.Normal,
@@ -43,12 +44,12 @@ public static class TableCaptureService
             rows,
             regularTypeface,
             headerTypeface,
-            pixelsPerDip);
+            renderPixelsPerDip);
         var headerHeight = includeHeaders
-            ? CalculateRowHeight(headers, columnWidths, headerTypeface, 12, pixelsPerDip)
+            ? CalculateRowHeight(headers, columnWidths, headerTypeface, 12, renderPixelsPerDip)
             : 0;
         var rowHeights = rows
-            .Select(row => CalculateRowHeight(row, columnWidths, regularTypeface, 13, pixelsPerDip))
+            .Select(row => CalculateRowHeight(row, columnWidths, regularTypeface, 13, renderPixelsPerDip))
             .ToArray();
 
         var totalWidth = columnWidths.Sum();
@@ -82,7 +83,7 @@ public static class TableCaptureService
                     headerBackground,
                     textBrush,
                     gridPen,
-                    pixelsPerDip);
+                    renderPixelsPerDip);
                 y += headerHeight;
             }
 
@@ -100,12 +101,12 @@ public static class TableCaptureService
                     background,
                     textBrush,
                     gridPen,
-                    pixelsPerDip);
+                    renderPixelsPerDip);
                 y += rowHeights[rowIndex];
             }
         }
 
-        var scale = CalculateBitmapScale(totalWidth, totalHeight);
+        var scale = CalculateBitmapScale(totalWidth, totalHeight, renderPixelsPerDip);
         var pixelWidth = Math.Max(1, (int)Math.Ceiling(totalWidth * scale));
         var pixelHeight = Math.Max(1, (int)Math.Ceiling(totalHeight * scale));
         var bitmap = new RenderTargetBitmap(
@@ -224,12 +225,21 @@ public static class TableCaptureService
         return text.WidthIncludingTrailingWhitespace;
     }
 
-    private static double CalculateBitmapScale(double width, double height)
+    private static double CalculateBitmapScale(
+        double width,
+        double height,
+        double requestedScale)
     {
+        var requestedWidth = width * requestedScale;
+        var requestedHeight = height * requestedScale;
         var dimensionScale = Math.Min(
             1,
-            Math.Min(MaxBitmapDimension / width, MaxBitmapDimension / height));
-        var pixelScale = Math.Min(1, Math.Sqrt(MaxBitmapPixels / (width * height)));
-        return Math.Min(dimensionScale, pixelScale);
+            Math.Min(
+                MaxBitmapDimension / requestedWidth,
+                MaxBitmapDimension / requestedHeight));
+        var pixelScale = Math.Min(
+            1,
+            Math.Sqrt(MaxBitmapPixels / (requestedWidth * requestedHeight)));
+        return requestedScale * Math.Min(dimensionScale, pixelScale);
     }
 }
