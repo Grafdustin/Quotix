@@ -149,10 +149,7 @@ public sealed class TrayIconService : IDisposable
 
                 _contextMenu.Focus();
                 if (PresentationSource.FromVisual(_contextMenu) is HwndSource source)
-                {
                     PositionMenu(_contextMenu, source, anchor);
-                    SetForegroundWindow(source.Handle);
-                }
 
                 _contextMenu.Opacity = 1;
             });
@@ -168,10 +165,6 @@ public sealed class TrayIconService : IDisposable
         menu.HorizontalOffset = cursor.X;
         menu.VerticalOffset = cursor.Y - menu.ActualHeight;
     }
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
