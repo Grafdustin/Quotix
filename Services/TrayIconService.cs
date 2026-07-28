@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using Forms = System.Windows.Forms;
@@ -10,10 +11,16 @@ namespace Quotix.Services;
 /// </summary>
 public sealed class TrayIconService : IDisposable
 {
+    private readonly AppSettingsService _settingsService;
     private Forms.NotifyIcon? _notifyIcon;
     private Icon? _icon;
     private Action? _restoreAction;
     private Action? _exitAction;
+
+    public TrayIconService(AppSettingsService settingsService)
+    {
+        _settingsService = settingsService;
+    }
 
     public void Initialize(Action restoreAction, Action exitAction)
     {
@@ -26,6 +33,7 @@ public sealed class TrayIconService : IDisposable
 
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("打开 Quotix", null, (_, _) => InvokeOnUi(_restoreAction));
+        menu.Items.Add("打开导出文件夹", null, (_, _) => OpenExportFolder());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("退出", null, (_, _) => InvokeOnUi(_exitAction));
 
@@ -55,6 +63,16 @@ public sealed class TrayIconService : IDisposable
             action();
         else
             dispatcher.Invoke(action);
+    }
+
+    private void OpenExportFolder()
+    {
+        var path = _settingsService.GetDefaultExportPath();
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = path,
+            UseShellExecute = true
+        });
     }
 
     private static Icon LoadApplicationIcon()
