@@ -34,6 +34,10 @@ public partial class PriceCalculatorDialog : FluentWindow
     public PriceCalculatorDialog(List<ViewModels.QuotationItemViewModel> items)
     {
         InitializeComponent();
+        AddHandler(
+            MouseLeftButtonDownEvent,
+            new MouseButtonEventHandler(DragArea_MouseLeftButtonDown),
+            handledEventsToo: true);
 
         _items = items.Select(i => new CalculatorItem
         {
@@ -113,7 +117,8 @@ public partial class PriceCalculatorDialog : FluentWindow
             if (source is System.Windows.Controls.Primitives.ButtonBase ||
                 source is System.Windows.Controls.Primitives.RangeBase ||
                 source is System.Windows.Controls.TextBox ||
-                source is ComboBox)
+                source is ComboBox ||
+                source is ComboBoxItem)
             {
                 return true;
             }

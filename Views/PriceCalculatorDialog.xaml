@@ -4,8 +4,7 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="单价计算器" Height="520" Width="840"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
-        WindowCornerPreference="Round"
-        MouseLeftButtonDown="DragArea_MouseLeftButtonDown">
+        WindowCornerPreference="Round">
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
