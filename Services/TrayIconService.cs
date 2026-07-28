@@ -23,6 +23,8 @@ public sealed class TrayIconService : IDisposable
     private Icon? _icon;
     private Action? _restoreAction;
     private Action? _exitAction;
+    private volatile bool _isContextMenuOpen;
+    private bool _suppressNextRightClick;
 
     public TrayIconService(AppSettingsService settingsService)
     {
@@ -46,7 +48,21 @@ public sealed class TrayIconService : IDisposable
             Text = "Quotix",
             Visible = true
         };
+        _notifyIcon.MouseDown += OnMouseDown;
         _notifyIcon.MouseClick += OnMouseClick;
+    }
+
+    private void OnMouseDown(object? sender, Forms.MouseEventArgs e)
+    {
+        if (e.Button != Forms.MouseButtons.Right || !_isContextMenuOpen)
+            return;
+
+        _suppressNextRightClick = true;
+        InvokeOnUi(() =>
+        {
+            if (_contextMenu != null)
+                _contextMenu.IsOpen = false;
+        });
     }
 
     private void OnMouseClick(object? sender, Forms.MouseEventArgs e)
@@ -54,7 +70,16 @@ public sealed class TrayIconService : IDisposable
         if (e.Button == Forms.MouseButtons.Left)
             InvokeOnUi(_restoreAction);
         else if (e.Button == Forms.MouseButtons.Right)
-            ShowContextMenu();
+        {
+            if (_suppressNextRightClick)
+            {
+                _suppressNextRightClick = false;
+                return;
+            }
+
+            if (GetCursorPos(out var anchor))
+                ShowContextMenu(anchor);
+        }
     }
 
     private ContextMenu CreateContextMenu()
@@ -66,6 +91,8 @@ public sealed class TrayIconService : IDisposable
             StaysOpen = false,
             Focusable = true
         };
+        menu.Opened += (_, _) => _isContextMenuOpen = true;
+        menu.Closed += (_, _) => _isContextMenuOpen = false;
 
         var openItem = new Wpf.Ui.Controls.MenuItem
         {
@@ -95,7 +122,7 @@ public sealed class TrayIconService : IDisposable
         return menu;
     }
 
-    private void ShowContextMenu()
+    private void ShowContextMenu(NativePoint anchor)
     {
         InvokeOnUi(() =>
         {
@@ -111,9 +138,10 @@ public sealed class TrayIconService : IDisposable
             _contextMenu.Placement = PlacementMode.MousePoint;
             _contextMenu.HorizontalOffset = 0;
             _contextMenu.VerticalOffset = 0;
+            _contextMenu.Opacity = 0;
             _contextMenu.IsOpen = true;
 
-            _contextMenu.Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+            _contextMenu.Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () =>
             {
                 if (_contextMenu?.IsOpen != true)
                     return;
@@ -121,22 +149,23 @@ public sealed class TrayIconService : IDisposable
                 _contextMenu.Focus();
                 if (PresentationSource.FromVisual(_contextMenu) is HwndSource source)
                 {
-                    PositionMenuAtCursor(source.Handle);
+                    PositionMenu(source.Handle, anchor);
                     SetForegroundWindow(source.Handle);
                 }
+
+                _contextMenu.Opacity = 1;
             });
         });
     }
 
-    private static void PositionMenuAtCursor(IntPtr menuHandle)
+    private static void PositionMenu(IntPtr menuHandle, NativePoint anchor)
     {
-        if (!GetCursorPos(out var cursor)
-            || !GetWindowRect(menuHandle, out var menuRect))
+        if (!GetWindowRect(menuHandle, out var menuRect))
         {
             return;
         }
 
-        var monitor = MonitorFromPoint(cursor, MonitorDefaultToNearest);
+        var monitor = MonitorFromPoint(anchor, MonitorDefaultToNearest);
         var monitorInfo = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
         if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref monitorInfo))
             return;
@@ -144,8 +173,8 @@ public sealed class TrayIconService : IDisposable
         const int gap = 8;
         var width = menuRect.Right - menuRect.Left;
         var height = menuRect.Bottom - menuRect.Top;
-        var x = cursor.X + gap;
-        var y = cursor.Y - height - gap;
+        var x = anchor.X + gap;
+        var y = anchor.Y - height - gap;
 
         x = Math.Clamp(x, monitorInfo.WorkArea.Left, monitorInfo.WorkArea.Right - width);
         y = Math.Clamp(y, monitorInfo.WorkArea.Top, monitorInfo.WorkArea.Bottom - height);
@@ -264,6 +293,7 @@ public sealed class TrayIconService : IDisposable
         if (_notifyIcon != null)
         {
             _notifyIcon.Visible = false;
+            _notifyIcon.MouseDown -= OnMouseDown;
             _notifyIcon.MouseClick -= OnMouseClick;
             _notifyIcon.Dispose();
             _notifyIcon = null;
