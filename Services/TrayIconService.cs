@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Wpf.Ui.Controls;
 using Forms = System.Windows.Forms;
@@ -149,7 +150,7 @@ public sealed class TrayIconService : IDisposable
                 _contextMenu.Focus();
                 if (PresentationSource.FromVisual(_contextMenu) is HwndSource source)
                 {
-                    PositionMenu(source.Handle, anchor);
+                    PositionMenu(_contextMenu, source, anchor);
                     SetForegroundWindow(source.Handle);
                 }
 
@@ -158,44 +159,14 @@ public sealed class TrayIconService : IDisposable
         });
     }
 
-    private static void PositionMenu(IntPtr menuHandle, NativePoint anchor)
+    private static void PositionMenu(ContextMenu menu, HwndSource source, NativePoint anchor)
     {
-        var previousDpiContext = SetThreadDpiAwarenessContext(DpiAwarenessContextPerMonitorAwareV2);
-        try
-        {
-            if (!GetCursorPos(out anchor)
-                || !GetWindowRect(menuHandle, out var menuRect))
-            {
-                return;
-            }
+        var transform = source.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+        var cursor = transform.Transform(new System.Windows.Point(anchor.X, anchor.Y));
 
-            var monitor = MonitorFromPoint(anchor, MonitorDefaultToNearest);
-            var monitorInfo = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-            if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref monitorInfo))
-                return;
-
-            var width = menuRect.Right - menuRect.Left;
-            var height = menuRect.Bottom - menuRect.Top;
-            var x = anchor.X;
-            var y = anchor.Y - height;
-
-            x = Math.Clamp(x, monitorInfo.WorkArea.Left, monitorInfo.WorkArea.Right - width);
-            y = Math.Clamp(y, monitorInfo.WorkArea.Top, monitorInfo.WorkArea.Bottom - height);
-
-            SetWindowPos(
-                menuHandle,
-                IntPtr.Zero,
-                x,
-                y,
-                0,
-                0,
-                SetWindowPosNoSize | SetWindowPosNoZOrder | SetWindowPosNoActivate);
-        }
-        finally
-        {
-            if (previousDpiContext != IntPtr.Zero)
-                SetThreadDpiAwarenessContext(previousDpiContext);
-        }
+        menu.Placement = PlacementMode.AbsolutePoint;
+        menu.HorizontalOffset = cursor.X;
+        menu.VerticalOffset = cursor.Y - menu.ActualHeight;
     }
 
     [DllImport("user32.dll")]
@@ -203,63 +174,14 @@ public sealed class TrayIconService : IDisposable
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
-    private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr dpiContext);
-
-    [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out NativePoint point);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetWindowRect(IntPtr hWnd, out NativeRect rect);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromPoint(NativePoint point, uint flags);
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo monitorInfo);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetWindowPos(
-        IntPtr hWnd,
-        IntPtr hWndInsertAfter,
-        int x,
-        int y,
-        int width,
-        int height,
-        uint flags);
-
-    private const uint MonitorDefaultToNearest = 2;
-    private const uint SetWindowPosNoSize = 0x0001;
-    private const uint SetWindowPosNoZOrder = 0x0004;
-    private const uint SetWindowPosNoActivate = 0x0010;
-    private static readonly IntPtr DpiAwarenessContextPerMonitorAwareV2 = new(-4);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint
     {
         public int X;
         public int Y;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeRect
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    private struct MonitorInfo
-    {
-        public int Size;
-        public NativeRect Monitor;
-        public NativeRect WorkArea;
-        public uint Flags;
     }
 
     private static void InvokeOnUi(Action? action)
