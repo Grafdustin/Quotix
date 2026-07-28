@@ -701,9 +701,8 @@
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="Focusable" Value="False"/>
                                 <Setter Property="Padding" Value="0"/>
-                                <Setter Property="ToolTipService.InitialShowDelay" Value="300"/>
-                                <Setter Property="ToolTipService.BetweenShowDelay" Value="100"/>
-                                <Setter Property="ToolTipService.ShowDuration" Value="60000"/>
+                                <EventSetter Event="MouseEnter" Handler="QuickResultItem_MouseEnter"/>
+                                <EventSetter Event="MouseLeave" Handler="QuickResultItem_MouseLeave"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ListBoxItem">
@@ -722,87 +721,6 @@
                                         </ControlTemplate>
                                     </Setter.Value>
                                 </Setter>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ResultType}" Value="product">
-                                        <Setter Property="ToolTip">
-                                            <Setter.Value>
-                                                <ToolTip Placement="Right"
-                                                         HorizontalOffset="8"
-                                                         Padding="0"
-                                                         MaxWidth="520"
-                                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
-                                                         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-                                                         BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
-                                                         BorderThickness="1">
-                                                    <Grid Width="440">
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="Auto"/>
-                                                            <RowDefinition Height="1"/>
-                                                            <RowDefinition Height="Auto"/>
-                                                        </Grid.RowDefinitions>
-
-                                                        <Grid Margin="14,11">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <ui:TextBlock Text="产品详情"
-                                                                          FontSize="13"
-                                                                          FontWeight="SemiBold"
-                                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                                            <ui:TextBlock Grid.Column="1"
-                                                                          Text="{Binding SourceDatabase}"
-                                                                          FontSize="11"
-                                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                                          VerticalAlignment="Center"/>
-                                                        </Grid>
-
-                                                        <Border Grid.Row="1"
-                                                                Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
-
-                                                        <ScrollViewer Grid.Row="2"
-                                                                      MaxHeight="320"
-                                                                      VerticalScrollBarVisibility="Auto"
-                                                                      HorizontalScrollBarVisibility="Disabled">
-                                                            <ItemsControl ItemsSource="{Binding RawData}"
-                                                                          Margin="14,8,14,10">
-                                                                <ItemsControl.ItemContainerStyle>
-                                                                    <Style TargetType="ContentPresenter">
-                                                                        <Style.Triggers>
-                                                                            <DataTrigger Binding="{Binding Value}" Value="">
-                                                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                                            </DataTrigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </ItemsControl.ItemContainerStyle>
-                                                                <ItemsControl.ItemTemplate>
-                                                                    <DataTemplate>
-                                                                        <Grid Margin="0,4">
-                                                                            <Grid.ColumnDefinitions>
-                                                                                <ColumnDefinition Width="150"/>
-                                                                                <ColumnDefinition Width="*"/>
-                                                                            </Grid.ColumnDefinitions>
-                                                                            <ui:TextBlock Text="{Binding Key}"
-                                                                                          FontSize="11"
-                                                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                                                          TextTrimming="CharacterEllipsis"
-                                                                                          Margin="0,0,12,0"/>
-                                                                            <ui:TextBlock Grid.Column="1"
-                                                                                          Text="{Binding Value}"
-                                                                                          FontSize="12"
-                                                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                                                          TextWrapping="Wrap"/>
-                                                                        </Grid>
-                                                                    </DataTemplate>
-                                                                </ItemsControl.ItemTemplate>
-                                                            </ItemsControl>
-                                                        </ScrollViewer>
-                                                    </Grid>
-                                                </ToolTip>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </DataTrigger>
-                                </Style.Triggers>
                             </Style>
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
@@ -835,6 +753,88 @@
                                       TextWrapping="Wrap" HorizontalAlignment="Center"
                                       Margin="16,24" Visibility="{Binding QuickSearchResults.Count, Converter={StaticResource CountToVis}, ConverterParameter=Zero}"/>
                     </Grid>
+                </Grid>
+            </Border>
+        </Popup>
+
+        <!-- UPC 产品候选项的可交互详情面板 -->
+        <Popup x:Name="ProductDetailsPopup"
+               Placement="Right"
+               HorizontalOffset="8"
+               StaysOpen="True"
+               AllowsTransparency="True">
+            <Border x:Name="ProductDetailsPanel"
+                    Width="440"
+                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    MouseEnter="ProductDetailsPanel_MouseEnter"
+                    MouseLeave="ProductDetailsPanel_MouseLeave">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="1"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="14,11">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBlock Text="产品详情"
+                                      FontSize="13"
+                                      FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <ui:TextBlock Grid.Column="1"
+                                      Text="{Binding SourceDatabase}"
+                                      FontSize="11"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Border Grid.Row="1"
+                            Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                    <ScrollViewer x:Name="ProductDetailsScrollViewer"
+                                  Grid.Row="2"
+                                  MaxHeight="320"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding RawData}"
+                                      Margin="14,8,14,10">
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Value}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBlock Text="{Binding Key}"
+                                                      FontSize="11"
+                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                      TextTrimming="CharacterEllipsis"
+                                                      Margin="0,0,12,0"/>
+                                        <ui:TextBlock Grid.Column="1"
+                                                      Text="{Binding Value}"
+                                                      FontSize="12"
+                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                      TextWrapping="Wrap"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Grid>
             </Border>
         </Popup>

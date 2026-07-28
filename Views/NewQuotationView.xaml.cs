@@ -30,6 +30,10 @@ public partial class NewQuotationView : UserControl
     private Window? _hostWindow;
     private bool _suppressQuickSearchEvents;
     private bool _quickResultsRefreshQueued;
+    private readonly DispatcherTimer _productDetailsCloseTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(180)
+    };
     private bool _suppressDateScrollClose;
     private DispatcherTimer? _dateScrollCloseArmTimer;
     private TextBox? _expandedOverflowBox;
@@ -46,6 +50,7 @@ public partial class NewQuotationView : UserControl
         DataContextChanged += OnDataContextChanged;
         Loaded += OnViewLoaded;
         Unloaded += OnUnloaded;
+        _productDetailsCloseTimer.Tick += ProductDetailsCloseTimer_Tick;
     }
 
     private void OnViewLoaded(object? sender, RoutedEventArgs e)
@@ -78,6 +83,7 @@ public partial class NewQuotationView : UserControl
 
     private void HostWindow_Deactivated(object? sender, EventArgs e)
     {
+        CloseProductDetails();
         QuickSearchPopup.IsOpen = false;
         _lastCodeBox = null;
         _lastCodeRowIndex = -1;
@@ -136,6 +142,7 @@ public partial class NewQuotationView : UserControl
             }
             else
             {
+                CloseProductDetails();
                 // 直接控制 Popup.IsOpen，避免绑定 + StaysOpen 自动关闭后
                 // 本地值覆盖绑定、导致后续无法重新打开的经典陷阱
                 QuickSearchPopup.IsOpen = false;
@@ -147,6 +154,9 @@ public partial class NewQuotationView : UserControl
 
     private void OnQuickSearchResultsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+            CloseProductDetails();
+
         if (!QuickSearchPopup.IsOpen) return;
 
         if (_quickResultsRefreshQueued) return;
@@ -209,6 +219,7 @@ public partial class NewQuotationView : UserControl
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        CloseProductDetails();
         if (_hostWindow != null)
         {
             _hostWindow.Deactivated -= HostWindow_Deactivated;
@@ -610,7 +621,8 @@ public partial class NewQuotationView : UserControl
         if (DataContext is not NewQuotationViewModel vm) return;
 
         // 焦点转移到弹窗内部（例如点击候选列表项）时不关闭
-        if (QuickSearchPopup.IsKeyboardFocusWithin) return;
+        if (QuickSearchPopup.IsKeyboardFocusWithin
+            || ProductDetailsPopup.IsKeyboardFocusWithin) return;
 
         // 失焦后下一帧判断真实落点：切到「激活输入框」或快速输入切换按钮不关，
         // 切到其他输入框 / 页面其他位置则关闭（满足“点其他位置关闭”的需求）
@@ -618,8 +630,52 @@ public partial class NewQuotationView : UserControl
         {
             var focused = System.Windows.Input.Keyboard.FocusedElement as DependencyObject;
             if (IsQuickInputAnchor(focused)) return;
+            if (ProductDetailsPopup.IsKeyboardFocusWithin) return;
             vm.IsQuickSearchVisible = false;
         });
+    }
+
+    private void QuickResultItem_MouseEnter(object sender, MouseEventArgs e)
+    {
+        _productDetailsCloseTimer.Stop();
+        if (sender is not ListBoxItem item
+            || item.DataContext is not QuickSearchResult result
+            || result.ResultType != "product")
+        {
+            CloseProductDetails();
+            return;
+        }
+
+        ProductDetailsPopup.DataContext = result;
+        ProductDetailsPopup.PlacementTarget = item;
+        ProductDetailsScrollViewer.ScrollToTop();
+        ProductDetailsPopup.IsOpen = true;
+    }
+
+    private void QuickResultItem_MouseLeave(object sender, MouseEventArgs e)
+        => ArmProductDetailsClose();
+
+    private void ProductDetailsPanel_MouseEnter(object sender, MouseEventArgs e)
+        => _productDetailsCloseTimer.Stop();
+
+    private void ProductDetailsPanel_MouseLeave(object sender, MouseEventArgs e)
+        => ArmProductDetailsClose();
+
+    private void ArmProductDetailsClose()
+    {
+        _productDetailsCloseTimer.Stop();
+        _productDetailsCloseTimer.Start();
+    }
+
+    private void ProductDetailsCloseTimer_Tick(object? sender, EventArgs e)
+        => CloseProductDetails();
+
+    private void CloseProductDetails()
+    {
+        _productDetailsCloseTimer.Stop();
+        ProductDetailsPopup.IsOpen = false;
+        ProductDetailsPopup.PlacementTarget = null;
+        ProductDetailsPopup.DataContext = null;
     }
 
     // ==================== 弹出框定位 ====================
