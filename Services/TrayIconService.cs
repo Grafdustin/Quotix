@@ -107,7 +107,7 @@ public sealed class TrayIconService : IDisposable
 
         var openItem = new Wpf.Ui.Controls.MenuItem
         {
-            Header = "打开 Quotix",
+            Header = "显示窗口",
             Icon = new SymbolIcon(SymbolRegular.Window20, 16, false)
         };
         openItem.Click += (_, _) => InvokeOnUi(_restoreAction);
