@@ -97,7 +97,7 @@
                       Padding="24,20,24,24">
             <StackPanel>
 
-                <!-- ====== 导出路径 ====== -->
+                <!-- ====== 偏好设置 ====== -->
                 <StackPanel Visibility="{Binding SelectedSettingsCategory, Converter={StaticResource CategoryToVisibility}, ConverterParameter=export}">
                     <Border CornerRadius="10"
                             Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
@@ -136,6 +136,68 @@
                                        Height="34" FontSize="12"
                                        Command="{Binding BrowseExportPathCommand}"/>
                         </Grid>
+                    </Border>
+
+                    <Border CornerRadius="10" Margin="0,12,0,0"
+                            Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16,14">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
+                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                    <ui:SymbolIcon Symbol="Subtract16" FontSize="18"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                                    <ui:TextBlock Text="最小化到系统托盘" FontSize="14" FontWeight="Medium"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <ui:TextBlock Text="最小化窗口后隐藏任务栏图标，程序继续在后台运行"
+                                                  FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                  Margin="0,2,0,0"/>
+                                </StackPanel>
+
+                                <ui:ToggleSwitch Grid.Column="2" IsChecked="{Binding MinimizeToTray}"
+                                                 VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <Border Height="1" Margin="52,0,0,12"
+                                    Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
+                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                    <ui:SymbolIcon Symbol="DismissCircle16" FontSize="18"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                                    <ui:TextBlock Text="关闭时在后台运行" FontSize="14" FontWeight="Medium"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <ui:TextBlock Text="点击关闭按钮时隐藏窗口，可从系统托盘重新打开"
+                                                  FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                  Margin="0,2,0,0"/>
+                                </StackPanel>
+
+                                <ui:ToggleSwitch Grid.Column="2" IsChecked="{Binding CloseToTray}"
+                                                 VerticalAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
                     </Border>
                 </StackPanel>
 

@@ -1,6 +1,8 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -25,9 +27,15 @@ public partial class MainWindow : FluentWindow
     private MainViewModel VM => (MainViewModel)DataContext;
     private readonly AppSettingsService _settingsService;
     private readonly UpdatePipeline _updatePipeline;
+    private readonly TrayIconService _trayIconService;
     private readonly DispatcherTimer _updateCheckTimer = new();
     private bool _isCheckingUpdate;
     private string _lastPromptedUpdateVersion = "";
+    private bool _isExiting;
+    private WindowState _lastVisibleWindowState = WindowState.Normal;
+    private HwndSource? _windowSource;
+    private const int WmSysCommand = 0x0112;
+    private const int ScMinimize = 0xF020;
 
     /// <summary>
     /// 更新弹窗是否处于后台下载模式（弹窗已关闭但下载仍在继续）
@@ -37,17 +45,25 @@ public partial class MainWindow : FluentWindow
     /// <summary>
     /// 初始化 MainWindow 实例。
     /// </summary>
-    public MainWindow(MainViewModel viewModel, AppSettingsService settingsService, UpdatePipeline updatePipeline)
+    public MainWindow(
+        MainViewModel viewModel,
+        AppSettingsService settingsService,
+        UpdatePipeline updatePipeline,
+        TrayIconService trayIconService)
     {
         DataContext = viewModel;
         _settingsService = settingsService;
         _updatePipeline = updatePipeline;
+        _trayIconService = trayIconService;
         InitializeComponent();
         SettingsCard.SizeChanged += (_, _) => UpdateSettingsCardClip();
         LoadIcon();
         LoadTitleBarIcon();
         Loaded += OnLoaded;
+        SourceInitialized += OnSourceInitialized;
+        Closing += OnClosing;
         Closed += OnClosed;
+        StateChanged += OnWindowStateChanged;
         _updateCheckTimer.Interval = TimeSpan.FromMinutes(30);
         _updateCheckTimer.Tick += UpdateCheckTimer_Tick;
 
@@ -74,10 +90,80 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void OnClosed(object? sender, EventArgs e)
     {
+        _windowSource?.RemoveHook(WindowMessageHook);
+        _windowSource = null;
+        _trayIconService.Dispose();
         _updateCheckTimer.Stop();
         _updateCheckTimer.Tick -= UpdateCheckTimer_Tick;
         _updatePipeline.State.PropertyChanged -= OnUpdateStateChanged;
         _updatePipeline.Dispose();
+    }
+
+    private void OnSourceInitialized(object? sender, EventArgs e)
+    {
+        _windowSource = PresentationSource.FromVisual(this) as HwndSource;
+        _windowSource?.AddHook(WindowMessageHook);
+    }
+
+    private IntPtr WindowMessageHook(
+        IntPtr hwnd,
+        int message,
+        IntPtr wParam,
+        IntPtr lParam,
+        ref bool handled)
+    {
+        if (message == WmSysCommand
+            && (wParam.ToInt64() & 0xFFF0) == ScMinimize
+            && _settingsService.MinimizeToTray)
+        {
+            HideToTray();
+            handled = true;
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private void OnClosing(object? sender, CancelEventArgs e)
+    {
+        if (_isExiting || !_settingsService.CloseToTray)
+            return;
+
+        e.Cancel = true;
+        HideToTray();
+    }
+
+    private void OnWindowStateChanged(object? sender, EventArgs e)
+    {
+        if (WindowState != WindowState.Minimized)
+        {
+            _lastVisibleWindowState = WindowState;
+            return;
+        }
+
+        if (_settingsService.MinimizeToTray)
+            HideToTray();
+    }
+
+    private void HideToTray()
+    {
+        ShowInTaskbar = false;
+        Hide();
+    }
+
+    private void RestoreFromTray()
+    {
+        ShowInTaskbar = true;
+        Show();
+        WindowState = _lastVisibleWindowState == WindowState.Maximized
+            ? WindowState.Maximized
+            : WindowState.Normal;
+        Activate();
+    }
+
+    private void ExitFromTray()
+    {
+        _isExiting = true;
+        Close();
     }
 
     /// <summary>
@@ -163,6 +249,8 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        _trayIconService.Initialize(RestoreFromTray, ExitFromTray);
+
         // 恢复导航栏折叠状态
         RootNavView.IsPaneOpen = !_settingsService.NavigationCollapsed;
 

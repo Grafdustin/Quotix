@@ -113,7 +113,7 @@ public partial class SettingsViewModel : ObservableObject
     /// <summary>设置页左侧导航分类列表（Key 用于切换，Label 用于显示）</summary>
     public ObservableCollection<SettingsCategoryItem> SettingsCategories { get; } = new()
     {
-        new("export", "导出路径", SymbolRegular.FolderOpen16),
+        new("export", "偏好设置", SymbolRegular.Settings16),
         new("quickinput", "快捷输入", SymbolRegular.Search16),
         new("appearance", "外观", SymbolRegular.WeatherMoon16),
         new("products", "产品列表", SymbolRegular.Box24),
@@ -180,8 +180,30 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private DatabaseOption? _selectedDatabase;
 
-    // —— 导出路径设置 ——
+    // —— 偏好设置 ——
     private readonly AppSettingsService _settingsService;
+
+    public bool MinimizeToTray
+    {
+        get => _settingsService.MinimizeToTray;
+        set
+        {
+            if (_settingsService.MinimizeToTray == value) return;
+            _settingsService.MinimizeToTray = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool CloseToTray
+    {
+        get => _settingsService.CloseToTray;
+        set
+        {
+            if (_settingsService.CloseToTray == value) return;
+            _settingsService.CloseToTray = value;
+            OnPropertyChanged();
+        }
+    }
 
     public string DefaultExportPath
     {

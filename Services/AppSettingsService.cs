@@ -52,6 +52,20 @@ public class AppSettingsService
         set { _current.DefaultExportPath = value; SaveToDisk(); }
     }
 
+    /// <summary>最小化窗口时是否隐藏到系统托盘。</summary>
+    public bool MinimizeToTray
+    {
+        get => _current.MinimizeToTray;
+        set { _current.MinimizeToTray = value; SaveToDisk(); }
+    }
+
+    /// <summary>关闭主窗口时是否继续在后台运行。</summary>
+    public bool CloseToTray
+    {
+        get => _current.CloseToTray;
+        set { _current.CloseToTray = value; SaveToDisk(); }
+    }
+
     /// <summary>快捷输入是否启用（读写均自动持久化）</summary>
     public bool QuickInputEnabled
     {
@@ -139,6 +153,12 @@ public class AppSettings
 
     /// <summary>用户设置的默认导出路径</summary>
     public string? DefaultExportPath { get; set; }
+
+    /// <summary>最小化窗口时隐藏到系统托盘。</summary>
+    public bool MinimizeToTray { get; set; } = true;
+
+    /// <summary>关闭主窗口时隐藏到系统托盘并继续运行。</summary>
+    public bool CloseToTray { get; set; } = true;
 
     /// <summary>快捷输入设置（启用开关 + 按 NDT/RVI 分库的字段映射）</summary>
     public QuickInputSettings QuickInput { get; set; } = new();
