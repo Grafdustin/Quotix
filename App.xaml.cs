@@ -94,7 +94,7 @@ public partial class App : Application
     /// <summary>执行应用程序主启动流程</summary>
     private Task StartApplicationAsync()
     {
-        // 全局滚动优化：列表按像素滚动，滚轮使用可叠加的惯性动画。
+        // 全局滚动优化：列表类控件按像素滚动，滚轮事件交回 WPF 原生处理。
         SmoothScrollBehavior.Register();
         FloatingTextPreview.RegisterGlobal();
 
