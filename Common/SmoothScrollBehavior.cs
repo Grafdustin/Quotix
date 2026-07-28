@@ -13,8 +13,8 @@ namespace Quotix.Common;
 /// 全局惯性滚动。列表类控件使用像素滚动，滚轮输入合并为连续的缓动动画。
 /// </summary>
 /// <remarks>
-/// 虚拟化容器继续使用 <c>CanContentScroll=True</c>，仅将
-/// <see cref="VirtualizingPanel.ScrollUnit"/> 改为像素，避免关闭虚拟化。
+/// 全局关闭 <c>CanContentScroll</c>，避免 WPF-UI 控件模板继续按逻辑项滚动；
+/// 同时将虚拟化面板的滚动单位设为像素。
 /// 内层滚动到边界时不拦截滚轮，让事件继续传递给外层页面。
 /// </remarks>
 public static class SmoothScrollBehavior
@@ -106,8 +106,8 @@ public static class SmoothScrollBehavior
         if (VirtualizingPanel.GetScrollUnit(ic) != ScrollUnit.Pixel)
             VirtualizingPanel.SetScrollUnit(ic, ScrollUnit.Pixel);
 
-        if (!ScrollViewer.GetCanContentScroll(ic))
-            ScrollViewer.SetCanContentScroll(ic, true);
+        if (ScrollViewer.GetCanContentScroll(ic))
+            ScrollViewer.SetCanContentScroll(ic, false);
 
         ApplyPixelScrollToVirtualizingPanels(ic);
     }
