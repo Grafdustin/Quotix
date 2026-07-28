@@ -408,6 +408,7 @@
                          Background="Transparent"
                          VirtualizingStackPanel.IsVirtualizing="True"
                          VirtualizingStackPanel.ScrollUnit="Pixel"
+                         ScrollViewer.CanContentScroll="False"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          Visibility="{Binding IsOwnerTab, Converter={StaticResource BoolToVis}}"/>
 
@@ -423,6 +424,7 @@
                          Background="Transparent"
                          VirtualizingStackPanel.IsVirtualizing="True"
                          VirtualizingStackPanel.ScrollUnit="Pixel"
+                         ScrollViewer.CanContentScroll="False"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          Visibility="{Binding IsCustomerTab, Converter={StaticResource BoolToVis}}"/>
 

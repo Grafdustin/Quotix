@@ -485,6 +485,8 @@
                                          ItemContainerStyle="{StaticResource QuoteRowContainer}"
                                          BorderThickness="0" Background="Transparent"
                                          AlternationCount="2"
+                                         ScrollViewer.CanContentScroll="False"
+                                         VirtualizingPanel.ScrollUnit="Pixel"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>

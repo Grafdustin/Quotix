@@ -37,6 +37,11 @@ public static class SmoothScrollBehavior
             FrameworkElement.LoadedEvent,
             new RoutedEventHandler(OnItemsControlLoaded));
 
+        EventManager.RegisterClassHandler(
+            typeof(ScrollViewer),
+            FrameworkElement.LoadedEvent,
+            new RoutedEventHandler(OnScrollViewerLoaded));
+
         // 使用冒泡事件，让最内层 ScrollViewer 优先接管；滚动到边界后事件会继续交给外层。
         EventManager.RegisterClassHandler(
             typeof(ScrollViewer),
@@ -73,12 +78,16 @@ public static class SmoothScrollBehavior
             () => ApplyPixelScroll(itemsControl));
     }
 
+    private static void OnScrollViewerLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ScrollViewer scrollViewer)
+            ScrollViewer.SetCanContentScroll(scrollViewer, false);
+    }
+
     private static void ApplyPixelScroll(ItemsControl itemsControl)
     {
         VirtualizingPanel.SetScrollUnit(itemsControl, ScrollUnit.Pixel);
-
-        // 保留逻辑内容滚动以维持列表虚拟化，实际偏移单位由 ScrollUnit.Pixel 决定。
-        ScrollViewer.SetCanContentScroll(itemsControl, true);
+        ScrollViewer.SetCanContentScroll(itemsControl, false);
         ApplyPixelScrollToVisualTree(itemsControl);
     }
 
@@ -90,6 +99,9 @@ public static class SmoothScrollBehavior
             DependencyObject child = VisualTreeHelper.GetChild(root, i);
             if (child is VirtualizingPanel panel)
                 VirtualizingPanel.SetScrollUnit(panel, ScrollUnit.Pixel);
+
+            if (child is ScrollViewer scrollViewer)
+                ScrollViewer.SetCanContentScroll(scrollViewer, false);
 
             ApplyPixelScrollToVisualTree(child);
         }

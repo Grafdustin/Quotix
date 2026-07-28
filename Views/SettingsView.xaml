@@ -32,6 +32,8 @@
                      BorderThickness="0"
                      Background="Transparent"
                      Padding="10,14"
+                     ScrollViewer.CanContentScroll="False"
+                     VirtualizingPanel.ScrollUnit="Pixel"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">

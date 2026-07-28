@@ -695,6 +695,8 @@
                                  ItemsSource="{Binding QuickSearchResults}"
                                  BorderThickness="0" Background="Transparent"
                                  Focusable="False"
+                                 ScrollViewer.CanContentScroll="False"
+                                 VirtualizingPanel.ScrollUnit="Pixel"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  PreviewMouseLeftButtonDown="QuickResultsList_PreviewMouseLeftButtonDown"
                                  PreviewKeyDown="QuickResultsList_PreviewKeyDown">
