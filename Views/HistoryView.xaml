@@ -220,7 +220,7 @@
                          Background="Transparent"
                          VirtualizingStackPanel.IsVirtualizing="True"
                          VirtualizingStackPanel.ScrollUnit="Pixel"
-                         ScrollViewer.CanContentScroll="False"
+                         ScrollViewer.CanContentScroll="True"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
             </Grid>
         </Border>

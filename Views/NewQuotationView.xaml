@@ -678,7 +678,7 @@
         <!-- ═══════════════ 快速搜索 Popup ═══════════════ -->
         <!-- Placement=Top：弹窗只在输入栏上方显示，左边缘与输入框左边缘对齐 -->
         <Popup x:Name="QuickSearchPopup" Placement="Top" StaysOpen="True"
-               AllowsTransparency="True" PopupAnimation="Fade">
+               AllowsTransparency="True">
             <Border x:Name="QuickSearchPopupBorder"
                     Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                     CornerRadius="12"
@@ -695,7 +695,7 @@
                                  ItemsSource="{Binding QuickSearchResults}"
                                  BorderThickness="0" Background="Transparent"
                                  Focusable="False"
-                                 ScrollViewer.CanContentScroll="False"
+                                 ScrollViewer.CanContentScroll="True"
                                  VirtualizingPanel.ScrollUnit="Pixel"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  PreviewMouseLeftButtonDown="QuickResultsList_PreviewMouseLeftButtonDown"

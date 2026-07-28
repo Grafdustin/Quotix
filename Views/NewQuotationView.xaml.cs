@@ -166,8 +166,6 @@ public partial class NewQuotationView : UserControl
 
             PositionQuickSearchPopup();
             QuickSearchPopup.IsOpen = true;
-            QuickSearchPopup.HorizontalOffset += 0.01;
-            QuickSearchPopup.HorizontalOffset -= 0.01;
         }, DispatcherPriority.Input);
     }
 
@@ -635,8 +633,6 @@ public partial class NewQuotationView : UserControl
             return;
 
         QuickSearchPopupBorder.Width = CalculateQuickPopupWidth(target, vm);
-        QuickSearchPopup.HorizontalOffset += 0.01;
-        QuickSearchPopup.HorizontalOffset -= 0.01;
     }
 
     private double CalculateQuickPopupWidth(UIElement placementTarget, NewQuotationViewModel vm)
