@@ -18,6 +18,7 @@ public partial class ProductDatabaseViewModel : ObservableObject
     private readonly ProductService _productService;
     private readonly ProductImportService _importService;
     private readonly DialogService _dialog;
+    private readonly AppSettingsService _settingsService;
 
     /// <summary>
     /// 初始化 ProductDatabaseViewModel 实例。
@@ -25,11 +26,16 @@ public partial class ProductDatabaseViewModel : ObservableObject
     /// <param name="productService">产品服务</param>
     /// <param name="importService">产品导入服务</param>
     /// <param name="dialog">对话框服务</param>
-    public ProductDatabaseViewModel(ProductService productService, ProductImportService importService, DialogService dialog)
+    public ProductDatabaseViewModel(
+        ProductService productService,
+        ProductImportService importService,
+        DialogService dialog,
+        AppSettingsService settingsService)
     {
         _productService = productService;
         _importService = importService;
         _dialog = dialog;
+        _settingsService = settingsService;
 
         WeakReferenceMessenger.Default.Register<ProductDataChangedMessage>(this, (r, m) =>
         {
@@ -46,6 +52,8 @@ public partial class ProductDatabaseViewModel : ObservableObject
     /// 产品数据行集合。
     /// </summary>
     public ObservableCollection<ProductRowViewModel> Products { get; } = new();
+
+    public bool DatabaseCaptureIncludeHeaders => _settingsService.DatabaseCaptureIncludeHeaders;
 
     [ObservableProperty] private string _searchText = "";
     [ObservableProperty] private string _statusText = "就绪";

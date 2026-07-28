@@ -154,11 +154,6 @@
                 <Style TargetType="DataGridRow">
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="MinHeight" Value="42"/>
-                    <Style.Triggers>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource AccentFillColorSelectedTextBackgroundBrush}"/>
-                        </Trigger>
-                    </Style.Triggers>
                 </Style>
             </Setter.Value>
         </Setter>
@@ -180,6 +175,11 @@
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource AccentFillColorSelectedTextBackgroundBrush}"/>
+                        </Trigger>
+                    </Style.Triggers>
                 </Style>
             </Setter.Value>
         </Setter>

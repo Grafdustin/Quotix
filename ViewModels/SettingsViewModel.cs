@@ -194,6 +194,17 @@ public partial class SettingsViewModel : ObservableObject
         }
     }
 
+    public bool DatabaseCaptureIncludeHeaders
+    {
+        get => _settingsService.DatabaseCaptureIncludeHeaders;
+        set
+        {
+            if (_settingsService.DatabaseCaptureIncludeHeaders == value) return;
+            _settingsService.DatabaseCaptureIncludeHeaders = value;
+            OnPropertyChanged();
+        }
+    }
+
     public string DefaultExportPath
     {
         get

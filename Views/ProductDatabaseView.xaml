@@ -205,12 +205,15 @@
                           CanUserReorderColumns="False"
                           CanUserResizeColumns="False"
                           CanUserResizeRows="False"
+                          SelectionMode="Extended"
+                          SelectionUnit="Cell"
                           EnableRowVirtualization="True"
                           EnableColumnVirtualization="True"
                           VirtualizingPanel.IsVirtualizing="True"
                           VirtualizingPanel.VirtualizationMode="Recycling"
                           ScrollViewer.IsDeferredScrollingEnabled="False"
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          PreviewKeyDown="ProductsGrid_PreviewKeyDown"
                           MouseDoubleClick="ProductsGrid_MouseDoubleClick"/>
 
                 <!-- ═══ Row 3：底部分页栏 ═══ -->

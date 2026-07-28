@@ -59,6 +59,13 @@ public class AppSettingsService
         set { _current.CloseToTray = value; SaveToDisk(); }
     }
 
+    /// <summary>复制产品表格截图时是否自动包含所选列的表头。</summary>
+    public bool DatabaseCaptureIncludeHeaders
+    {
+        get => _current.DatabaseCaptureIncludeHeaders;
+        set { _current.DatabaseCaptureIncludeHeaders = value; SaveToDisk(); }
+    }
+
     /// <summary>快捷输入是否启用（读写均自动持久化）</summary>
     public bool QuickInputEnabled
     {
@@ -149,6 +156,9 @@ public class AppSettings
 
     /// <summary>关闭主窗口时隐藏到系统托盘并继续运行。</summary>
     public bool CloseToTray { get; set; } = true;
+
+    /// <summary>复制产品表格截图时是否自动包含所选列的表头。</summary>
+    public bool DatabaseCaptureIncludeHeaders { get; set; } = true;
 
     /// <summary>快捷输入设置（启用开关 + 按 NDT/RVI 分库的字段映射）</summary>
     public QuickInputSettings QuickInput { get; set; } = new();

@@ -151,6 +151,38 @@
 
                             <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
                                     Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                <ui:SymbolIcon Symbol="Table24" FontSize="18"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ui:TextBlock Text="截图包含表头" FontSize="14" FontWeight="Medium"
+                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <ui:TextBlock Text="复制产品表格截图时，自动添加所选列的表头"
+                                              FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                              Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <ui:ToggleSwitch Grid.Column="2"
+                                             IsChecked="{Binding DatabaseCaptureIncludeHeaders}"
+                                             VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <Border CornerRadius="10" Margin="0,12,0,0"
+                            Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16,14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
                                 <ui:SymbolIcon Symbol="DismissCircle16" FontSize="18"
                                                Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>

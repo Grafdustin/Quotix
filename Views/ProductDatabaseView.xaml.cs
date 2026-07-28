@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using Quotix.Services;
 using Quotix.ViewModels;
 
 namespace Quotix.Views;
@@ -174,6 +175,75 @@ public partial class ProductDatabaseView : UserControl
         item.IsExpanded = shouldExpand;
         _expandedRow = shouldExpand ? item : null;
         e.Handled = true;
+    }
+
+    private void ProductsGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.C || (Keyboard.Modifiers & ModifierKeys.Control) == 0)
+            return;
+
+        e.Handled = true;
+        CopySelectedCellsAsImage();
+    }
+
+    private void CopySelectedCellsAsImage()
+    {
+        if (_currentVM == null || ProductsGrid.SelectedCells.Count == 0)
+            return;
+
+        var selectedRows = ProductsGrid.SelectedCells
+            .Select(cell => ProductsGrid.Items.IndexOf(cell.Item))
+            .Where(index => index >= 0)
+            .ToArray();
+        var selectedColumns = ProductsGrid.SelectedCells
+            .Select(cell => cell.Column.DisplayIndex)
+            .ToArray();
+        if (selectedRows.Length == 0 || selectedColumns.Length == 0)
+            return;
+
+        var firstRow = selectedRows.Min();
+        var lastRow = selectedRows.Max();
+        var firstColumn = selectedColumns.Min();
+        var lastColumn = selectedColumns.Max();
+        var columns = ProductsGrid.Columns
+            .Where(column => column.DisplayIndex >= firstColumn && column.DisplayIndex <= lastColumn)
+            .OrderBy(column => column.DisplayIndex)
+            .ToArray();
+
+        var headers = columns
+            .Select(column => column.Header?.ToString() ?? "")
+            .ToArray();
+        var rows = new List<IReadOnlyList<string>>();
+        for (var rowIndex = firstRow; rowIndex <= lastRow; rowIndex++)
+        {
+            if (ProductsGrid.Items[rowIndex] is not ProductRowViewModel row)
+                continue;
+
+            rows.Add(headers
+                .Select(header => GetCaptureCellText(row, header))
+                .ToArray());
+        }
+
+        if (rows.Count == 0)
+            return;
+
+        var dpi = VisualTreeHelper.GetDpi(ProductsGrid);
+        var image = TableCaptureService.Render(
+            headers,
+            rows,
+            _currentVM.DatabaseCaptureIncludeHeaders,
+            dpi.PixelsPerDip);
+        Clipboard.SetImage(image);
+    }
+
+    private static string GetCaptureCellText(ProductRowViewModel row, string header)
+    {
+        if (row.Data.TryGetValue(header, out var value))
+            return value ?? "";
+
+        return header == "数据"
+            ? string.Join(Environment.NewLine, row.Data.Select(item => $"{item.Key}: {item.Value}"))
+            : "";
     }
 
     /// <summary>
