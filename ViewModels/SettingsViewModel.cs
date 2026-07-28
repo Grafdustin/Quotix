@@ -114,7 +114,7 @@ public partial class SettingsViewModel : ObservableObject
     public ObservableCollection<SettingsCategoryItem> SettingsCategories { get; } = new()
     {
         new("export", "偏好设置", SymbolRegular.Settings16),
-        new("quickinput", "快捷输入", SymbolRegular.Search16),
+        new("quickinput", "快捷输入", SymbolRegular.Keyboard16),
         new("products", "产品列表", SymbolRegular.Box24),
         new("appearance", "界面外观", SymbolRegular.WeatherMoon16),
         new("feedback", "问题反馈", SymbolRegular.Chat16),
