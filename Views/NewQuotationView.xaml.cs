@@ -648,6 +648,7 @@ public partial class NewQuotationView : UserControl
             return;
         }
 
+        QuickResultsList.SelectedItem = result;
         ProductDetailsPopup.DataContext = result;
         ProductDetailsPopup.PlacementTarget = RootGrid;
         PositionProductDetailsPopup();
@@ -736,6 +737,7 @@ public partial class NewQuotationView : UserControl
         ProductDetailsPopup.IsOpen = false;
         ProductDetailsPopup.PlacementTarget = null;
         ProductDetailsPopup.DataContext = null;
+        QuickResultsList.SelectedItem = null;
     }
 
     // ==================== 弹出框定位 ====================

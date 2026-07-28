@@ -717,6 +717,10 @@
                                                     <Setter TargetName="ItemBorder" Property="Background"
                                                             Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
                                                 </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background"
+                                                            Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                                                </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </Setter.Value>
