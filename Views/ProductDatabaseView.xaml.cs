@@ -17,6 +17,7 @@ public partial class ProductDatabaseView : UserControl
 {
     private ProductDatabaseViewModel? _currentVM;
     private ProductRowViewModel? _expandedRow;
+    private bool _isRightDeselecting;
 
     /// <summary>
     /// 初始化 ProductDatabaseView 实例。
@@ -81,6 +82,7 @@ public partial class ProductDatabaseView : UserControl
     /// </summary>
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        EndRightDeselect();
         DetachVM();
     }
 
@@ -184,6 +186,61 @@ public partial class ProductDatabaseView : UserControl
 
         e.Handled = true;
         CopySelectedCellsAsImage();
+    }
+
+    private void ProductsGrid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var cell = FindVisualParent<DataGridCell>(e.OriginalSource as DependencyObject);
+        if (cell == null)
+            return;
+
+        _isRightDeselecting = true;
+        ProductsGrid.CaptureMouse();
+        DeselectCell(cell);
+        e.Handled = true;
+    }
+
+    private void ProductsGrid_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isRightDeselecting)
+            return;
+
+        if (e.RightButton != MouseButtonState.Pressed)
+        {
+            EndRightDeselect();
+            return;
+        }
+
+        var hit = ProductsGrid.InputHitTest(e.GetPosition(ProductsGrid)) as DependencyObject;
+        DeselectCell(FindVisualParent<DataGridCell>(hit));
+        e.Handled = true;
+    }
+
+    private void ProductsGrid_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isRightDeselecting)
+            return;
+
+        var hit = ProductsGrid.InputHitTest(e.GetPosition(ProductsGrid)) as DependencyObject;
+        DeselectCell(FindVisualParent<DataGridCell>(hit));
+        EndRightDeselect();
+        e.Handled = true;
+    }
+
+    private void ProductsGrid_LostMouseCapture(object sender, MouseEventArgs e)
+        => _isRightDeselecting = false;
+
+    private static void DeselectCell(DataGridCell? cell)
+    {
+        if (cell?.IsSelected == true)
+            cell.IsSelected = false;
+    }
+
+    private void EndRightDeselect()
+    {
+        _isRightDeselecting = false;
+        if (ProductsGrid.IsMouseCaptured)
+            ProductsGrid.ReleaseMouseCapture();
     }
 
     private void CopySelectedCellsAsImage()

@@ -214,6 +214,10 @@
                           ScrollViewer.IsDeferredScrollingEnabled="False"
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                           PreviewKeyDown="ProductsGrid_PreviewKeyDown"
+                          PreviewMouseRightButtonDown="ProductsGrid_PreviewMouseRightButtonDown"
+                          PreviewMouseMove="ProductsGrid_PreviewMouseMove"
+                          PreviewMouseRightButtonUp="ProductsGrid_PreviewMouseRightButtonUp"
+                          LostMouseCapture="ProductsGrid_LostMouseCapture"
                           MouseDoubleClick="ProductsGrid_MouseDoubleClick"/>
 
                 <!-- ═══ Row 3：底部分页栏 ═══ -->
