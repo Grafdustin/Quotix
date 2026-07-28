@@ -375,17 +375,23 @@
                             </StackPanel>
                         </Grid>
 
-                        <ItemsControl ItemsSource="{Binding QuotationNotes}">
+                        <ItemsControl ItemsSource="{Binding QuotationNotes}"
+                                      HorizontalContentAlignment="Stretch">
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="34"/>
-                                            <ColumnDefinition Width="0.45*" MinWidth="120"/>
+                                            <ColumnDefinition Width="2*"/>
                                             <ColumnDefinition Width="12"/>
-                                            <ColumnDefinition Width="*" MinWidth="220"/>
+                                            <ColumnDefinition Width="5*"/>
                                             <ColumnDefinition Width="10"/>
-                                            <ColumnDefinition Width="34"/>
+                                            <ColumnDefinition Width="36"/>
                                         </Grid.ColumnDefinitions>
 
                                         <ui:TextBlock Grid.Column="0"
@@ -396,12 +402,19 @@
                                         <ui:TextBox Grid.Column="1"
                                                     Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
                                                     PlaceholderText="标题"
-                                                    Height="36" VerticalContentAlignment="Center"/>
+                                                    MinWidth="0" MinHeight="36"
+                                                    VerticalContentAlignment="Center"/>
                                         <ui:TextBox Grid.Column="3"
                                                     Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
                                                     PlaceholderText="内容"
-                                                    Height="36" VerticalContentAlignment="Center"/>
-                                        <ui:Button Grid.Column="5" Width="34" Height="34"
+                                                    MinWidth="0" MinHeight="36"
+                                                    VerticalContentAlignment="Center"/>
+                                        <ui:Button Grid.Column="5" Width="34" Height="34" MinWidth="34"
+                                                   Padding="0"
+                                                   HorizontalContentAlignment="Center"
+                                                   VerticalContentAlignment="Center"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
                                                    Appearance="Secondary" ToolTip="删除"
                                                    Command="{Binding DataContext.RemoveQuotationNoteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                    CommandParameter="{Binding}">
