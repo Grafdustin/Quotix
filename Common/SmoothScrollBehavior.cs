@@ -19,7 +19,7 @@ namespace Quotix.Common;
 /// </remarks>
 public static class SmoothScrollBehavior
 {
-    private const double PixelsPerWheelDelta = 0.85;
+    private const double PixelsPerWheelDelta = 0.28;
     private static readonly ConditionalWeakTable<ScrollViewer, InertialScrollState> States = new();
 
     /// <summary>在 <c>App.OnStartup</c> 调用一次，全局启用惯性滚动。</summary>
@@ -52,6 +52,9 @@ public static class SmoothScrollBehavior
         if (sender is not ScrollViewer viewer)
             return;
 
+        // 必须设置到控件模板内部的实际 ScrollViewer；只设置外层 ItemsControl
+        // 可能会被 DataGrid/ListView 模板的本地值覆盖，仍表现为按项滚动。
+        viewer.CanContentScroll = false;
         viewer.PanningMode = PanningMode.VerticalFirst;
         viewer.PanningDeceleration = 0.001;
         _ = States.GetValue(viewer, static value => new InertialScrollState(value));
