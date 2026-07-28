@@ -816,8 +816,8 @@
                                 <DataTemplate>
                                     <Grid Margin="0,4">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="150"/>
-                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="0.9*"/>
+                                            <ColumnDefinition Width="1.7*"/>
                                         </Grid.ColumnDefinitions>
                                         <ui:TextBlock Text="{Binding Key}"
                                                       FontSize="11"

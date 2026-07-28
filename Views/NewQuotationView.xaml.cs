@@ -689,23 +689,20 @@ public partial class NewQuotationView : UserControl
         var quickScreen = QuickSearchPopupBorder.PointToScreen(new Point(0, 0));
         var quickLeft = (quickScreen.X - rootScreen.X) / dpi.DpiScaleX;
         var quickTop = (quickScreen.Y - rootScreen.Y) / dpi.DpiScaleY;
+        var x = quickLeft + QuickSearchPopupBorder.ActualWidth + gap;
+        x = Math.Clamp(x, edge, Math.Max(edge, RootGrid.ActualWidth - edge - 1));
+        var availableRightWidth = Math.Max(1, RootGrid.ActualWidth - x - edge);
 
-        ProductDetailsPanel.Width = Math.Min(440, Math.Max(1, RootGrid.ActualWidth - (edge * 2)));
+        ProductDetailsPanel.Width = Math.Min(440, availableRightWidth);
         ProductDetailsPanel.MaxHeight = Math.Max(1, RootGrid.ActualHeight - (edge * 2));
         ProductDetailsPanel.Measure(new Size(
             ProductDetailsPanel.Width,
             ProductDetailsPanel.MaxHeight));
 
-        var detailWidth = ProductDetailsPanel.DesiredSize.Width;
         var detailHeight = Math.Min(
             ProductDetailsPanel.DesiredSize.Height,
             ProductDetailsPanel.MaxHeight);
 
-        var x = quickLeft + QuickSearchPopupBorder.ActualWidth + gap;
-        if (x + detailWidth > RootGrid.ActualWidth - edge)
-            x = quickLeft - detailWidth - gap;
-
-        x = Math.Clamp(x, edge, Math.Max(edge, RootGrid.ActualWidth - detailWidth - edge));
         var y = Math.Clamp(
             quickTop,
             edge,
