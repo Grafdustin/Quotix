@@ -218,7 +218,7 @@
 
                                 <Border Grid.Column="0" CornerRadius="8" Width="40" Height="40"
                                         Background="{DynamicResource SubtleFillColorSecondaryBrush}">
-                                    <ui:SymbolIcon Symbol="Search16" FontSize="18"
+                                    <ui:SymbolIcon Symbol="Keyboard20" FontSize="18"
                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
