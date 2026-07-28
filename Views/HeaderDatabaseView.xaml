@@ -446,6 +446,7 @@
                                       CanContentScroll="False"
                                       PanningMode="VerticalOnly">
                             <ItemsControl ItemsSource="{Binding DefaultQuotationNotes}"
+                                          Margin="0,0,16,0"
                                           HorizontalContentAlignment="Stretch">
                                 <ItemsControl.ItemContainerStyle>
                                     <Style TargetType="ContentPresenter">
