@@ -682,11 +682,9 @@
             <Border x:Name="QuickSearchPopupBorder"
                     Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                     CornerRadius="12"
-                    BorderThickness="0"
+                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                    BorderThickness="1"
                     MinWidth="260" MaxWidth="960" MaxHeight="360">
-                <Border.Effect>
-                    <DropShadowEffect ShadowDepth="6" Opacity="0.18" BlurRadius="20" Color="#000000"/>
-                </Border.Effect>
                 <Grid>
                     <!-- 结果列表 -->
                     <Grid>
