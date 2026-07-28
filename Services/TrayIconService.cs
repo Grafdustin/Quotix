@@ -1,9 +1,12 @@
 using System.Drawing;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Interop;
+using System.Windows.Threading;
 using Wpf.Ui.Controls;
 using Forms = System.Windows.Forms;
 
@@ -59,7 +62,9 @@ public sealed class TrayIconService : IDisposable
         var menu = new ContextMenu
         {
             MinWidth = 184,
-            Placement = PlacementMode.MousePoint
+            Placement = PlacementMode.MousePoint,
+            StaysOpen = false,
+            Focusable = true
         };
 
         var openItem = new Wpf.Ui.Controls.MenuItem
@@ -97,11 +102,33 @@ public sealed class TrayIconService : IDisposable
             if (_contextMenu == null)
                 return;
 
-            _contextMenu.IsOpen = false;
+            if (_contextMenu.IsOpen)
+            {
+                _contextMenu.IsOpen = false;
+                return;
+            }
+
+            _contextMenu.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
             _contextMenu.Placement = PlacementMode.MousePoint;
+            _contextMenu.HorizontalOffset = 8;
+            _contextMenu.VerticalOffset = -_contextMenu.DesiredSize.Height - 8;
             _contextMenu.IsOpen = true;
+
+            _contextMenu.Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+            {
+                if (_contextMenu?.IsOpen != true)
+                    return;
+
+                _contextMenu.Focus();
+                if (PresentationSource.FromVisual(_contextMenu) is HwndSource source)
+                    SetForegroundWindow(source.Handle);
+            });
         });
     }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     private static void InvokeOnUi(Action? action)
     {
