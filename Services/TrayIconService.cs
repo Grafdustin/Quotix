@@ -26,6 +26,8 @@ public sealed class TrayIconService : IDisposable
     private Action? _exitAction;
     private volatile bool _isContextMenuOpen;
     private bool _suppressNextRightClick;
+    private IntPtr _mouseHook;
+    private LowLevelMouseProc? _mouseHookProc;
 
     public TrayIconService(AppSettingsService settingsService)
     {
@@ -92,8 +94,16 @@ public sealed class TrayIconService : IDisposable
             StaysOpen = false,
             Focusable = true
         };
-        menu.Opened += (_, _) => _isContextMenuOpen = true;
-        menu.Closed += (_, _) => _isContextMenuOpen = false;
+        menu.Opened += (_, _) =>
+        {
+            _isContextMenuOpen = true;
+            InstallMouseHook();
+        };
+        menu.Closed += (_, _) =>
+        {
+            _isContextMenuOpen = false;
+            RemoveMouseHook();
+        };
 
         var openItem = new Wpf.Ui.Controls.MenuItem
         {
@@ -166,15 +176,119 @@ public sealed class TrayIconService : IDisposable
         menu.VerticalOffset = cursor.Y - menu.ActualHeight;
     }
 
+    private void InstallMouseHook()
+    {
+        if (_mouseHook != IntPtr.Zero)
+            return;
+
+        _mouseHookProc = MouseHookCallback;
+        _mouseHook = SetWindowsHookEx(WhMouseLowLevel, _mouseHookProc, GetModuleHandle(null), 0);
+    }
+
+    private void RemoveMouseHook()
+    {
+        if (_mouseHook != IntPtr.Zero)
+        {
+            UnhookWindowsHookEx(_mouseHook);
+            _mouseHook = IntPtr.Zero;
+        }
+
+        _mouseHookProc = null;
+    }
+
+    private IntPtr MouseHookCallback(int code, IntPtr message, IntPtr data)
+    {
+        if (code >= 0
+            && message == WmLeftButtonDown
+            && _isContextMenuOpen)
+        {
+            var mouseData = Marshal.PtrToStructure<LowLevelMouseData>(data);
+            if (!IsPointInsideMenu(mouseData.Point))
+            {
+                Application.Current?.Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+                {
+                    if (_contextMenu != null)
+                        _contextMenu.IsOpen = false;
+                });
+            }
+        }
+
+        return CallNextHookEx(_mouseHook, code, message, data);
+    }
+
+    private bool IsPointInsideMenu(NativePoint point)
+    {
+        if (_contextMenu == null
+            || PresentationSource.FromVisual(_contextMenu) is not HwndSource source
+            || !GetWindowRect(source.Handle, out var rect))
+        {
+            return false;
+        }
+
+        return point.X >= rect.Left
+            && point.X < rect.Right
+            && point.Y >= rect.Top
+            && point.Y < rect.Bottom;
+    }
+
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr hWnd, out NativeRect rect);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetWindowsHookEx(
+        int hookId,
+        LowLevelMouseProc callback,
+        IntPtr module,
+        uint threadId);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool UnhookWindowsHookEx(IntPtr hook);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallNextHookEx(
+        IntPtr hook,
+        int code,
+        IntPtr message,
+        IntPtr data);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+    private static extern IntPtr GetModuleHandle(string? moduleName);
+
+    private const int WhMouseLowLevel = 14;
+    private static readonly IntPtr WmLeftButtonDown = new(0x0201);
+
+    private delegate IntPtr LowLevelMouseProc(int code, IntPtr message, IntPtr data);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint
     {
         public int X;
         public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LowLevelMouseData
+    {
+        public NativePoint Point;
+        public uint MouseData;
+        public uint Flags;
+        public uint Time;
+        public IntPtr ExtraInfo;
     }
 
     private static void InvokeOnUi(Action? action)
@@ -217,6 +331,7 @@ public sealed class TrayIconService : IDisposable
             _contextMenu.Items.Clear();
             _contextMenu = null;
         }
+        RemoveMouseHook();
 
         if (_notifyIcon != null)
         {
