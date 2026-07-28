@@ -108,10 +108,9 @@ public sealed class TrayIconService : IDisposable
                 return;
             }
 
-            _contextMenu.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
             _contextMenu.Placement = PlacementMode.MousePoint;
-            _contextMenu.HorizontalOffset = 8;
-            _contextMenu.VerticalOffset = -_contextMenu.DesiredSize.Height - 8;
+            _contextMenu.HorizontalOffset = 0;
+            _contextMenu.VerticalOffset = 0;
             _contextMenu.IsOpen = true;
 
             _contextMenu.Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
@@ -121,14 +120,105 @@ public sealed class TrayIconService : IDisposable
 
                 _contextMenu.Focus();
                 if (PresentationSource.FromVisual(_contextMenu) is HwndSource source)
+                {
+                    PositionMenuAtCursor(source.Handle);
                     SetForegroundWindow(source.Handle);
+                }
             });
         });
+    }
+
+    private static void PositionMenuAtCursor(IntPtr menuHandle)
+    {
+        if (!GetCursorPos(out var cursor)
+            || !GetWindowRect(menuHandle, out var menuRect))
+        {
+            return;
+        }
+
+        var monitor = MonitorFromPoint(cursor, MonitorDefaultToNearest);
+        var monitorInfo = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref monitorInfo))
+            return;
+
+        const int gap = 8;
+        var width = menuRect.Right - menuRect.Left;
+        var height = menuRect.Bottom - menuRect.Top;
+        var x = cursor.X + gap;
+        var y = cursor.Y - height - gap;
+
+        x = Math.Clamp(x, monitorInfo.WorkArea.Left, monitorInfo.WorkArea.Right - width);
+        y = Math.Clamp(y, monitorInfo.WorkArea.Top, monitorInfo.WorkArea.Bottom - height);
+
+        SetWindowPos(
+            menuHandle,
+            IntPtr.Zero,
+            x,
+            y,
+            0,
+            0,
+            SetWindowPosNoSize | SetWindowPosNoZOrder | SetWindowPosNoActivate);
     }
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr hWnd, out NativeRect rect);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(NativePoint point, uint flags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo monitorInfo);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
+
+    private const uint MonitorDefaultToNearest = 2;
+    private const uint SetWindowPosNoSize = 0x0001;
+    private const uint SetWindowPosNoZOrder = 0x0004;
+    private const uint SetWindowPosNoActivate = 0x0010;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct MonitorInfo
+    {
+        public int Size;
+        public NativeRect Monitor;
+        public NativeRect WorkArea;
+        public uint Flags;
+    }
 
     private static void InvokeOnUi(Action? action)
     {
