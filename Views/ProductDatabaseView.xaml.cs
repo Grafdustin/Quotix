@@ -18,6 +18,10 @@ public partial class ProductDatabaseView : UserControl
     private ProductDatabaseViewModel? _currentVM;
     private ProductRowViewModel? _expandedRow;
     private bool _isRightDeselecting;
+    private int _rightDeselectAnchorRow = -1;
+    private int _rightDeselectAnchorColumn = -1;
+    private int _rightDeselectLastRow = -1;
+    private int _rightDeselectLastColumn = -1;
     private readonly DispatcherTimer _copyToastTimer = new()
     {
         Interval = TimeSpan.FromMilliseconds(1500)
@@ -201,9 +205,17 @@ public partial class ProductDatabaseView : UserControl
         if (cell == null)
             return;
 
+        var rowIndex = ProductsGrid.Items.IndexOf(cell.DataContext);
+        if (rowIndex < 0)
+            return;
+
         _isRightDeselecting = true;
+        _rightDeselectAnchorRow = rowIndex;
+        _rightDeselectAnchorColumn = cell.Column.DisplayIndex;
+        _rightDeselectLastRow = -1;
+        _rightDeselectLastColumn = -1;
         ProductsGrid.CaptureMouse();
-        DeselectCell(cell);
+        DeselectRangeToCell(cell);
         e.Handled = true;
     }
 
@@ -219,7 +231,7 @@ public partial class ProductDatabaseView : UserControl
         }
 
         var hit = ProductsGrid.InputHitTest(e.GetPosition(ProductsGrid)) as DependencyObject;
-        DeselectCell(FindVisualParent<DataGridCell>(hit));
+        DeselectRangeToCell(FindVisualParent<DataGridCell>(hit));
         e.Handled = true;
     }
 
@@ -229,25 +241,61 @@ public partial class ProductDatabaseView : UserControl
             return;
 
         var hit = ProductsGrid.InputHitTest(e.GetPosition(ProductsGrid)) as DependencyObject;
-        DeselectCell(FindVisualParent<DataGridCell>(hit));
+        DeselectRangeToCell(FindVisualParent<DataGridCell>(hit));
         EndRightDeselect();
         e.Handled = true;
     }
 
     private void ProductsGrid_LostMouseCapture(object sender, MouseEventArgs e)
-        => _isRightDeselecting = false;
+        => ResetRightDeselectState();
 
-    private static void DeselectCell(DataGridCell? cell)
+    private void DeselectRangeToCell(DataGridCell? cell)
     {
-        if (cell?.IsSelected == true)
-            cell.IsSelected = false;
+        if (cell == null || _rightDeselectAnchorRow < 0 || _rightDeselectAnchorColumn < 0)
+            return;
+
+        var targetRow = ProductsGrid.Items.IndexOf(cell.DataContext);
+        var targetColumn = cell.Column.DisplayIndex;
+        if (targetRow < 0
+            || targetRow == _rightDeselectLastRow && targetColumn == _rightDeselectLastColumn)
+            return;
+
+        _rightDeselectLastRow = targetRow;
+        _rightDeselectLastColumn = targetColumn;
+
+        var firstRow = Math.Min(_rightDeselectAnchorRow, targetRow);
+        var lastRow = Math.Max(_rightDeselectAnchorRow, targetRow);
+        var firstColumn = Math.Min(_rightDeselectAnchorColumn, targetColumn);
+        var lastColumn = Math.Max(_rightDeselectAnchorColumn, targetColumn);
+
+        var cellsToRemove = ProductsGrid.SelectedCells
+            .Where(selectedCell =>
+            {
+                var rowIndex = ProductsGrid.Items.IndexOf(selectedCell.Item);
+                var columnIndex = selectedCell.Column.DisplayIndex;
+                return rowIndex >= firstRow && rowIndex <= lastRow
+                    && columnIndex >= firstColumn && columnIndex <= lastColumn;
+            })
+            .ToArray();
+
+        foreach (var selectedCell in cellsToRemove)
+            ProductsGrid.SelectedCells.Remove(selectedCell);
     }
 
     private void EndRightDeselect()
     {
-        _isRightDeselecting = false;
+        ResetRightDeselectState();
         if (ProductsGrid.IsMouseCaptured)
             ProductsGrid.ReleaseMouseCapture();
+    }
+
+    private void ResetRightDeselectState()
+    {
+        _isRightDeselecting = false;
+        _rightDeselectAnchorRow = -1;
+        _rightDeselectAnchorColumn = -1;
+        _rightDeselectLastRow = -1;
+        _rightDeselectLastColumn = -1;
     }
 
     private void CopySelectedCellsAsImage()
@@ -255,22 +303,25 @@ public partial class ProductDatabaseView : UserControl
         if (_currentVM == null || ProductsGrid.SelectedCells.Count == 0)
             return;
 
-        var selectedRows = ProductsGrid.SelectedCells
-            .Select(cell => ProductsGrid.Items.IndexOf(cell.Item))
-            .Where(index => index >= 0)
-            .ToArray();
-        var selectedColumns = ProductsGrid.SelectedCells
-            .Select(cell => cell.Column.DisplayIndex)
-            .ToArray();
-        if (selectedRows.Length == 0 || selectedColumns.Length == 0)
+        var selectedCells = ProductsGrid.SelectedCells
+            .Select(cell => (
+                Row: ProductsGrid.Items.IndexOf(cell.Item),
+                Column: cell.Column.DisplayIndex))
+            .Where(cell => cell.Row >= 0)
+            .ToHashSet();
+        if (selectedCells.Count == 0)
             return;
 
-        var firstRow = selectedRows.Min();
-        var lastRow = selectedRows.Max();
-        var firstColumn = selectedColumns.Min();
-        var lastColumn = selectedColumns.Max();
+        var selectedRows = selectedCells
+            .Select(cell => cell.Row)
+            .Distinct()
+            .OrderBy(index => index)
+            .ToArray();
+        var selectedColumns = selectedCells
+            .Select(cell => cell.Column)
+            .ToHashSet();
         var columns = ProductsGrid.Columns
-            .Where(column => column.DisplayIndex >= firstColumn && column.DisplayIndex <= lastColumn)
+            .Where(column => selectedColumns.Contains(column.DisplayIndex))
             .OrderBy(column => column.DisplayIndex)
             .ToArray();
 
@@ -278,13 +329,15 @@ public partial class ProductDatabaseView : UserControl
             .Select(column => column.Header?.ToString() ?? "")
             .ToArray();
         var rows = new List<IReadOnlyList<string>>();
-        for (var rowIndex = firstRow; rowIndex <= lastRow; rowIndex++)
+        foreach (var rowIndex in selectedRows)
         {
             if (ProductsGrid.Items[rowIndex] is not ProductRowViewModel row)
                 continue;
 
-            rows.Add(headers
-                .Select(header => GetCaptureCellText(row, header))
+            rows.Add(columns
+                .Select(column => selectedCells.Contains((rowIndex, column.DisplayIndex))
+                    ? GetCaptureCellText(row, column.Header?.ToString() ?? "")
+                    : "")
                 .ToArray());
         }
 
