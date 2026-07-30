@@ -25,6 +25,8 @@ public sealed class UpdatePipeline : IDisposable
 
     public UpdatePipeline()
     {
+        ScheduleUpdaterRuntimeCleanup();
+
         _httpClient = new HttpClient(new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
@@ -90,10 +92,8 @@ public sealed class UpdatePipeline : IDisposable
                 throw new FileNotFoundException("未找到独立更新程序，请重新安装 Quotix", sourceExecutable);
 
             var runtimeDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Quotix",
-                "UpdaterRuntime",
-                _currentUpdateInfo.Version);
+                GetTemporaryUpdaterRuntimeRoot(),
+                $"{_currentUpdateInfo.Version}-{Guid.NewGuid():N}");
             CopyDirectory(sourceDirectory, runtimeDirectory);
 
             var requestPath = Path.Combine(runtimeDirectory, "update-request.json");
@@ -320,6 +320,69 @@ public sealed class UpdatePipeline : IDisposable
             Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
             File.Copy(file, targetPath, true);
         }
+    }
+
+    private static string GetTemporaryUpdaterRuntimeRoot()
+        => Path.Combine(Path.GetTempPath(), "Quotix", "UpdaterRuntime");
+
+    private static void ScheduleUpdaterRuntimeCleanup()
+    {
+        var roots = new[]
+        {
+            GetTemporaryUpdaterRuntimeRoot(),
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Quotix",
+                "UpdaterRuntime")
+        };
+        var staleDirectories = roots
+            .Where(Directory.Exists)
+            .SelectMany(root =>
+            {
+                try
+                {
+                    return Directory.GetDirectories(root);
+                }
+                catch
+                {
+                    return Array.Empty<string>();
+                }
+            })
+            .ToArray();
+
+        if (staleDirectories.Length == 0)
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            foreach (var directory in staleDirectories)
+            {
+                try
+                {
+                    Directory.Delete(directory, recursive: true);
+                }
+                catch
+                {
+                    // A running updater is cleaned on the next Quotix startup.
+                }
+            }
+
+            foreach (var root in roots)
+            {
+                try
+                {
+                    if (Directory.Exists(root)
+                        && !Directory.EnumerateFileSystemEntries(root).Any())
+                    {
+                        Directory.Delete(root);
+                    }
+                }
+                catch
+                {
+                }
+            }
+        });
     }
 
     private static string GetInstallDirectory()
