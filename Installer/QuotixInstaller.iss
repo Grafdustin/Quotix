@@ -9,9 +9,9 @@ AppPublisher=Grafdustin
 AppPublisherURL=https://github.com/Grafdustin/Quotix
 DefaultDirName={localappdata}\Programs\Quotix
 DefaultGroupName=Quotix
-OutputDir=.\Out
+OutputDir={#SourcePath}\Out
 OutputBaseFilename=Quotix_Setup_{#MyAppVersion}
-SetupIconFile=.\Staging\Launcher\Resources\app.ico
+SetupIconFile={#SourcePath}\..\Resources\app.ico
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=lowest
@@ -38,7 +38,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; ── Launcher：主程序 + 所有 DLL 和运行时文件 ──
-Source: ".\Staging\Launcher\*"; DestDir: "{app}\Launcher"; Flags: ignoreversion recursesubdirs
+Source: "{#SourcePath}\Staging\Launcher\*"; DestDir: "{app}\Launcher"; Flags: ignoreversion recursesubdirs
 
 [Dirs]
 ; ── Data：运行时数据目录（数据库、设置、日志）──

@@ -58,6 +58,16 @@ jobs:
           if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Force -Path $destDir | Out-Null }
           Copy-Item $_.FullName -Destination $destPath -Force
         }
+        $requiredFiles = @(
+          "Resources/app.ico",
+          "$stagingDir/Quotix.exe",
+          "$stagingDir/Updater/Quotix.Updater.exe"
+        )
+        foreach ($requiredFile in $requiredFiles) {
+          if (-not (Test-Path -LiteralPath $requiredFile)) {
+            throw "Required installer resource not found: $requiredFile"
+          }
+        }
         Write-Host "Staging prepared"
       shell: pwsh
 
