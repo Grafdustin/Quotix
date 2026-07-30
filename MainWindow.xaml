@@ -261,6 +261,13 @@
                                         common:FloatingTextPreview.IsEnabled="False"
                                         VerticalContentAlignment="Center"/>
 
+                            <ComboBox x:Name="DialogChoiceBox"
+                                      Visibility="Collapsed"
+                                      Width="420"
+                                      Height="36"
+                                      FontSize="13"
+                                      HorizontalAlignment="Stretch"/>
+
                             <ui:TextBlock x:Name="DialogInputErrorText"
                                           Visibility="Collapsed"
                                           Width="420"

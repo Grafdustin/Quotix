@@ -568,7 +568,9 @@ public partial class MainWindow : FluentWindow
         _dialogResult = true;
         _dialogInputResult = DialogInputBox.Visibility == Visibility.Visible
             ? DialogInputBox.Text
-            : null;
+            : DialogChoiceBox.Visibility == Visibility.Visible
+                ? DialogChoiceBox.SelectedItem as string
+                : null;
         DialogOverlay.Visibility = Visibility.Collapsed;
         _dialogFrame!.Continue = false;
     }
@@ -600,6 +602,8 @@ public partial class MainWindow : FluentWindow
         DialogIcon.Symbol = icon;
         DialogInputBox.Visibility = Visibility.Collapsed;
         DialogInputBox.Text = "";
+        DialogChoiceBox.Visibility = Visibility.Collapsed;
+        DialogChoiceBox.ItemsSource = null;
         DialogInputErrorText.Visibility = Visibility.Collapsed;
         DialogInputErrorText.Text = "";
         _dialogInputValidator = null;
@@ -652,6 +656,8 @@ public partial class MainWindow : FluentWindow
         DialogIcon.Symbol = icon;
         DialogInputBox.Text = initialValue;
         DialogInputBox.Visibility = Visibility.Visible;
+        DialogChoiceBox.Visibility = Visibility.Collapsed;
+        DialogChoiceBox.ItemsSource = null;
         DialogInputErrorText.Visibility = Visibility.Collapsed;
         DialogInputErrorText.Text = "";
         _dialogInputValidator = validator;
@@ -664,6 +670,50 @@ public partial class MainWindow : FluentWindow
         DialogOverlay.UpdateLayout();
         DialogInputBox.Focus();
         DialogInputBox.SelectAll();
+
+        _dialogResult = false;
+        _dialogInputResult = null;
+        _dialogFrame = new DispatcherFrame();
+        Dispatcher.PushFrame(_dialogFrame);
+
+        return _dialogResult ? _dialogInputResult : null;
+    }
+
+    /// <summary>
+    /// 程序内嵌选项弹窗，返回用户选择的项目；取消时返回 null。
+    /// </summary>
+    public string? ShowInlineChoiceDialog(
+        string title,
+        string message,
+        IReadOnlyList<string> choices,
+        SymbolRegular icon,
+        string primaryText,
+        string cancelText)
+    {
+        Dispatcher.VerifyAccess();
+
+        if (choices.Count == 0)
+            return null;
+
+        DialogTitle.Text = title;
+        DialogMessage.Text = message;
+        DialogIcon.Symbol = icon;
+        DialogInputBox.Visibility = Visibility.Collapsed;
+        DialogInputBox.Text = "";
+        DialogChoiceBox.ItemsSource = choices;
+        DialogChoiceBox.SelectedIndex = 0;
+        DialogChoiceBox.Visibility = Visibility.Visible;
+        DialogInputErrorText.Visibility = Visibility.Collapsed;
+        DialogInputErrorText.Text = "";
+        _dialogInputValidator = null;
+        DialogPrimaryBtn.Content = primaryText;
+        DialogCancelBtn.Content = cancelText;
+        DialogCancelBtn.Visibility = Visibility.Visible;
+
+        Panel.SetZIndex(DialogOverlay, 1001);
+        DialogOverlay.Visibility = Visibility.Visible;
+        DialogOverlay.UpdateLayout();
+        DialogChoiceBox.Focus();
 
         _dialogResult = false;
         _dialogInputResult = null;

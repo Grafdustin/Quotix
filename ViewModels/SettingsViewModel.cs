@@ -265,9 +265,22 @@ public partial class SettingsViewModel : ObservableObject
         try
         {
             var tableName = SelectedDatabase.TableName;
+            var worksheetNames = await Task.Run(() =>
+                _productImport.GetWorksheetNames(dialog.FileName));
+            var worksheetName = worksheetNames.Count > 1
+                ? _dialog.ShowChoice("该文件包含多个工作表，请选择需要导入的页面。", worksheetNames, "选择工作表")
+                : worksheetNames.FirstOrDefault();
+
+            if (worksheetName == null)
+                return;
+
             var progress = new Progress<int>(p => SendProgress(true, p, $"正在解析 Excel 数据... {p}%"));
             var count = await Task.Run(() =>
-                _productImport.ImportFromExcel(dialog.FileName, tableName, progress));
+                _productImport.ImportFromExcel(
+                    dialog.FileName,
+                    tableName,
+                    progress,
+                    worksheetName));
 
             resultMsg = $"成功导入 {count} 条产品数据到 {SelectedDatabase.Label}";
             RefreshQuickInputColumns(tableName);

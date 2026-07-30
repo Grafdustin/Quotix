@@ -54,6 +54,22 @@ public class DialogService
             ValidateFilename);
     }
 
+    /// <summary>显示选项弹窗，确认时返回选中项，取消时返回 null。</summary>
+    public string? ShowChoice(
+        string message,
+        IReadOnlyList<string> choices,
+        string title = "请选择")
+    {
+        var mainWindow = Application.Current?.MainWindow as MainWindow;
+        return mainWindow?.ShowInlineChoiceDialog(
+            title,
+            message,
+            choices,
+            SymbolRegular.DocumentBulletList24,
+            "导入",
+            "取消");
+    }
+
     private static string? ValidateFilename(string value)
     {
         if (string.IsNullOrWhiteSpace(value))

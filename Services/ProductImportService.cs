@@ -24,8 +24,41 @@ public class ProductImportService
         _cache = cache;
     }
 
-    /// <summary>从 Excel 导入产品（事务保护）</summary>
-    public int ImportFromExcel(string filePath, string tableName, IProgress<int>? progress = null)
+    /// <summary>读取 Excel 中可导入的工作表名称。</summary>
+    public IReadOnlyList<string> GetWorksheetNames(string filePath)
+    {
+        try
+        {
+            using var fileStream = new FileStream(
+                filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite);
+            using var ms = new MemoryStream();
+            fileStream.CopyTo(ms);
+            ms.Position = 0;
+
+            using var workbook = new XLWorkbook(ms);
+            return workbook.Worksheets.Select(worksheet => worksheet.Name).ToList();
+        }
+        catch (IOException ex)
+        {
+            throw new IOException($"无法访问文件 '{filePath}'，请确认文件仍然存在。", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                "无法读取 Excel 工作表，请确认文件未加密且为有效的 .xlsx 格式。",
+                ex);
+        }
+    }
+
+    /// <summary>从 Excel 的指定工作表导入产品（事务保护）</summary>
+    public int ImportFromExcel(
+        string filePath,
+        string tableName,
+        IProgress<int>? progress = null,
+        string? worksheetName = null)
     {
         // 先复制到安装目录下 Data 文件夹的临时文件，避免原文件被 Excel 等进程锁定
         string dataDir = AppPaths.DataDir;
@@ -57,7 +90,11 @@ public class ProductImportService
                 ms.Position = 0;
 
                 using var workbook = new XLWorkbook(ms);
-                var worksheet = workbook.Worksheets.First();
+                var worksheet = string.IsNullOrWhiteSpace(worksheetName)
+                    ? workbook.Worksheets.First()
+                    : workbook.Worksheets.FirstOrDefault(
+                        item => string.Equals(item.Name, worksheetName, StringComparison.Ordinal))
+                      ?? throw new InvalidOperationException($"工作表“{worksheetName}”不存在，请重新选择文件。");
                 var rows = worksheet.RowsUsed().ToList();
                 if (rows.Count < 2) return 0;
 
