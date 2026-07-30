@@ -98,24 +98,38 @@ public class ProductImportService
                 var rows = worksheet.RowsUsed().ToList();
                 if (rows.Count < 2) return 0;
 
-                var headerRow = rows[0];
-                var headers = new List<string>();
-                foreach (var cell in headerRow.Cells())
-                    headers.Add(cell.GetString().Trim());
+                var headerRow = FindHeaderRow(worksheet, rows);
+                var firstColumn = worksheet.FirstColumnUsed()?.ColumnNumber() ?? 1;
+                var lastColumn = worksheet.LastColumnUsed()?.ColumnNumber() ?? firstColumn;
+                var headers = new List<(int ColumnNumber, string Name)>();
+                for (int column = firstColumn; column <= lastColumn; column++)
+                {
+                    var name = headerRow.Cell(column).GetString().Trim();
+                    if (!string.IsNullOrWhiteSpace(name))
+                        headers.Add((column, name));
+                }
+
+                if (headers.Count == 0) return 0;
 
                 var now = DateTime.Now.ToString(Constants.DateTimeFormat);
                 var products = new List<Product>();
+                var dataRows = rows
+                    .Where(row => row.RowNumber() > headerRow.RowNumber())
+                    .ToList();
 
-                for (int i = 1; i < rows.Count; i++)
+                for (int i = 0; i < dataRows.Count; i++)
                 {
-                    var row = rows[i];
+                    var row = dataRows[i];
                     var data = new Dictionary<string, string>();
-                    for (int j = 0; j < headers.Count; j++)
+                    foreach (var header in headers)
                     {
-                        var val = row.Cell(j + 1).GetString().Trim();
+                        var val = row.Cell(header.ColumnNumber).GetString().Trim();
                         if (!string.IsNullOrEmpty(val))
-                            data[headers[j]] = val;
+                            data[header.Name] = val;
                     }
+
+                    if (data.Count == 0)
+                        continue;
 
                     products.Add(new Product
                     {
@@ -127,7 +141,7 @@ public class ProductImportService
                         UpdatedAt = now
                     });
 
-                    progress?.Report((i + 1) * 100 / rows.Count);
+                    progress?.Report((i + 1) * 100 / dataRows.Count);
                 }
 
                 using var conn = _db.GetConnection();
@@ -164,6 +178,47 @@ public class ProductImportService
             // 清理临时文件（无论成功或失败都会删除）
             SafeDeleteTempFile(tempPath);
         }
+    }
+
+    private static IXLRow FindHeaderRow(IXLWorksheet worksheet, IReadOnlyList<IXLRow> rows)
+    {
+        if (worksheet.AutoFilter.IsEnabled && worksheet.AutoFilter.Range != null)
+        {
+            var rowNumber = worksheet.AutoFilter.Range.RangeAddress.FirstAddress.RowNumber;
+            return worksheet.Row(rowNumber);
+        }
+
+        var firstColumn = worksheet.FirstColumnUsed()?.ColumnNumber() ?? 1;
+        var lastColumn = worksheet.LastColumnUsed()?.ColumnNumber() ?? firstColumn;
+        var candidates = rows
+            .Take(25)
+            .Select(row =>
+            {
+                var cells = row.Cells(firstColumn, lastColumn)
+                    .Where(cell => !string.IsNullOrWhiteSpace(cell.GetString()))
+                    .ToList();
+                return new
+                {
+                    Row = row,
+                    CellCount = cells.Count,
+                    BoldCellCount = cells.Count(cell => cell.Style.Font.Bold)
+                };
+            })
+            .Where(candidate => candidate.CellCount > 0)
+            .ToList();
+
+        if (candidates.Count == 0)
+            return rows[0];
+
+        var maximumCellCount = candidates.Max(candidate => candidate.CellCount);
+        var minimumHeaderCells = Math.Max(2, (int)Math.Ceiling(maximumCellCount * 0.6));
+        var likelyHeaders = candidates
+            .Where(candidate => candidate.CellCount >= minimumHeaderCells)
+            .ToList();
+
+        return likelyHeaders.FirstOrDefault(candidate => candidate.BoldCellCount >= 2)?.Row
+               ?? likelyHeaders.FirstOrDefault()?.Row
+               ?? candidates[0].Row;
     }
 
     /// <summary>检测 Excel 文件是否启用了 Office 密码保护（加密）。</summary>
