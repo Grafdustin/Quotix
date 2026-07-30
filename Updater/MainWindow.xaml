@@ -39,7 +39,9 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel>
-                    <TextBlock Text="正在更新"
+                    <TextBlock x:Name="StatusText"
+                               Text="等待中..."
+                               TextWrapping="Wrap"
                                Foreground="{StaticResource PrimaryTextBrush}"
                                FontSize="21" FontWeight="SemiBold"/>
                     <TextBlock x:Name="VersionText" Margin="0,5,0,0"
@@ -48,13 +50,8 @@
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,12,0,8">
-                    <TextBlock x:Name="StatusText"
-                               Text="等待中..."
-                               TextWrapping="Wrap"
-                               Foreground="{StaticResource PrimaryTextBrush}"
-                               FontSize="14"/>
                     <ProgressBar x:Name="DownloadProgress"
-                                 Height="6" Margin="0,14,0,9"
+                                 Height="6" Margin="0,0,0,9"
                                  Minimum="0" Maximum="100"
                                  Foreground="{StaticResource AccentBrush}"
                                  Background="#E4E7EA">

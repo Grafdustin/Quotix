@@ -31,7 +31,7 @@ public partial class MainWindow : Window
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Quotix-Updater");
 
         InitializeComponent();
-        VersionText.Text = $"目标版本 v{_request.Version}";
+        VersionText.Text = $"v{_request.Version}";
         Loaded += async (_, _) => await RunUpdateAsync();
         Closed += (_, _) =>
         {
