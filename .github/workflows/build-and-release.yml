@@ -39,8 +39,11 @@ jobs:
 
     - name: Build and Publish
       run: |
+        $ErrorActionPreference = "Stop"
         dotnet publish QuotixDesktop.csproj -c Release -r win-x64 --self-contained true -p:Version=${{ steps.meta.outputs.VERSION }} -o publish
+        if ($LASTEXITCODE -ne 0) { throw "Quotix publish failed" }
         dotnet publish Updater/Quotix.Updater.csproj -c Release -p:Version=${{ steps.meta.outputs.VERSION }} -o publish/Updater
+        if ($LASTEXITCODE -ne 0) { throw "Updater publish failed" }
       shell: pwsh
 
     - name: Prepare Staging

@@ -58,7 +58,10 @@
     </Content>
   </ItemGroup>
   <Target Name="CopyUpdaterAfterBuild" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
-    <MSBuild Projects="$(MSBuildProjectDirectory)\Updater\Quotix.Updater.csproj" Targets="Build" Properties="Configuration=$(Configuration)" />
+    <MSBuild Projects="$(MSBuildProjectDirectory)\Updater\Quotix.Updater.csproj"
+             Targets="Build"
+             Properties="Configuration=$(Configuration)"
+             RemoveProperties="RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained" />
     <RemoveDir Directories="$(OutDir)Updater" />
     <ItemGroup>
       <UpdaterBuildOutput Include="$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net48\**\*" Exclude="$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net48\**\*.pdb;$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net48\**\*.xml" />
