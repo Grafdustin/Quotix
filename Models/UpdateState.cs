@@ -136,7 +136,7 @@ public partial class UpdateState : ObservableObject
     public string ProgressDisplay => $"{(int)Progress}%";
 
     /// <summary>文件大小显示文本</summary>
-    public string FileSizeDisplay => FormatSize(FileSize);
+    public string FileSizeDisplay => FileSize > 0 ? FormatSize(FileSize) : "";
 
     // ─── 属性变更联动 ───
 

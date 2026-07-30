@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Runtime.Versioning;
 using System.Text;
@@ -24,6 +25,8 @@ namespace Quotix.Services
         private readonly HttpClient _httpClient;
         private readonly string _repoOwner = "Grafdustin";
         private readonly string _repoName   = "Quotix";
+        private static readonly TimeSpan MetadataRequestTimeout = TimeSpan.FromSeconds(8);
+        private static readonly TimeSpan DownloadProbeTimeout = TimeSpan.FromSeconds(8);
 
         /// <summary>当前检测到的更新信息（供 DownloadAsync 使用，不做时间缓存）</summary>
         private UpdateInfo? _currentUpdateInfo;
@@ -54,7 +57,16 @@ namespace Quotix.Services
         /// </summary>
         public UpdatePipeline()
         {
-            _httpClient = new HttpClient();
+            var handler = new SocketsHttpHandler
+            {
+                AutomaticDecompression = DecompressionMethods.All,
+                ConnectTimeout = TimeSpan.FromSeconds(6),
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+            };
+            _httpClient = new HttpClient(handler)
+            {
+                Timeout = Timeout.InfiniteTimeSpan
+            };
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Quotix-Update-Checker");
             // 接受 GitHub API v3 JSON 响应
             _httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github.v3+json");
@@ -73,6 +85,7 @@ namespace Quotix.Services
         {
             State.Stage    = UpdateStage.Checking;
             State.Message  = "正在检查更新...";
+            State.Error    = "";
             State.IsCancelVisible = false;
 
             try
@@ -169,7 +182,9 @@ namespace Quotix.Services
                 var tempFilePath = filePath + ".download";
 
                 Exception? lastDownloadError = null;
-                foreach (var downloadUrl in GetDownloadUrls(updateInfo.DownloadUrl))
+                State.Message = "正在选择最快下载线路...";
+                var orderedDownloadUrls = await GetDownloadUrlsBySpeedAsync(updateInfo.DownloadUrl, token);
+                foreach (var downloadUrl in orderedDownloadUrls)
                 {
                     TryDeleteFile(tempFilePath);
                     State.Message = downloadUrl == updateInfo.DownloadUrl
@@ -197,11 +212,11 @@ namespace Quotix.Services
                         State.TotalBytes = totalBytes > 0 ? totalBytes : 0;
 
                         var totalRead = 0L;
-                        var buffer = new byte[8192];
+                        var buffer = new byte[131072];
 
                         using (var contentStream = await response.Content.ReadAsStreamAsync(token))
                         using (var fileStream = new FileStream(
-                            tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
+                            tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 131072, true))
                         {
                             while (true)
                             {
@@ -389,11 +404,17 @@ namespace Quotix.Services
             {
                 // 调用 GitHub API 获取最新 Release（无 CDN 缓存）
                 var apiUrl = $"https://api.github.com/repos/{_repoOwner}/{_repoName}/releases/latest";
-                var response = await _httpClient.GetAsync(apiUrl);
+                using var requestCts = new CancellationTokenSource(MetadataRequestTimeout);
+                using var response = await _httpClient.GetAsync(
+                    apiUrl,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    requestCts.Token);
                 response.EnsureSuccessStatusCode();
 
-                using var stream = await response.Content.ReadAsStreamAsync();
-                using var doc    = await JsonDocument.ParseAsync(stream);
+                using var stream = await response.Content.ReadAsStreamAsync(requestCts.Token);
+                using var doc = await JsonDocument.ParseAsync(
+                    stream,
+                    cancellationToken: requestCts.Token);
                 var           root  = doc.RootElement;
 
                 // 解析 tag_name（作为备用版本号）
@@ -442,18 +463,13 @@ namespace Quotix.Services
 
                 if (!string.IsNullOrEmpty(latestYmlUrl))
                 {
-                    try
+                    var ymlContent = await TryGetLatestYamlContentAsync(latestYmlUrl);
+                    if (!string.IsNullOrWhiteSpace(ymlContent))
                     {
-                        var ymlContent = await _httpClient.GetStringAsync(latestYmlUrl);
                         var (ymlVersion, ymlChangelog, _) = ParseLatestYaml(ymlContent);
                         if (!string.IsNullOrEmpty(ymlVersion))
                             version = ymlVersion;
                         changelog = ParseChangelog(ymlChangelog);
-                    }
-                    catch
-                    {
-                        // latest.yml 不可用时不读取 GitHub 提交日志，保持 changelog 为空
-                        changelog = Array.Empty<ChangelogEntry>();
                     }
                 }
                 // 没有 latest.yml 资产时不回退到 Release body，避免显示 GitHub commit 日志
@@ -485,9 +501,10 @@ namespace Quotix.Services
                 _currentUpdateInfo = null;
                 return null;
             }
-            catch
+            catch (Exception ex)
             {
-                return null;
+                _currentUpdateInfo = null;
+                throw new HttpRequestException("无法连接更新服务器，请检查网络后重试", ex);
             }
         }
 
@@ -498,22 +515,23 @@ namespace Quotix.Services
         {
             try
             {
-                var latestYmlUrl = $"https://github.com/{_repoOwner}/{_repoName}/releases/latest/download/latest.yml";
-                var ymlContent = await _httpClient.GetStringAsync(latestYmlUrl);
+                var ymlContent = await TryGetLatestYamlContentAsync();
+                if (string.IsNullOrWhiteSpace(ymlContent))
+                    return (false, null);
+
                 var (version, ymlChangelog, installerPath) = ParseLatestYaml(ymlContent);
 
                 if (string.IsNullOrWhiteSpace(version))
                     return (false, null);
 
                 var downloadUrl = BuildLatestDownloadUrl(version, installerPath);
-                var fileSize = await TryGetRemoteFileSizeAsync(downloadUrl);
                 var updateInfo = new UpdateInfo
                 {
                     Version     = version,
                     Build       = int.TryParse(version.Replace(".", ""), out var b) ? b : 0,
                     ReleaseDate = DateTime.Now.ToString("yyyy-MM-dd"),
                     DownloadUrl = downloadUrl,
-                    FileSize    = fileSize,
+                    FileSize    = 0,
                     Mandatory   = false,
                     Changelog   = ParseChangelog(ymlChangelog)
                 };
@@ -539,20 +557,75 @@ namespace Quotix.Services
         }
 
         /// <summary>
-        /// 尝试读取远程安装包大小；失败时返回 0，不影响更新检测。
+        /// 从多个地址并行读取 latest.yml，任一地址返回有效内容即可完成检测。
         /// </summary>
-        private async Task<long> TryGetRemoteFileSizeAsync(string url)
+        private async Task<string?> TryGetLatestYamlContentAsync(string? releaseAssetUrl = null)
         {
+            var cacheKey = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var directUrl = $"https://github.com/{_repoOwner}/{_repoName}/releases/latest/download/latest.yml?cache={cacheKey}";
+            var rawUrl = $"https://raw.githubusercontent.com/{_repoOwner}/{_repoName}/main/latest.yml?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+            var releaseUrls = new[]
+            {
+                releaseAssetUrl,
+                directUrl,
+                AccelerateGitHubUrl(directUrl)
+            }
+            .Where(url => !string.IsNullOrWhiteSpace(url))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Cast<string>()
+            .ToArray();
+
+            var releaseContent = await TryGetFirstValidLatestYamlAsync(releaseUrls);
+            if (!string.IsNullOrWhiteSpace(releaseContent))
+                return releaseContent;
+
+            // 仓库文件只作为最后回退，避免云端构建尚未发布完成时提前暴露新版本。
+            return await TryGetFirstValidLatestYamlAsync(new[] { rawUrl });
+        }
+
+        private async Task<string?> TryGetFirstValidLatestYamlAsync(IEnumerable<string> urls)
+        {
+            using var winnerCts = new CancellationTokenSource();
+            var pending = urls
+                .Select(url => TryDownloadTextAsync(url, winnerCts.Token))
+                .ToList();
+
+            while (pending.Count > 0)
+            {
+                var completed = await Task.WhenAny(pending);
+                pending.Remove(completed);
+                var content = await completed;
+                if (string.IsNullOrWhiteSpace(content))
+                    continue;
+
+                var (version, _, _) = ParseLatestYaml(content);
+                if (string.IsNullOrWhiteSpace(version))
+                    continue;
+
+                winnerCts.Cancel();
+                return content;
+            }
+
+            return null;
+        }
+
+        private async Task<string?> TryDownloadTextAsync(string url, CancellationToken cancellationToken)
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(MetadataRequestTimeout);
+
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Head, url);
-                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await _httpClient.GetAsync(
+                    url,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    timeoutCts.Token);
                 response.EnsureSuccessStatusCode();
-                return response.Content.Headers.ContentLength ?? 0;
+                return await response.Content.ReadAsStringAsync(timeoutCts.Token);
             }
             catch
             {
-                return 0;
+                return null;
             }
         }
 
@@ -925,7 +998,9 @@ namespace Quotix.Services
             if (string.IsNullOrEmpty(url))
                 return url;
 
-            if (url.Contains("github.com") && url.Contains("/releases/download/"))
+            if (url.Contains("github.com", StringComparison.OrdinalIgnoreCase)
+                && url.Contains("/releases/", StringComparison.OrdinalIgnoreCase)
+                && url.Contains("/download/", StringComparison.OrdinalIgnoreCase))
                 return $"https://ghfast.top/{url}";
 
             return url;
@@ -944,6 +1019,83 @@ namespace Quotix.Services
                 && !string.Equals(acceleratedUrl, url, StringComparison.OrdinalIgnoreCase))
             {
                 yield return url;
+            }
+        }
+
+        /// <summary>
+        /// 使用少量分段数据并行测试下载线路，优先选择当前网络下实际速度更快的地址。
+        /// </summary>
+        private async Task<IReadOnlyList<string>> GetDownloadUrlsBySpeedAsync(
+            string url,
+            CancellationToken cancellationToken)
+        {
+            var candidates = GetDownloadUrls(url)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (candidates.Length <= 1)
+                return candidates;
+
+            var probes = candidates.Select(async (candidate, index) =>
+            {
+                var speed = await ProbeDownloadSpeedAsync(candidate, cancellationToken);
+                return new { Url = candidate, Index = index, Speed = speed };
+            });
+            var results = await Task.WhenAll(probes);
+
+            return results
+                .OrderByDescending(result => result.Speed > 0)
+                .ThenByDescending(result => result.Speed)
+                .ThenBy(result => result.Index)
+                .Select(result => result.Url)
+                .ToArray();
+        }
+
+        private async Task<double> ProbeDownloadSpeedAsync(string url, CancellationToken cancellationToken)
+        {
+            const int probeSize = 512 * 1024;
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(DownloadProbeTimeout);
+
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, probeSize - 1);
+                var watch = Stopwatch.StartNew();
+                using var response = await _httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    timeoutCts.Token);
+                response.EnsureSuccessStatusCode();
+
+                await using var stream = await response.Content.ReadAsStreamAsync(timeoutCts.Token);
+                var buffer = new byte[65536];
+                var totalRead = 0;
+                while (totalRead < probeSize)
+                {
+                    var read = await stream.ReadAsync(
+                        buffer.AsMemory(0, Math.Min(buffer.Length, probeSize - totalRead)),
+                        timeoutCts.Token);
+                    if (read == 0)
+                        break;
+                    totalRead += read;
+                }
+
+                watch.Stop();
+                return totalRead > 0 && watch.Elapsed.TotalSeconds > 0
+                    ? totalRead / watch.Elapsed.TotalSeconds
+                    : 0;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return 0;
+            }
+            catch
+            {
+                return 0;
             }
         }
 
