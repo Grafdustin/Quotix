@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -14,7 +15,8 @@ public partial class MainWindow : Window
     private readonly UpdateRequest _request;
     private readonly HttpClient _httpClient;
     private CancellationTokenSource? _operationCts;
-    private bool _installStarted;
+    private bool _isUpdateRunning;
+    private bool _allowClose;
 
     public MainWindow(UpdateRequest request)
     {
@@ -53,11 +55,11 @@ public partial class MainWindow : Window
             var installerPath = await DownloadAndVerifyAsync(_operationCts.Token);
 
             StatusText.Text = "正在等待 Quotix 关闭...";
+            ClearDownloadMetrics();
             await WaitForMainProcessAsync(_operationCts.Token);
 
-            _installStarted = true;
-            CancelButton.IsEnabled = false;
-            StatusText.Text = "正在安装更新...";
+            StatusText.Text = "正在安装新版本...";
+            ClearDownloadMetrics();
             DownloadProgress.IsIndeterminate = true;
 
             await InstallAsync(installerPath, _operationCts.Token);
@@ -66,12 +68,8 @@ public partial class MainWindow : Window
 
             StatusText.Text = "更新完成，正在启动 Quotix...";
             StartMainApplication();
+            _allowClose = true;
             Application.Current.Shutdown();
-        }
-        catch (OperationCanceledException) when (!_installStarted)
-        {
-            StatusText.Text = "更新已取消";
-            ShowRecoveryActions();
         }
         catch (Exception ex)
         {
@@ -111,7 +109,8 @@ public partial class MainWindow : Window
             try
             {
                 await DownloadRouteAsync(route, partialPath, cancellationToken);
-                StatusText.Text = "正在校验安装包...";
+                StatusText.Text = "正在验证更新文件...";
+                ClearDownloadMetrics();
                 DownloadProgress.IsIndeterminate = true;
 
                 var actualHash = await ComputeSha256Async(partialPath, cancellationToken);
@@ -172,7 +171,7 @@ public partial class MainWindow : Window
             128 * 1024,
             useAsync: true);
 
-        StatusText.Text = "正在下载安装包...";
+        StatusText.Text = "正在下载更新文件...";
         DownloadProgress.IsIndeterminate = totalLength <= 0;
 
         var buffer = new byte[128 * 1024];
@@ -343,38 +342,55 @@ public partial class MainWindow : Window
     private async void RetryButton_Click(object sender, RoutedEventArgs e)
         => await RunUpdateAsync();
 
-    private void CancelButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (!_installStarted)
-            _operationCts?.Cancel();
-    }
-
     private void ReturnButton_Click(object sender, RoutedEventArgs e)
     {
         StartMainApplication();
+        _allowClose = true;
         Application.Current.Shutdown();
     }
 
     private void SetWorkingState()
     {
-        _installStarted = false;
+        _isUpdateRunning = true;
         RetryButton.Visibility = Visibility.Collapsed;
         ReturnButton.Visibility = Visibility.Collapsed;
-        CancelButton.Visibility = Visibility.Visible;
-        CancelButton.IsEnabled = true;
         DownloadProgress.IsIndeterminate = true;
         DownloadProgress.Value = 0;
         SizeText.Text = "";
         SpeedText.Text = "";
-        StatusText.Text = "正在选择下载线路...";
+        StatusText.Text = "正在连接更新服务器...";
     }
 
     private void ShowRecoveryActions()
     {
+        _isUpdateRunning = false;
         DownloadProgress.IsIndeterminate = false;
-        CancelButton.Visibility = Visibility.Collapsed;
+        ClearDownloadMetrics();
         RetryButton.Visibility = Visibility.Visible;
         ReturnButton.Visibility = Visibility.Visible;
+    }
+
+    private void ClearDownloadMetrics()
+    {
+        SizeText.Text = "";
+        SpeedText.Text = "";
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (_isUpdateRunning && !_allowClose)
+        {
+            e.Cancel = true;
+            return;
+        }
+
+        base.OnClosing(e);
+    }
+
+    private void TitleBar_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+            DragMove();
     }
 
     private static async Task<string> ComputeSha256Async(
