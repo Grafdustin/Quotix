@@ -358,7 +358,7 @@ public partial class MainWindow : Window
         DownloadProgress.Value = 0;
         SizeText.Text = "";
         SpeedText.Text = "";
-        StatusText.Text = "正在连接更新服务器...";
+        StatusText.Text = "等待中...";
     }
 
     private void ShowRecoveryActions()
