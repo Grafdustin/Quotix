@@ -71,8 +71,6 @@
                                                     Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
                                             <Setter TargetName="SelectionIndicator" Property="Visibility"
                                                     Value="Visible"/>
-                                            <Setter Property="Foreground"
-                                                    Value="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
                                         </Trigger>
                                         <!-- 仅未选中时悬停才显示淡背景，避免覆盖选中高亮 -->
                                         <MultiTrigger>

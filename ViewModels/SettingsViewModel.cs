@@ -259,7 +259,6 @@ public partial class SettingsViewModel : ObservableObject
 
         if (dialog.ShowDialog() != true) return;
 
-        SendProgress(true, 0, $"正在导入 {SelectedDatabase.Label}...");
         string? resultMsg = null;
         string? errorMsg = null;
         try
@@ -274,6 +273,7 @@ public partial class SettingsViewModel : ObservableObject
             if (worksheetName == null)
                 return;
 
+            SendProgress(true, 0, $"正在导入 {SelectedDatabase.Label}...");
             var progress = new Progress<int>(p => SendProgress(true, p, $"正在解析 Excel 数据... {p}%"));
             var count = await Task.Run(() =>
                 _productImport.ImportFromExcel(

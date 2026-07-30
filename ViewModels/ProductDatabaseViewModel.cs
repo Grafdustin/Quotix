@@ -342,9 +342,6 @@ public partial class ProductDatabaseViewModel : ObservableObject
         {
             try
             {
-                IsLoading = true;
-                StatusText = "正在读取工作表...";
-
                 var worksheetNames = await Task.Run(() =>
                     _importService.GetWorksheetNames(dialog.FileName));
                 var worksheetName = worksheetNames.Count > 1
@@ -354,6 +351,7 @@ public partial class ProductDatabaseViewModel : ObservableObject
                 if (worksheetName == null)
                     return;
 
+                IsLoading = true;
                 StatusText = "导入中...";
 
                 var count = await Task.Run(() =>
