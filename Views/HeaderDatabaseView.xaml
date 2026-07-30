@@ -33,6 +33,9 @@
                              <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex)}" Value="1">
                                  <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
                              </DataTrigger>
+                             <Trigger Property="IsMouseOver" Value="True">
+                                 <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}"/>
+                             </Trigger>
                              <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
                                  <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}"/>
                                  <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorPrimaryBrush}"/>
@@ -115,6 +118,9 @@
                              <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex)}" Value="1">
                                  <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
                              </DataTrigger>
+                             <Trigger Property="IsMouseOver" Value="True">
+                                 <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}"/>
+                             </Trigger>
                              <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
                                  <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}"/>
                              </DataTrigger>
@@ -162,7 +168,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Grid Margin="24,20,24,24">
+    <Grid Margin="{StaticResource AppPageMargin}">
         <Border Style="{StaticResource AppCardModern}">
             <Grid>
                 <Grid.RowDefinitions>
@@ -193,9 +199,9 @@
                             </Style>
                         </ui:TextBlock.Style>
                         <Run x:Name="RecordCountRun" Text="0"
-                             Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                         <Run Text="条记录"
-                             Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                     </ui:TextBlock>
 
                     <Border Grid.Column="1" CornerRadius="8" MinWidth="220" Height="34"
@@ -242,9 +248,9 @@
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Column="0" Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                            CornerRadius="10" Padding="4">
+                            CornerRadius="8" Padding="3">
                         <StackPanel Orientation="Horizontal">
-                            <Border CornerRadius="8" Padding="14,8" Margin="0,0,4,0" Cursor="Hand"
+                            <Border CornerRadius="6" Padding="13,7" Margin="0,0,3,0" Cursor="Hand"
                                     MouseLeftButtonDown="SwitchToOwner">
                                 <Border.Style>
                                     <Style TargetType="Border">
@@ -266,7 +272,7 @@
                                                   VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
-                            <Border CornerRadius="8" Padding="14,8" Margin="0,0,4,0" Cursor="Hand"
+                            <Border CornerRadius="6" Padding="13,7" Margin="0,0,3,0" Cursor="Hand"
                                     MouseLeftButtonDown="SwitchToCustomer">
                                 <Border.Style>
                                     <Style TargetType="Border">
@@ -288,7 +294,7 @@
                                                   VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
-                            <Border CornerRadius="8" Padding="14,8" Cursor="Hand"
+                            <Border CornerRadius="6" Padding="13,7" Cursor="Hand"
                                     MouseLeftButtonDown="SwitchToQuotationDescription">
                                 <Border.Style>
                                     <Style TargetType="Border">
@@ -515,16 +521,17 @@
         </Border>
 
         <!-- ═══ 新建弹窗（覆盖式居中卡片） ═══ -->
-        <Grid x:Name="AddDialogOverlay" Visibility="Collapsed" Panel.ZIndex="100">
+        <Grid x:Name="AddDialogOverlay" Visibility="Collapsed"
+              Background="#4D000000" Panel.ZIndex="100">
             <Border HorizontalAlignment="Center" VerticalAlignment="Center"
                     MinWidth="400" MaxWidth="480"
                     Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-                    CornerRadius="12"
+                    CornerRadius="8"
                     BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                     BorderThickness="1">
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="40" ShadowDepth="6"
-                                      Opacity="0.30" Color="Black"/>
+                    <DropShadowEffect BlurRadius="28" ShadowDepth="4"
+                                      Opacity="0.24" Color="Black"/>
                 </Border.Effect>
                 <Grid Margin="24,20,24,20">
 

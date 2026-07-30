@@ -31,6 +31,9 @@
                             <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex)}" Value="1">
                                 <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
                             </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}"/>
+                            </Trigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
@@ -57,7 +60,7 @@
                                       TextTrimming="CharacterEllipsis"
                                       Margin="0,1,0,0"/>
                     </StackPanel>
-                    <Grid Grid.Column="2" Margin="-15,0,0,0">
+                    <Grid Grid.Column="2">
                         <ui:TextBlock Text="{Binding CreatedAt}" FontSize="13"
                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                       VerticalAlignment="Center"
@@ -83,8 +86,7 @@
                     </Grid>
                     <StackPanel Grid.Column="4" Orientation="Horizontal"
                                 HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Margin="-15,0,0,0">
+                                VerticalAlignment="Center">
                         <ui:Button Appearance="Primary" Height="30" FontSize="12"
                                    MinWidth="52" Padding="8,0"
                                    CommandParameter="{Binding Id}"
@@ -109,7 +111,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Grid Margin="24,20,24,24">
+    <Grid Margin="{StaticResource AppPageMargin}">
         <Border Style="{StaticResource AppCardModern}">
             <Grid>
                 <Grid.RowDefinitions>
@@ -130,9 +132,9 @@
                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                   VerticalAlignment="Center">
                         <Run Text="{Binding Quotations.Count, Mode=OneWay, StringFormat={}{0}}"
-                             Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                         <Run Text="条记录"
-                             Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                     </ui:TextBlock>
 
                     <Border Grid.Column="1" CornerRadius="8" MinWidth="220" Height="34"
