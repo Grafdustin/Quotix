@@ -342,8 +342,34 @@ public partial class ProductDatabaseViewModel : ObservableObject
         {
             try
             {
-                var worksheetNames = await Task.Run(() =>
-                    _importService.GetWorksheetNames(dialog.FileName));
+                string? password = null;
+                IReadOnlyList<string> worksheetNames;
+                if (await Task.Run(() => _importService.IsPasswordProtected(dialog.FileName)))
+                {
+                    while (true)
+                    {
+                        password = _dialog.ShowPassword("该 Excel 文件已加密，请输入打开密码。");
+                        if (password == null)
+                            return;
+
+                        try
+                        {
+                            worksheetNames = await Task.Run(() =>
+                                _importService.GetWorksheetNames(dialog.FileName, password));
+                            break;
+                        }
+                        catch (ExcelPasswordException)
+                        {
+                            _dialog.ShowError("密码错误，请重新输入");
+                        }
+                    }
+                }
+                else
+                {
+                    worksheetNames = await Task.Run(() =>
+                        _importService.GetWorksheetNames(dialog.FileName));
+                }
+
                 var worksheetName = worksheetNames.Count > 1
                     ? _dialog.ShowChoice("该文件包含多个工作表，请选择需要导入的页面。", worksheetNames, "选择工作表")
                     : worksheetNames.FirstOrDefault();
@@ -358,12 +384,17 @@ public partial class ProductDatabaseViewModel : ObservableObject
                     _importService.ImportFromExcel(
                         dialog.FileName,
                         GetCurrentTableName(),
-                        worksheetName: worksheetName));
+                        worksheetName: worksheetName,
+                        password: password));
 
                 _dialog.ShowInfo($"成功导入 {count} 条产品数据", "导入成功");
                 // 广播产品数据变更，通知设置页快捷输入卡片刷新表头下拉项
                 WeakReferenceMessenger.Default.Send(new ProductDataChangedMessage(GetCurrentTableName()));
                 await LoadPageAsync(1);
+            }
+            catch (ExcelPasswordException)
+            {
+                _dialog.ShowError("密码错误，请重新输入");
             }
             catch (Exception ex)
             {

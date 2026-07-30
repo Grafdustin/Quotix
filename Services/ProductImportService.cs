@@ -1,12 +1,22 @@
 using System.IO;
-using System.IO.Compression;
+using System.Text;
 using System.Text.Json;
 using ClosedXML.Excel;
+using ExcelDataReader;
+using ExcelDataReader.Exceptions;
 using Quotix.Common;
 using Quotix.Models;
 using Quotix.Repositories;
 
 namespace Quotix.Services;
+
+public sealed class ExcelPasswordException : Exception
+{
+    public ExcelPasswordException(Exception innerException)
+        : base("密码错误，请重新输入", innerException)
+    {
+    }
+}
 
 /// <summary>
 /// 产品 Excel 导入服务 — 从 XLSX 解析并写入数据库
@@ -17,6 +27,11 @@ public class ProductImportService
     private readonly ProductRepository _repo;
     private readonly CacheService _cache;
 
+    static ProductImportService()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
+
     public ProductImportService(DatabaseProvider db, ProductRepository repo, CacheService cache)
     {
         _db = db;
@@ -25,7 +40,7 @@ public class ProductImportService
     }
 
     /// <summary>读取 Excel 中可导入的工作表名称。</summary>
-    public IReadOnlyList<string> GetWorksheetNames(string filePath)
+    public IReadOnlyList<string> GetWorksheetNames(string filePath, string? password = null)
     {
         try
         {
@@ -34,12 +49,21 @@ public class ProductImportService
                 FileMode.Open,
                 FileAccess.Read,
                 FileShare.ReadWrite);
-            using var ms = new MemoryStream();
-            fileStream.CopyTo(ms);
-            ms.Position = 0;
+            using var reader = ExcelReaderFactory.CreateReader(
+                fileStream,
+                new ExcelReaderConfiguration { Password = password });
+            var names = new List<string>();
+            do
+            {
+                names.Add(reader.Name);
+            }
+            while (reader.NextResult());
 
-            using var workbook = new XLWorkbook(ms);
-            return workbook.Worksheets.Select(worksheet => worksheet.Name).ToList();
+            return names;
+        }
+        catch (InvalidPasswordException ex)
+        {
+            throw new ExcelPasswordException(ex);
         }
         catch (IOException ex)
         {
@@ -58,7 +82,8 @@ public class ProductImportService
         string filePath,
         string tableName,
         IProgress<int>? progress = null,
-        string? worksheetName = null)
+        string? worksheetName = null,
+        string? password = null)
     {
         // 先复制到安装目录下 Data 文件夹的临时文件，避免原文件被 Excel 等进程锁定
         string dataDir = AppPaths.DataDir;
@@ -77,19 +102,15 @@ public class ProductImportService
 
             try
             {
-                // 检测 Office 密码保护（加密）
-                if (IsExcelEncrypted(tempPath))
-                {
-                    throw new InvalidOperationException("文件被加密，请解密后导入。");
-                }
-
                 // 读入内存流再打开：避免 XLWorkbook 持有文件句柄，导致异常时临时文件无法删除
                 using var fileStream = File.OpenRead(tempPath);
                 using var ms = new MemoryStream();
                 fileStream.CopyTo(ms);
                 ms.Position = 0;
 
-                using var workbook = new XLWorkbook(ms);
+                using var workbook = IsPasswordProtected(tempPath)
+                    ? ReadEncryptedWorkbook(ms, password, worksheetName)
+                    : new XLWorkbook(ms);
                 var worksheet = string.IsNullOrWhiteSpace(worksheetName)
                     ? workbook.Worksheets.First()
                     : workbook.Worksheets.FirstOrDefault(
@@ -165,6 +186,10 @@ public class ProductImportService
                 _cache.InvalidateProducts();
                 return products.Count;
             }
+            catch (InvalidPasswordException ex)
+            {
+                throw new ExcelPasswordException(ex);
+            }
             catch (InvalidOperationException) { throw; }   // 加密等明确提示，原样上抛
             catch (IOException) { throw; }                 // 文件访问错误，原样上抛
             catch (Exception ex)
@@ -178,6 +203,65 @@ public class ProductImportService
             // 清理临时文件（无论成功或失败都会删除）
             SafeDeleteTempFile(tempPath);
         }
+    }
+
+    /// <summary>检测工作簿是否需要打开密码。</summary>
+    public bool IsPasswordProtected(string filePath)
+    {
+        try
+        {
+            using var stream = new FileStream(
+                filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite);
+            using var reader = ExcelReaderFactory.CreateReader(stream);
+            return false;
+        }
+        catch (InvalidPasswordException)
+        {
+            return true;
+        }
+    }
+
+    private static XLWorkbook ReadEncryptedWorkbook(
+        Stream encryptedStream,
+        string? password,
+        string? worksheetName)
+    {
+        encryptedStream.Position = 0;
+        using var reader = ExcelReaderFactory.CreateReader(
+            encryptedStream,
+            new ExcelReaderConfiguration { Password = password });
+
+        do
+        {
+            if (!string.IsNullOrWhiteSpace(worksheetName)
+                && !string.Equals(reader.Name, worksheetName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add(reader.Name);
+            var rowNumber = 1;
+            while (reader.Read())
+            {
+                for (var column = 0; column < reader.FieldCount; column++)
+                {
+                    var value = reader.GetValue(column);
+                    if (value != null)
+                        worksheet.Cell(rowNumber, column + 1).Value = Convert.ToString(value) ?? "";
+                }
+
+                rowNumber++;
+            }
+
+            return workbook;
+        }
+        while (reader.NextResult());
+
+        throw new InvalidOperationException($"工作表“{worksheetName}”不存在，请重新选择文件。");
     }
 
     private static IXLRow FindHeaderRow(IXLWorksheet worksheet, IReadOnlyList<IXLRow> rows)
@@ -219,51 +303,6 @@ public class ProductImportService
         return likelyHeaders.FirstOrDefault(candidate => candidate.BoldCellCount >= 2)?.Row
                ?? likelyHeaders.FirstOrDefault()?.Row
                ?? candidates[0].Row;
-    }
-
-    /// <summary>检测 Excel 文件是否启用了 Office 密码保护（加密）。</summary>
-    /// <remarks>
-    /// 覆盖两种常见加密形式：
-    /// 1. OOXML 加密（.xlsx）：zip 包内含 EncryptedPackage / EncryptionInfo 部件；
-    /// 2. 旧版复合文档加密（.xls）：文件头为 OLE Compound File 魔数（D0 CF 11 E0 A1 B1 1A E1）。
-    /// </remarks>
-    private static bool IsExcelEncrypted(string path)
-    {
-        // 情况 1：OOXML 加密（.xlsx）
-        try
-        {
-            using var zip = ZipFile.OpenRead(path);
-            foreach (var entry in zip.Entries)
-            {
-                if (entry.Name.Equals("EncryptedPackage", StringComparison.OrdinalIgnoreCase)
-                    || entry.Name.Equals("EncryptionInfo", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-        catch (InvalidDataException)
-        {
-            // 不是合法 zip：检查是否为旧版 OLE 复合文档（加密 .xls）
-            try
-            {
-                var header = new byte[8];
-                using var fs = File.OpenRead(path);
-                if (fs.Read(header, 0, header.Length) == header.Length
-                    && header[0] == 0xD0 && header[1] == 0xCF && header[2] == 0x11 && header[3] == 0xE0
-                    && header[4] == 0xA1 && header[5] == 0xB1 && header[6] == 0x1A && header[7] == 0xE1)
-                {
-                    return true;
-                }
-            }
-            catch { /* ignore */ }
-            return false;
-        }
-        catch
-        {
-            return false;
-        }
     }
 
     /// <summary>安全删除导入临时文件：即使被占用也尽量清理，失败则忽略，避免残留。</summary>

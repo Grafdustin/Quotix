@@ -261,6 +261,13 @@
                                         common:FloatingTextPreview.IsEnabled="False"
                                         VerticalContentAlignment="Center"/>
 
+                            <ui:PasswordBox x:Name="DialogPasswordBox"
+                                            Visibility="Collapsed"
+                                            Width="420"
+                                            HorizontalAlignment="Stretch"
+                                            Height="36"
+                                            FontSize="13"/>
+
                             <ComboBox x:Name="DialogChoiceBox"
                                       Visibility="Collapsed"
                                       Width="420"

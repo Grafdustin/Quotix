@@ -264,8 +264,34 @@ public partial class SettingsViewModel : ObservableObject
         try
         {
             var tableName = SelectedDatabase.TableName;
-            var worksheetNames = await Task.Run(() =>
-                _productImport.GetWorksheetNames(dialog.FileName));
+            string? password = null;
+            IReadOnlyList<string> worksheetNames;
+            if (await Task.Run(() => _productImport.IsPasswordProtected(dialog.FileName)))
+            {
+                while (true)
+                {
+                    password = _dialog.ShowPassword("该 Excel 文件已加密，请输入打开密码。");
+                    if (password == null)
+                        return;
+
+                    try
+                    {
+                        worksheetNames = await Task.Run(() =>
+                            _productImport.GetWorksheetNames(dialog.FileName, password));
+                        break;
+                    }
+                    catch (ExcelPasswordException)
+                    {
+                        _dialog.ShowError("密码错误，请重新输入");
+                    }
+                }
+            }
+            else
+            {
+                worksheetNames = await Task.Run(() =>
+                    _productImport.GetWorksheetNames(dialog.FileName));
+            }
+
             var worksheetName = worksheetNames.Count > 1
                 ? _dialog.ShowChoice("该文件包含多个工作表，请选择需要导入的页面。", worksheetNames, "选择工作表")
                 : worksheetNames.FirstOrDefault();
@@ -280,11 +306,16 @@ public partial class SettingsViewModel : ObservableObject
                     dialog.FileName,
                     tableName,
                     progress,
-                    worksheetName));
+                    worksheetName,
+                    password));
 
             resultMsg = $"成功导入 {count} 条产品数据到 {SelectedDatabase.Label}";
             RefreshQuickInputColumns(tableName);
             WeakReferenceMessenger.Default.Send(new ProductDataChangedMessage(tableName));
+        }
+        catch (ExcelPasswordException)
+        {
+            errorMsg = "密码错误，请重新输入";
         }
         catch (Exception ex)
         {

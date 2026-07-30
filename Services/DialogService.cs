@@ -70,6 +70,18 @@ public class DialogService
             "取消");
     }
 
+    /// <summary>显示密码输入弹窗，确认时返回密码，取消时返回 null。</summary>
+    public string? ShowPassword(string message, string title = "输入 Excel 密码")
+    {
+        var mainWindow = Application.Current?.MainWindow as MainWindow;
+        return mainWindow?.ShowInlinePasswordDialog(
+            title,
+            message,
+            SymbolRegular.LockClosed20,
+            "继续",
+            "取消");
+    }
+
     private static string? ValidateFilename(string value)
     {
         if (string.IsNullOrWhiteSpace(value))

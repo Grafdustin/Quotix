@@ -544,6 +544,7 @@ public partial class MainWindow : FluentWindow
     {
         _dialogResult = false;
         _dialogInputResult = null;
+        DialogPasswordBox.Password = "";
         DialogOverlay.Visibility = Visibility.Collapsed;
         _dialogFrame!.Continue = false;
     }
@@ -566,11 +567,13 @@ public partial class MainWindow : FluentWindow
         }
 
         _dialogResult = true;
-        _dialogInputResult = DialogInputBox.Visibility == Visibility.Visible
-            ? DialogInputBox.Text
-            : DialogChoiceBox.Visibility == Visibility.Visible
-                ? DialogChoiceBox.SelectedItem as string
-                : null;
+        _dialogInputResult = DialogPasswordBox.Visibility == Visibility.Visible
+            ? DialogPasswordBox.Password
+            : DialogInputBox.Visibility == Visibility.Visible
+                ? DialogInputBox.Text
+                : DialogChoiceBox.Visibility == Visibility.Visible
+                    ? DialogChoiceBox.SelectedItem as string
+                    : null;
         DialogOverlay.Visibility = Visibility.Collapsed;
         _dialogFrame!.Continue = false;
     }
@@ -602,6 +605,8 @@ public partial class MainWindow : FluentWindow
         DialogIcon.Symbol = icon;
         DialogInputBox.Visibility = Visibility.Collapsed;
         DialogInputBox.Text = "";
+        DialogPasswordBox.Visibility = Visibility.Collapsed;
+        DialogPasswordBox.Password = "";
         DialogChoiceBox.Visibility = Visibility.Collapsed;
         DialogChoiceBox.ItemsSource = null;
         DialogInputErrorText.Visibility = Visibility.Collapsed;
@@ -656,6 +661,8 @@ public partial class MainWindow : FluentWindow
         DialogIcon.Symbol = icon;
         DialogInputBox.Text = initialValue;
         DialogInputBox.Visibility = Visibility.Visible;
+        DialogPasswordBox.Visibility = Visibility.Collapsed;
+        DialogPasswordBox.Password = "";
         DialogChoiceBox.Visibility = Visibility.Collapsed;
         DialogChoiceBox.ItemsSource = null;
         DialogInputErrorText.Visibility = Visibility.Collapsed;
@@ -680,6 +687,51 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
+    /// 程序内嵌密码输入弹窗，密码仅在本次导入流程中使用。
+    /// </summary>
+    public string? ShowInlinePasswordDialog(
+        string title,
+        string message,
+        SymbolRegular icon,
+        string primaryText,
+        string cancelText)
+    {
+        Dispatcher.VerifyAccess();
+
+        DialogTitle.Text = title;
+        DialogMessage.Text = message;
+        DialogIcon.Symbol = icon;
+        DialogInputBox.Visibility = Visibility.Collapsed;
+        DialogInputBox.Text = "";
+        DialogPasswordBox.Password = "";
+        DialogPasswordBox.Visibility = Visibility.Visible;
+        DialogChoiceBox.Visibility = Visibility.Collapsed;
+        DialogChoiceBox.ItemsSource = null;
+        DialogInputErrorText.Visibility = Visibility.Collapsed;
+        DialogInputErrorText.Text = "";
+        _dialogInputValidator = null;
+        DialogPrimaryBtn.Content = primaryText;
+        DialogCancelBtn.Content = cancelText;
+        DialogCancelBtn.Visibility = Visibility.Visible;
+
+        Panel.SetZIndex(DialogOverlay, 1001);
+        DialogOverlay.Visibility = Visibility.Visible;
+        DialogOverlay.UpdateLayout();
+        DialogPasswordBox.Focus();
+
+        _dialogResult = false;
+        _dialogInputResult = null;
+        _dialogFrame = new DispatcherFrame();
+        Dispatcher.PushFrame(_dialogFrame);
+
+        var result = _dialogResult ? _dialogInputResult : null;
+        DialogPasswordBox.Password = "";
+        DialogPasswordBox.Visibility = Visibility.Collapsed;
+        _dialogInputResult = null;
+        return result;
+    }
+
+    /// <summary>
     /// 程序内嵌选项弹窗，返回用户选择的项目；取消时返回 null。
     /// </summary>
     public string? ShowInlineChoiceDialog(
@@ -700,6 +752,8 @@ public partial class MainWindow : FluentWindow
         DialogIcon.Symbol = icon;
         DialogInputBox.Visibility = Visibility.Collapsed;
         DialogInputBox.Text = "";
+        DialogPasswordBox.Visibility = Visibility.Collapsed;
+        DialogPasswordBox.Password = "";
         DialogChoiceBox.ItemsSource = choices;
         DialogChoiceBox.SelectedIndex = 0;
         DialogChoiceBox.Visibility = Visibility.Visible;
