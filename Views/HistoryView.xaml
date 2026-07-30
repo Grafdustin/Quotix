@@ -212,18 +212,44 @@
                 </Border>
 
                 <!-- ═══ Row 2：列表 ═══ -->
-                <ListBox Grid.Row="2"
-                         x:Name="QuotationList"
-                         ItemsSource="{Binding Quotations}"
-                         ItemContainerStyle="{StaticResource TableRowContainer}"
-                         ItemTemplate="{StaticResource QuotationRowTemplate}"
-                         AlternationCount="2"
-                         BorderThickness="0"
-                         Background="Transparent"
-                         VirtualizingStackPanel.IsVirtualizing="True"
-                         VirtualizingStackPanel.ScrollUnit="Pixel"
-                         ScrollViewer.CanContentScroll="True"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                <Grid Grid.Row="2">
+                    <ListBox x:Name="QuotationList"
+                             ItemsSource="{Binding Quotations}"
+                             ItemContainerStyle="{StaticResource TableRowContainer}"
+                             ItemTemplate="{StaticResource QuotationRowTemplate}"
+                             AlternationCount="2"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             VirtualizingStackPanel.IsVirtualizing="True"
+                             VirtualizingStackPanel.ScrollUnit="Pixel"
+                             ScrollViewer.CanContentScroll="True"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                IsHitTestVisible="False">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=QuotationList, Path=HasItems}"
+                                                 Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <ui:SymbolIcon Symbol="DocumentBulletList24"
+                                       FontSize="26"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       HorizontalAlignment="Center"/>
+                        <ui:TextBlock Text="暂无报价"
+                                      Margin="0,8,0,0"
+                                      FontSize="12"
+                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                      HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
             </Grid>
         </Border>
     </Grid>

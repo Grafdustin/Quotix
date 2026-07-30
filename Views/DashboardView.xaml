@@ -488,7 +488,8 @@
                                     </Grid>
                                 </Border>
 
-                                <ListBox Grid.Row="2" ItemsSource="{Binding RecentQuotations}"
+                                <ListBox x:Name="RecentQuotationList"
+                                         Grid.Row="2" ItemsSource="{Binding RecentQuotations}"
                                          ItemContainerStyle="{StaticResource QuoteRowContainer}"
                                          BorderThickness="0" Background="Transparent"
                                          AlternationCount="2"
@@ -547,6 +548,32 @@
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
+
+                                <StackPanel Grid.Row="2"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            IsHitTestVisible="False">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ElementName=RecentQuotationList, Path=HasItems}"
+                                                             Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <ui:SymbolIcon Symbol="DocumentBulletList24"
+                                                   FontSize="24"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                   HorizontalAlignment="Center"/>
+                                    <ui:TextBlock Text="暂无报价"
+                                                  Margin="0,8,0,0"
+                                                  FontSize="12"
+                                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                  HorizontalAlignment="Center"/>
+                                </StackPanel>
                             </Grid>
                         </Border>
                     </Grid>

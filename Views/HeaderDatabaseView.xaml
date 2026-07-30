@@ -434,6 +434,64 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          Visibility="{Binding IsCustomerTab, Converter={StaticResource BoolToVis}}"/>
 
+                <StackPanel Grid.Row="3"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsOwnerTab}" Value="True"/>
+                                        <Condition Binding="{Binding ElementName=OwnerList, Path=HasItems}" Value="False"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <ui:SymbolIcon Symbol="Person20"
+                                   FontSize="26"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   HorizontalAlignment="Center"/>
+                    <ui:TextBlock Text="暂无负责人"
+                                  Margin="0,8,0,0"
+                                  FontSize="12"
+                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                  HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="3"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsCustomerTab}" Value="True"/>
+                                        <Condition Binding="{Binding ElementName=CustomerList, Path=HasItems}" Value="False"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <ui:SymbolIcon Symbol="Building20"
+                                   FontSize="26"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   HorizontalAlignment="Center"/>
+                    <ui:TextBlock Text="暂无客户"
+                                  Margin="0,8,0,0"
+                                  FontSize="12"
+                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                  HorizontalAlignment="Center"/>
+                </StackPanel>
+
                 <!-- 报价说明默认值 -->
                 <Border Grid.Row="3"
                         Visibility="{Binding IsQuotationDescriptionTab, Converter={StaticResource BoolToVis}}"
