@@ -26,15 +26,20 @@
     <Compile Remove="bin\**\*.cs" />
     <Compile Remove="obj\**\*.cs" />
     <Compile Remove=".workbuddy\**\*.cs" />
+    <Compile Remove="Updater\**\*.cs" />
     <Page Remove="bin\**\*.xaml" />
     <Page Remove="obj\**\*.xaml" />
     <Page Remove=".workbuddy\**\*.xaml" />
+    <Page Remove="Updater\**\*.xaml" />
     <ApplicationDefinition Remove="bin\**\*.xaml" />
     <ApplicationDefinition Remove="obj\**\*.xaml" />
     <ApplicationDefinition Remove=".workbuddy\**\*.xaml" />
+    <ApplicationDefinition Remove="Updater\**\*.xaml" />
     <EmbeddedResource Remove="bin\**\*" />
     <EmbeddedResource Remove="obj\**\*" />
     <EmbeddedResource Remove=".workbuddy\**\*" />
+    <EmbeddedResource Remove="Updater\**\*" />
+    <None Remove="Updater\**\*" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.0" />
