@@ -99,9 +99,10 @@ public partial class MainWindow : Window
     private async Task<string> DownloadAndVerifyAsync(CancellationToken cancellationToken)
     {
         var updateDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Path.GetTempPath(),
             "Quotix",
-            "Updates");
+            "Updates",
+            _request.Version);
         Directory.CreateDirectory(updateDirectory);
 
         var installerPath = Path.Combine(updateDirectory, $"Quotix_Setup_{_request.Version}.exe");

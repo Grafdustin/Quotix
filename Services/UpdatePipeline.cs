@@ -25,7 +25,7 @@ public sealed class UpdatePipeline : IDisposable
 
     public UpdatePipeline()
     {
-        ScheduleUpdaterRuntimeCleanup();
+        ScheduleUpdateFileCleanup();
 
         _httpClient = new HttpClient(new SocketsHttpHandler
         {
@@ -325,23 +325,26 @@ public sealed class UpdatePipeline : IDisposable
     private static string GetTemporaryUpdaterRuntimeRoot()
         => Path.Combine(Path.GetTempPath(), "Quotix", "UpdaterRuntime");
 
-    private static void ScheduleUpdaterRuntimeCleanup()
+    private static void ScheduleUpdateFileCleanup()
     {
+        var temporaryQuotixDirectory = Path.Combine(Path.GetTempPath(), "Quotix");
+        var legacyQuotixDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Quotix");
         var roots = new[]
         {
             GetTemporaryUpdaterRuntimeRoot(),
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Quotix",
-                "UpdaterRuntime")
+            Path.Combine(temporaryQuotixDirectory, "Updates"),
+            Path.Combine(legacyQuotixDirectory, "UpdaterRuntime"),
+            Path.Combine(legacyQuotixDirectory, "Updates")
         };
-        var staleDirectories = roots
+        var staleEntries = roots
             .Where(Directory.Exists)
             .SelectMany(root =>
             {
                 try
                 {
-                    return Directory.GetDirectories(root);
+                    return Directory.GetFileSystemEntries(root);
                 }
                 catch
                 {
@@ -350,17 +353,17 @@ public sealed class UpdatePipeline : IDisposable
             })
             .ToArray();
 
-        if (staleDirectories.Length == 0)
-            return;
-
         _ = Task.Run(async () =>
         {
             await Task.Delay(TimeSpan.FromSeconds(3));
-            foreach (var directory in staleDirectories)
+            foreach (var entry in staleEntries)
             {
                 try
                 {
-                    Directory.Delete(directory, recursive: true);
+                    if (Directory.Exists(entry))
+                        Directory.Delete(entry, recursive: true);
+                    else if (File.Exists(entry))
+                        File.Delete(entry);
                 }
                 catch
                 {
@@ -376,6 +379,21 @@ public sealed class UpdatePipeline : IDisposable
                         && !Directory.EnumerateFileSystemEntries(root).Any())
                     {
                         Directory.Delete(root);
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            foreach (var parent in new[] { temporaryQuotixDirectory, legacyQuotixDirectory })
+            {
+                try
+                {
+                    if (Directory.Exists(parent)
+                        && !Directory.EnumerateFileSystemEntries(parent).Any())
+                    {
+                        Directory.Delete(parent);
                     }
                 }
                 catch
