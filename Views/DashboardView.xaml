@@ -63,9 +63,9 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Border Width="36" Height="36" CornerRadius="8"
-                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                        Background="{DynamicResource ControlFillColorTertiaryBrush}">
                                     <ui:SymbolIcon Symbol="Building20" FontSize="18"
-                                                   Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="12,0,0,0">
