@@ -32,16 +32,13 @@ public partial class SettingsViewModel : ObservableObject
     {
         UpdateStage.UpdateAvailable => $"有新版本可用 v{_updatePipeline.State.NewVersion}",
         UpdateStage.UpToDate => "已是最新版本",
-        UpdateStage.Downloading => "正在下载更新...",
-        UpdateStage.ReadyToInstall => "下载完成，等待安装",
         UpdateStage.Failed => "检查更新失败",
         UpdateStage.Checking => "正在检查更新...",
         _ => "正在检查更新..."
     };
 
     /// <summary>是否有可用更新</summary>
-    public bool HasUpdate => _updatePipeline.State.Stage == UpdateStage.UpdateAvailable
-        || _updatePipeline.State.Stage == UpdateStage.ReadyToInstall;
+    public bool HasUpdate => _updatePipeline.State.Stage == UpdateStage.UpdateAvailable;
 
     public SettingsViewModel(
         ProductImportService productImport,
@@ -158,8 +155,7 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task CheckUpdate()
     {
-        if (_updatePipeline.State.Stage == UpdateStage.UpdateAvailable
-            || _updatePipeline.State.Stage == UpdateStage.ReadyToInstall)
+        if (_updatePipeline.State.Stage == UpdateStage.UpdateAvailable)
         {
             // 已有更新，直接请求显示弹窗
             WeakReferenceMessenger.Default.Send(new ShowUpdateOverlayMessage());

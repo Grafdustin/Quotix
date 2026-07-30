@@ -33,11 +33,6 @@ public partial class MainWindow : FluentWindow
     private bool _isExiting;
 
     /// <summary>
-    /// 更新弹窗是否处于后台下载模式（弹窗已关闭但下载仍在继续）
-    /// </summary>
-    private bool _isBackgroundDownloading;
-
-    /// <summary>
     /// 初始化 MainWindow 实例。
     /// </summary>
     public MainWindow(
@@ -136,8 +131,7 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void OnUpdateStateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(UpdateState.Stage) ||
-            e.PropertyName == nameof(UpdateState.ProgressInt))
+        if (e.PropertyName == nameof(UpdateState.Stage))
         {
             Dispatcher.Invoke(UpdateArrowButton);
         }
@@ -169,19 +163,7 @@ public partial class MainWindow : FluentWindow
         }
 
         var stage = _updatePipeline.State.Stage;
-        if (stage == UpdateStage.Downloading)
-        {
-            // 下载中：显示进度百分比
-            _arrowText!.Text = $"{_updatePipeline.State.ProgressInt}%";
-            UpdateNavItem.Visibility = Visibility.Visible;
-        }
-        else if (stage == UpdateStage.ReadyToInstall)
-        {
-            // 下载完成：显示"安装"
-            _arrowText!.Text = "安装";
-            UpdateNavItem.Visibility = Visibility.Visible;
-        }
-        else if (stage == UpdateStage.UpdateAvailable)
+        if (stage == UpdateStage.UpdateAvailable)
         {
             // 有新版本：显示"更新"
             _arrowText!.Text = "更新";
@@ -189,11 +171,7 @@ public partial class MainWindow : FluentWindow
         }
         else
         {
-            // 其他状态：如果没在后台下载就隐藏
-            if (!_isBackgroundDownloading)
-            {
-                UpdateNavItem.Visibility = Visibility.Collapsed;
-            }
+            UpdateNavItem.Visibility = Visibility.Collapsed;
         }
     }
     private System.Windows.Controls.TextBlock? _arrowText;
@@ -259,9 +237,6 @@ public partial class MainWindow : FluentWindow
         if (UpdateOverlay.Visibility == Visibility.Visible)
             return;
 
-        if (_updatePipeline.State.Stage is UpdateStage.Downloading or UpdateStage.Installing)
-            return;
-
         _isCheckingUpdate = true;
         try
         {
@@ -290,35 +265,18 @@ public partial class MainWindow : FluentWindow
 
     /// <summary>
     /// 显示更新弹窗。
-    /// 如果安装包已下载，直接跳到 ReadyToInstall 状态。
     /// </summary>
     private void ShowUpdateOverlay()
     {
-        _isBackgroundDownloading = false;
-
-        // 如果已下载安装包，直接设为 ReadyToInstall
-        if (_updatePipeline.IsInstallerDownloaded &&
-            _updatePipeline.State.Stage != UpdateStage.Downloading)
-        {
-            _updatePipeline.State.Stage = UpdateStage.ReadyToInstall;
-            _updatePipeline.State.Message = "下载完成，点击安装即可更新";
-        }
-
         UpdateOverlay.Visibility = Visibility.Visible;
     }
 
     /// <summary>
-    /// 点击遮罩层：将下载放入后台（关闭弹窗但继续下载）
+    /// 点击遮罩层。
     /// </summary>
     private void UpdateOverlay_BackgroundClick(object sender, MouseButtonEventArgs e)
     {
-        if (_updatePipeline.State.Stage == UpdateStage.Downloading)
-        {
-            // 下载中点击遮罩：放入后台
-            _isBackgroundDownloading = true;
-            UpdateOverlay.Visibility = Visibility.Collapsed;
-            UpdateArrowButton();
-        }
+        UpdateOverlay.Visibility = Visibility.Collapsed;
     }
 
     /// <summary>
@@ -334,8 +292,6 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void OnUpdateItemClick(object sender, RoutedEventArgs e)
     {
-        // 如果正在后台下载，先停止后台状态
-        _isBackgroundDownloading = false;
         ShowUpdateOverlay();
     }
 
@@ -348,20 +304,11 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
-    /// 更新弹窗左边按钮点击 — 取消下载 / 稍后。
+    /// 更新弹窗左边按钮点击。
     /// </summary>
     private void UpdateOverlay_LeftButtonClick(object sender, RoutedEventArgs e)
     {
-        if (_updatePipeline.State.Stage == UpdateStage.Downloading)
-        {
-            // 下载中：取消下载
-            _updatePipeline.CancelDownload();
-        }
-        else
-        {
-            // 其他状态：关闭弹窗
-            UpdateOverlay.Visibility = Visibility.Collapsed;
-        }
+        UpdateOverlay.Visibility = Visibility.Collapsed;
     }
 
     /// <summary>
@@ -372,36 +319,15 @@ public partial class MainWindow : FluentWindow
         switch (_updatePipeline.State.Stage)
         {
             case UpdateStage.UpdateAvailable:
-                // 开始下载
-                UpdateNavItem.Visibility = Visibility.Visible;
-                await _updatePipeline.DownloadAsync();
-
-                // 下载完成后，弹窗仍然打开，用户可点击「安装更新」
+                if (_updatePipeline.LaunchUpdater())
+                {
+                    _isExiting = true;
+                    Application.Current.Shutdown();
+                }
                 break;
 
             case UpdateStage.Failed:
-                // 如果安装包已经存在，失败后的“重试”应优先重试安装，而不是重新下载。
-                if (_updatePipeline.IsInstallerDownloaded)
-                {
-                    _updatePipeline.Install();
-                }
-                else
-                {
-                    UpdateNavItem.Visibility = Visibility.Visible;
-                    await _updatePipeline.DownloadAsync();
-                }
-                break;
-
-            case UpdateStage.Downloading:
-                // 下载中点击主按钮：放入后台
-                _isBackgroundDownloading = true;
-                UpdateOverlay.Visibility = Visibility.Collapsed;
-                UpdateArrowButton();
-                break;
-
-            case UpdateStage.ReadyToInstall:
-                // 安装更新（会关闭应用）
-                _updatePipeline.Install();
+                await _updatePipeline.CheckAsync();
                 break;
         }
     }
