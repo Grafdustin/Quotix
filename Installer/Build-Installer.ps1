@@ -96,6 +96,13 @@ if (-not $SkipBuild) {
         Write-Host "Error: Build failed" -ForegroundColor Red
         exit 1
     }
+
+    $updaterProject = Join-Path $PSScriptRoot "..\Updater\Quotix.Updater.csproj"
+    dotnet publish "$updaterProject" -c $Configuration -r $Runtime --self-contained true -p:Version=$Version
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Error: Updater build failed" -ForegroundColor Red
+        exit 1
+    }
     Write-Host "Build successful" -ForegroundColor Green
 } else {
     Write-Host "Skipping build step" -ForegroundColor Gray
@@ -149,6 +156,26 @@ Get-ChildItem $publishDir -Recurse | ForEach-Object {
 }
 
 Write-Host "Staging: $copiedCount files copied, $skippedCount files filtered" -ForegroundColor Green
+
+$updaterPublishDir = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\Updater\bin\$Configuration\$TargetFramework\$Runtime\publish"))
+if (-not (Test-Path $updaterPublishDir)) {
+    Write-Host "Error: Updater publish directory not found: $updaterPublishDir" -ForegroundColor Red
+    exit 1
+}
+
+$updaterStagingDir = Join-Path $launcherDir "Updater"
+New-Item -ItemType Directory -Path $updaterStagingDir -Force | Out-Null
+Get-ChildItem $updaterPublishDir -Recurse -File | Where-Object {
+    $_.Extension -ne ".pdb" -and $_.Extension -ne ".xml"
+} | ForEach-Object {
+    $relativePath = $_.FullName.Substring($updaterPublishDir.Length).TrimStart('\', '/')
+    $destPath = Join-Path $updaterStagingDir $relativePath
+    $destDir = Split-Path $destPath -Parent
+    if (-not (Test-Path $destDir)) {
+        New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+    }
+    Copy-Item $_.FullName -Destination $destPath -Force
+}
 
 # 4. Compile Inno Setup script
 Write-Host "Compiling installer..." -ForegroundColor Yellow

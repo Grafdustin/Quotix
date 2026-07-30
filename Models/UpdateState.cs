@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace Quotix.Models;
 
 /// <summary>
-/// 更新流水线阶段枚举，驱动 UI 状态切换。
+/// 更新检查阶段枚举，驱动 UI 状态切换。
 /// </summary>
 public enum UpdateStage
 {
@@ -24,7 +24,7 @@ public enum UpdateStage
 }
 
 /// <summary>
-/// 统一更新状态对象（单一 Progress Stream）。
+/// 统一更新状态对象。
 /// UI 只绑定此对象的属性，状态变化自动驱动 UI。
 /// </summary>
 public partial class UpdateState : ObservableObject

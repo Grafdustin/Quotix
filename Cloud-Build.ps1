@@ -83,6 +83,7 @@ Write-Host "Generating latest.yml..." -ForegroundColor Yellow
 
 $latestYmlPath = Join-Path $ProjectDir "latest.yml"
 $ymlContent = "version: $Version`n"
+$ymlContent += "path: Quotix_Setup_$Version.exe`n"
 $ymlContent += "changelog: |`n"
 if ($commitBody) {
     foreach ($line in ($commitBody -split "`n")) {

@@ -33,11 +33,14 @@ jobs:
       shell: pwsh
 
     - name: Restore dependencies
-      run: dotnet restore QuotixDesktop.csproj
+      run: |
+        dotnet restore QuotixDesktop.csproj
+        dotnet restore Updater/Quotix.Updater.csproj
 
     - name: Build and Publish
       run: |
         dotnet publish QuotixDesktop.csproj -c Release -r win-x64 --self-contained true -p:Version=${{ steps.meta.outputs.VERSION }} -o publish
+        dotnet publish Updater/Quotix.Updater.csproj -c Release -r win-x64 --self-contained true -p:Version=${{ steps.meta.outputs.VERSION }} -o publish/Updater
       shell: pwsh
 
     - name: Prepare Staging
@@ -122,23 +125,28 @@ jobs:
 
     - name: Prepare latest.yml
       run: |
-        # 使用 Cloud-Build.ps1 提交的 latest.yml，复制到 Installer/Out/
+        # latest.yml 是唯一更新元数据，发布时写入安装包名称和最终 SHA-256。
         $outDir = "Installer/Out"
         if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
-        if (Test-Path "latest.yml") {
-          Copy-Item "latest.yml" "$outDir/latest.yml" -Force
-          Write-Host "latest.yml copied from repo root:"
-          Get-Content "$outDir/latest.yml"
-        } else {
-          Write-Host "Warning: latest.yml not found in repo root, generating version-only fallback..."
-          $version = "${{ steps.meta.outputs.VERSION }}"
-          $ymlContent = "version: $version`n"
-          $ymlContent += "changelog: |`n"
-          $ymlContent += "  $version`n"
-          Set-Content -Path "$outDir/latest.yml" -Value $ymlContent -Encoding UTF8 -NoNewline
-          Write-Host "latest.yml generated from version fallback:"
-          Get-Content "$outDir/latest.yml"
-        }
+        if (-not (Test-Path "latest.yml")) { throw "latest.yml not found" }
+
+        $installer = Get-Item "$outDir/Quotix_Setup_*.exe" |
+          Sort-Object LastWriteTime -Descending |
+          Select-Object -First 1
+        if (-not $installer) { throw "Installer not found" }
+
+        $version = "${{ steps.meta.outputs.VERSION }}"
+        $hash = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        $source = Get-Content "latest.yml" -Raw
+        $changelogIndex = $source.IndexOf("changelog:", [System.StringComparison]::OrdinalIgnoreCase)
+        if ($changelogIndex -lt 0) { throw "latest.yml changelog is missing" }
+        $changelog = $source.Substring($changelogIndex)
+        $content = "version: $version`n"
+        $content += "path: $($installer.Name)`n"
+        $content += "sha256: $hash`n"
+        $content += $changelog.TrimStart()
+        Set-Content -Path "$outDir/latest.yml" -Value $content -Encoding UTF8 -NoNewline
+        Get-Content "$outDir/latest.yml"
       shell: pwsh
 
     - name: Generate Release Notes

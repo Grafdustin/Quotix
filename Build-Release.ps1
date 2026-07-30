@@ -170,6 +170,12 @@ if (-not $SkipBuild) {
     if ($LASTEXITCODE -ne 0) {
         throw "Build failed"
     }
+
+    $updaterProject = Join-Path $ProjectDir "Updater\Quotix.Updater.csproj"
+    dotnet publish "$updaterProject" -c $Configuration -r win-x64 --self-contained true -p:Version=$Version
+    if ($LASTEXITCODE -ne 0) {
+        throw "Updater build failed"
+    }
     Write-Host "Build successful" -ForegroundColor Green
 } else {
     Write-Host ""
@@ -197,7 +203,11 @@ if (Test-Path $buildInstallerScript) {
         }
     }
 } else {
-    Write-Host "Warning: Cannot find Build-Installer.ps1, skipping installer build" -ForegroundColor Yellow
+    throw "Cannot find Build-Installer.ps1"
+}
+
+if (-not $installerPath -or -not (Test-Path -LiteralPath $installerPath)) {
+    throw "Installer output not found"
 }
 
 # 生成 latest.yml（版本号 + 更新日志）
@@ -205,6 +215,9 @@ Write-Host ""
 Write-Host "Generating latest.yml..." -ForegroundColor Yellow
 
 $ymlContent = "version: $Version`n"
+$ymlContent += "path: $($installer.Name)`n"
+$installerHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$ymlContent += "sha256: $installerHash`n"
 $ymlContent += "changelog: |`n"
 if ($commitBody) {
     foreach ($line in ($commitBody -split "`n")) {

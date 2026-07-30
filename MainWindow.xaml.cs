@@ -138,7 +138,7 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
-    /// 更新按钮显示内容：空闲时显示"更新"，下载中显示进度百分比。
+    /// 更新按钮显示内容。
     /// </summary>
     private void UpdateArrowButton()
     {

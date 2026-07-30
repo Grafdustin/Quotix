@@ -21,6 +21,9 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+    <ProjectReference Include="Updater\Quotix.Updater.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="bin\**\*.cs" />
@@ -57,4 +60,15 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <Target Name="CopyUpdaterAfterBuild"
+          AfterTargets="Build"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <UpdaterBuildOutput Include="$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net10.0-windows\win-x64\**\*"
+                          Exclude="$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net10.0-windows\win-x64\**\*.pdb;$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net10.0-windows\win-x64\**\*.xml" />
+    </ItemGroup>
+    <Copy SourceFiles="@(UpdaterBuildOutput)"
+          DestinationFiles="@(UpdaterBuildOutput->'$(OutDir)Updater\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
