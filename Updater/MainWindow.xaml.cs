@@ -56,10 +56,13 @@ public partial class MainWindow : Window
 
             StatusText.Text = "正在等待 Quotix 关闭...";
             ClearDownloadMetrics();
+            ProgressText.Text = "";
+            DownloadProgress.IsIndeterminate = true;
             await WaitForMainProcessAsync(_operationCts.Token);
 
             StatusText.Text = "正在安装新版本...";
             ClearDownloadMetrics();
+            ProgressText.Text = "";
             DownloadProgress.IsIndeterminate = true;
 
             await InstallAsync(installerPath, _operationCts.Token);
@@ -73,7 +76,8 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"更新失败：{ex.Message}";
+            StatusText.Text = "更新失败";
+            FailureText.Text = GetFailureMessage(ex);
             ShowRecoveryActions();
         }
     }
@@ -111,6 +115,7 @@ public partial class MainWindow : Window
                 await DownloadRouteAsync(route, partialPath, cancellationToken);
                 StatusText.Text = "正在验证更新文件...";
                 ClearDownloadMetrics();
+                ProgressText.Text = "";
                 DownloadProgress.IsIndeterminate = true;
 
                 var actualHash = await ComputeSha256Async(partialPath, cancellationToken);
@@ -125,6 +130,7 @@ public partial class MainWindow : Window
                 File.Move(partialPath, installerPath);
                 DownloadProgress.IsIndeterminate = false;
                 DownloadProgress.Value = 100;
+                ProgressText.Text = "100%";
                 return installerPath;
             }
             catch (OperationCanceledException)
@@ -180,6 +186,9 @@ public partial class MainWindow : Window
         DownloadProgress.Value = totalLength > 0
             ? Clamp(existingLength * 100d / totalLength, 0, 100)
             : 0;
+        ProgressText.Text = totalLength > 0
+            ? $"{Math.Floor(DownloadProgress.Value):0}%"
+            : "";
 
         var buffer = new byte[128 * 1024];
         var received = existingLength;
@@ -274,7 +283,14 @@ public partial class MainWindow : Window
         {
             DownloadProgress.IsIndeterminate = false;
             if (total > 0)
+            {
                 DownloadProgress.Value = Clamp(received * 100d / total, 0, 100);
+                ProgressText.Text = $"{Math.Floor(DownloadProgress.Value):0}%";
+            }
+            else
+            {
+                ProgressText.Text = "";
+            }
 
             SizeText.Text = total > 0
                 ? $"{FormatSize(received)} / {FormatSize(total)}"
@@ -359,10 +375,15 @@ public partial class MainWindow : Window
     private void SetWorkingState()
     {
         _isUpdateRunning = true;
-        RetryButton.Visibility = Visibility.Collapsed;
-        ReturnButton.Visibility = Visibility.Collapsed;
+        AppIcon.Visibility = Visibility.Visible;
+        VersionText.Visibility = Visibility.Visible;
+        FailureText.Visibility = Visibility.Collapsed;
+        FailureActions.Visibility = Visibility.Collapsed;
+        DownloadProgress.Visibility = Visibility.Visible;
+        ProgressText.Visibility = Visibility.Visible;
         DownloadProgress.IsIndeterminate = true;
         DownloadProgress.Value = 0;
+        ProgressText.Text = "";
         SizeText.Text = "";
         SpeedText.Text = "";
         StatusText.Text = "等待中...";
@@ -372,9 +393,31 @@ public partial class MainWindow : Window
     {
         _isUpdateRunning = false;
         DownloadProgress.IsIndeterminate = false;
+        DownloadProgress.Value = 0;
+        ProgressText.Text = "";
         ClearDownloadMetrics();
-        RetryButton.Visibility = Visibility.Visible;
-        ReturnButton.Visibility = Visibility.Visible;
+        AppIcon.Visibility = Visibility.Collapsed;
+        VersionText.Visibility = Visibility.Collapsed;
+        FailureText.Visibility = Visibility.Visible;
+        FailureActions.Visibility = Visibility.Visible;
+        DownloadProgress.Visibility = Visibility.Collapsed;
+        ProgressText.Visibility = Visibility.Collapsed;
+    }
+
+    private static string GetFailureMessage(Exception exception)
+    {
+        if (exception is HttpRequestException
+            || exception.InnerException is HttpRequestException
+            || exception is WebException
+            || exception.InnerException is WebException)
+        {
+            return "网络连接异常，请稍后重试";
+        }
+
+        if (exception is InvalidDataException)
+            return "更新文件验证失败，请重试";
+
+        return "更新过程中出现异常，请稍后重试";
     }
 
     private void ClearDownloadMetrics()
