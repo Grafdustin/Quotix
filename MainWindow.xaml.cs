@@ -121,7 +121,7 @@ public partial class MainWindow : FluentWindow
     private void UpdateSettingsCardClip()
     {
         if (SettingsContentGrid == null) return;
-        const double radius = 18.0;
+        const double radius = 10.0;
         SettingsContentGrid.Clip = new RectangleGeometry(
             new Rect(0, 0, SettingsContentGrid.ActualWidth, SettingsContentGrid.ActualHeight), radius, radius);
     }

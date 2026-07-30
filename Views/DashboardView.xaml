@@ -13,7 +13,13 @@
             <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="18,16"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="SectionSurfaceStyle" TargetType="Border">
@@ -39,8 +45,8 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Margin="24,20,24,24">
-        <Border Style="{StaticResource AppCardModern}">
+    <Grid Margin="{StaticResource AppPageMargin}">
+        <Border Background="Transparent">
             <ScrollViewer VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <Grid>
@@ -50,11 +56,11 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <ui:TextBlock Grid.Row="0" Text="首页" FontSize="22" FontWeight="SemiBold"
+                    <ui:TextBlock Grid.Row="0" Text="首页" FontSize="20" FontWeight="SemiBold"
                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                   Margin="0,0,0,16"/>
 
-                    <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,16">
+                    <UniformGrid Grid.Row="1" Columns="4" Height="112" Margin="0,0,0,16">
                         <Border Style="{StaticResource MetricCardStyle}" Margin="0,0,10,0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -62,14 +68,15 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Border Width="36" Height="36" CornerRadius="8"
-                                        Background="{DynamicResource AccentFillColorDefaultBrush}">
-                                    <ui:SymbolIcon Symbol="Building20" FontSize="18" Foreground="White"
+                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                    <ui:SymbolIcon Symbol="Building20" FontSize="18"
+                                                   Foreground="{DynamicResource AccentFillColorDefaultBrush}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="12,0,0,0">
                                     <ui:TextBlock Text="客户数量" FontSize="12"
                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    <ui:TextBlock Text="{Binding CustomerCountText}" FontSize="24"
+                                    <ui:TextBlock Text="{Binding CustomerCountText}" FontSize="22"
                                                   FontWeight="SemiBold"
                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                 </StackPanel>
@@ -91,7 +98,7 @@
                                 <StackPanel Grid.Column="1" Margin="12,0,0,0">
                                     <ui:TextBlock Text="产品数量" FontSize="12"
                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    <ui:TextBlock Text="{Binding ProductCountText}" FontSize="24"
+                                    <ui:TextBlock Text="{Binding ProductCountText}" FontSize="22"
                                                   FontWeight="SemiBold"
                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                 </StackPanel>
@@ -113,7 +120,7 @@
                                 <StackPanel Grid.Column="1" Margin="12,0,0,0">
                                     <ui:TextBlock Text="报价数量" FontSize="12"
                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    <ui:TextBlock Text="{Binding QuotationCountText}" FontSize="24"
+                                    <ui:TextBlock Text="{Binding QuotationCountText}" FontSize="22"
                                                   FontWeight="SemiBold"
                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                 </StackPanel>

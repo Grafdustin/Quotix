@@ -45,7 +45,7 @@
 
         <!-- 标题栏 -->
         <ui:TitleBar Grid.Row="0"
-                     x:Name="TitleBar" Height="30"
+                     x:Name="TitleBar" Height="32"
                      Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                      ShowMinimize="True"
                      ShowMaximize="True"
@@ -71,7 +71,9 @@
 
             <!-- 左侧导航栏 -->
             <Border Grid.Column="0"
-                    Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+                    Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                    BorderThickness="0,0,1,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -214,18 +216,18 @@
             <Grid x:Name="DialogOverlay" Visibility="Collapsed"
                   Grid.ColumnSpan="2" Panel.ZIndex="1001">
                 <!-- 遮罩层 -->
-                <Grid Background="#88000000" />
+                <Grid Background="#66000000" />
                 <!-- 弹窗卡片 -->
                 <Border x:Name="DialogCard"
                         HorizontalAlignment="Center" VerticalAlignment="Center"
                         MinWidth="320" MaxWidth="500"
                         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-                        CornerRadius="12"
+                        CornerRadius="8"
                         BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                         BorderThickness="1">
                     <Border.Effect>
-                        <DropShadowEffect BlurRadius="40" ShadowDepth="6"
-                                          Opacity="0.30" Color="Black"/>
+                        <DropShadowEffect BlurRadius="28" ShadowDepth="4"
+                                          Opacity="0.24" Color="Black"/>
                     </Border.Effect>
                     <Grid Margin="24,20,24,20">
                         <Grid.RowDefinitions>
@@ -291,12 +293,12 @@
             <Grid Grid.ColumnSpan="2" Panel.ZIndex="1002"
                   Visibility="{Binding IsProgressVisible, Converter={StaticResource BoolToVis}}">
                 <!-- 半透明遮罩 -->
-                <Rectangle Fill="#88000000"/>
+                <Rectangle Fill="#66000000"/>
 
                 <!-- 居中卡片 -->
                 <Border HorizontalAlignment="Center" VerticalAlignment="Center"
                         MinWidth="360" MaxWidth="420"
-                        CornerRadius="16"
+                        CornerRadius="8"
                         Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                         BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1"
@@ -330,16 +332,16 @@
             <!-- 设置面板 — 居中覆盖层，仅 X 按钮关闭 -->
             <Grid x:Name="SettingsOverlay" Visibility="Collapsed"
                   Grid.ColumnSpan="2"
-                  Background="#88000000" Panel.ZIndex="1000">
+                  Background="#66000000" Panel.ZIndex="1000">
                 <Border x:Name="SettingsCard" HorizontalAlignment="Center" VerticalAlignment="Center"
                         Width="820" MinHeight="560" MaxHeight="720"
                         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-                        CornerRadius="18"
+                        CornerRadius="10"
                         BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                         BorderThickness="1">
                     <Border.Effect>
-                        <DropShadowEffect BlurRadius="40" ShadowDepth="6"
-                                          Opacity="0.30" Color="Black"/>
+                        <DropShadowEffect BlurRadius="32" ShadowDepth="4"
+                                          Opacity="0.26" Color="Black"/>
                     </Border.Effect>
                     <Grid x:Name="SettingsContentGrid">
                         <Grid.RowDefinitions>
@@ -390,20 +392,20 @@
             <!-- 更新弹窗覆盖层 — 居中卡片，展示版本与更新日志 -->
             <Grid x:Name="UpdateOverlay" Visibility="Collapsed"
                   Grid.ColumnSpan="2"
-                  Background="#88000000" Panel.ZIndex="1003"
+                  Background="#66000000" Panel.ZIndex="1003"
                   MouseLeftButtonDown="UpdateOverlay_BackgroundClick">
                     <!-- 弹窗卡片（点击卡片内部不关闭弹窗） -->
                     <Border x:Name="UpdateOverlayCard"
                             HorizontalAlignment="Center" VerticalAlignment="Center"
                             Width="440"
                             Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-                            CornerRadius="16"
+                            CornerRadius="10"
                             BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                             BorderThickness="1"
                             MouseLeftButtonDown="UpdateOverlay_CardClick">
                     <Border.Effect>
-                        <DropShadowEffect BlurRadius="40" ShadowDepth="6"
-                                          Opacity="0.30" Color="Black"/>
+                        <DropShadowEffect BlurRadius="32" ShadowDepth="4"
+                                          Opacity="0.26" Color="Black"/>
                     </Border.Effect>
                     <Grid Margin="28,24,28,24">
                         <Grid.RowDefinitions>

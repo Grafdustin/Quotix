@@ -4,10 +4,32 @@
                     xmlns:conv="clr-namespace:Quotix.Converters"
                     xmlns:common="clr-namespace:Quotix.Common">
 
+    <!-- ===== Quotix 设计基线：紧凑、克制、适合高频桌面操作 ===== -->
+    <Thickness x:Key="AppPageMargin">24,20,24,24</Thickness>
+    <Thickness x:Key="AppSectionPadding">18</Thickness>
+    <CornerRadius x:Key="AppCornerRadius">8</CornerRadius>
+    <SolidColorBrush x:Key="AppFocusRingBrush" Color="#2563EB"/>
+
+    <Style x:Key="AppKeyboardFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="-2"
+                            CornerRadius="7"
+                            BorderBrush="{StaticResource AppFocusRingBrush}"
+                            BorderThickness="2"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ===== 全局 ui:TextBox 隐式样式 ===== -->
     <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
         <Setter Property="ClearButtonEnabled" Value="False"/>
         <Setter Property="common:FloatingTextPreview.IsEnabled" Value="True"/>
+        <Setter Property="MinHeight" Value="34"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppKeyboardFocusVisual}"/>
     </Style>
 
     <!-- ===== 全局原生 TextBox 漂浮文本预览 ===== -->
@@ -40,7 +62,7 @@
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="Medium"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppKeyboardFocusVisual}"/>
         <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
@@ -75,10 +97,11 @@
     <!-- ===== 现代化卡片样式 ===== -->
     <Style x:Key="AppCardModern" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"/>
-        <Setter Property="CornerRadius" Value="12"/>
-        <Setter Property="Padding" Value="20"/>
+        <Setter Property="CornerRadius" Value="{StaticResource AppCornerRadius}"/>
+        <Setter Property="Padding" Value="{StaticResource AppSectionPadding}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
     </Style>
 
     <!-- ===== 卡片标题图标徽章：圆角强调底 + 主题强调色图标 ===== -->
@@ -165,6 +188,12 @@
                 <Style TargetType="DataGridRow">
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="MinHeight" Value="42"/>
+                    <Setter Property="FocusVisualStyle" Value="{StaticResource AppKeyboardFocusVisual}"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                        </Trigger>
+                    </Style.Triggers>
                 </Style>
             </Setter.Value>
         </Setter>
