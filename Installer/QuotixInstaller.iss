@@ -59,6 +59,26 @@ Filename: "{app}\Launcher\Quotix.exe"; Description: "{cm:LaunchProgram,Quotix}";
 // 在卸载确认后、文件删除前询问用户（usAppMutexCheck 是卸载开始前的第一个步骤）
 var
   g_DeleteData: Boolean;
+  g_UpdateProgressFile: string;
+
+procedure InitializeWizard();
+begin
+  g_UpdateProgressFile := ExpandConstant('{param:UPDATEPROGRESS|}');
+end;
+
+procedure CurInstallProgressChanged(CurProgress, MaxProgress: Integer);
+var
+  ProgressPercent: Integer;
+begin
+  if (g_UpdateProgressFile = '') or (MaxProgress <= 0) then
+    Exit;
+
+  ProgressPercent := Round((CurProgress * 100.0) / MaxProgress);
+  SaveStringToFile(
+    g_UpdateProgressFile,
+    IntToStr(ProgressPercent),
+    False);
+end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var

@@ -75,7 +75,13 @@
                                         <Border x:Name="PART_Indicator"
                                                 HorizontalAlignment="Left"
                                                 Background="{TemplateBinding Foreground}"
-                                                CornerRadius="3">
+                                                CornerRadius="3"/>
+                                        <Border x:Name="IndeterminateIndicator"
+                                                Width="54"
+                                                HorizontalAlignment="Left"
+                                                Background="{TemplateBinding Foreground}"
+                                                CornerRadius="3"
+                                                Visibility="Collapsed">
                                             <Border.RenderTransform>
                                                 <TranslateTransform/>
                                             </Border.RenderTransform>
@@ -84,12 +90,13 @@
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsIndeterminate" Value="True">
-                                        <Setter TargetName="PART_Indicator" Property="Width" Value="54"/>
+                                        <Setter TargetName="PART_Indicator" Property="Visibility" Value="Collapsed"/>
+                                        <Setter TargetName="IndeterminateIndicator" Property="Visibility" Value="Visible"/>
                                         <Trigger.EnterActions>
                                             <BeginStoryboard>
                                                 <Storyboard RepeatBehavior="Forever">
                                                     <DoubleAnimation
-                                                        Storyboard.TargetName="PART_Indicator"
+                                                        Storyboard.TargetName="IndeterminateIndicator"
                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
                                                         From="-54" To="230"
                                                         Duration="0:0:1.3"/>

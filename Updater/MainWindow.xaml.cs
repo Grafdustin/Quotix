@@ -62,8 +62,9 @@ public partial class MainWindow : Window
 
             StatusText.Text = "正在安装新版本...";
             ClearDownloadMetrics();
-            ProgressText.Text = "";
-            DownloadProgress.IsIndeterminate = true;
+            ProgressText.Text = "0%";
+            DownloadProgress.IsIndeterminate = false;
+            DownloadProgress.Value = 0;
 
             await InstallAsync(installerPath, _operationCts.Token);
             TryDelete(installerPath);
@@ -115,10 +116,19 @@ public partial class MainWindow : Window
                 await DownloadRouteAsync(route, partialPath, cancellationToken);
                 StatusText.Text = "正在验证更新文件...";
                 ClearDownloadMetrics();
-                ProgressText.Text = "";
-                DownloadProgress.IsIndeterminate = true;
+                ProgressText.Text = "0%";
+                DownloadProgress.IsIndeterminate = false;
+                DownloadProgress.Value = 0;
 
-                var actualHash = await ComputeSha256Async(partialPath, cancellationToken);
+                var verificationProgress = new Progress<double>(value =>
+                {
+                    DownloadProgress.Value = value;
+                    ProgressText.Text = $"{Math.Floor(value):0}%";
+                });
+                var actualHash = await ComputeSha256Async(
+                    partialPath,
+                    verificationProgress,
+                    cancellationToken);
                 if (!actualHash.Equals(_request.Sha256, StringComparison.OrdinalIgnoreCase))
                 {
                     TryDelete(partialPath);
@@ -327,6 +337,9 @@ public partial class MainWindow : Window
 
     private async Task InstallAsync(string installerPath, CancellationToken cancellationToken)
     {
+        var progressPath = Path.Combine(
+            Path.GetTempPath(),
+            $"Quotix_Update_{Guid.NewGuid():N}.progress");
         var startInfo = new ProcessStartInfo
         {
             FileName = installerPath,
@@ -338,16 +351,60 @@ public partial class MainWindow : Window
                 "/SUPPRESSMSGBOXES",
                 "/NORESTART",
                 "/CLOSEAPPLICATIONS",
-                QuoteArgument("/DIR=" + _request.InstallDirectory)
+                QuoteArgument("/DIR=" + _request.InstallDirectory),
+                QuoteArgument("/UPDATEPROGRESS=" + progressPath)
             })
         };
 
-        using var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("无法启动安装程序");
-        while (!process.HasExited)
-            await Task.Delay(200, cancellationToken);
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException($"安装程序返回错误代码 {process.ExitCode}");
+        try
+        {
+            using var process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("无法启动安装程序");
+            while (!process.HasExited)
+            {
+                UpdateInstallProgress(progressPath);
+                await Task.Delay(100, cancellationToken);
+                process.Refresh();
+            }
+
+            UpdateInstallProgress(progressPath);
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException($"安装程序返回错误代码 {process.ExitCode}");
+
+            DownloadProgress.Value = 100;
+            ProgressText.Text = "100%";
+        }
+        finally
+        {
+            TryDelete(progressPath);
+        }
+    }
+
+    private void UpdateInstallProgress(string progressPath)
+    {
+        try
+        {
+            if (!File.Exists(progressPath))
+                return;
+
+            var text = File.ReadAllText(progressPath).Trim();
+            if (!double.TryParse(
+                    text,
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out var progress))
+            {
+                return;
+            }
+
+            progress = Clamp(progress, 0, 100);
+            DownloadProgress.Value = progress;
+            ProgressText.Text = $"{Math.Floor(progress):0}%";
+        }
+        catch (IOException)
+        {
+            // The installer may be replacing the progress file while it is read.
+        }
     }
 
     private void StartMainApplication()
@@ -445,22 +502,36 @@ public partial class MainWindow : Window
 
     private static async Task<string> ComputeSha256Async(
         string path,
+        IProgress<double> progress,
         CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        using var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            128 * 1024,
+            useAsync: true);
+        using var sha256 = SHA256.Create();
+        var buffer = new byte[128 * 1024];
+        var processed = 0L;
+
+        while (true)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            using var stream = new FileStream(
-                path,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
-                128 * 1024);
-            using var sha256 = SHA256.Create();
-            var hash = sha256.ComputeHash(stream);
-            cancellationToken.ThrowIfCancellationRequested();
-            return BitConverter.ToString(hash).Replace("-", "");
-        }, cancellationToken);
+            var read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+            if (read == 0)
+                break;
+
+            sha256.TransformBlock(buffer, 0, read, buffer, 0);
+            processed += read;
+            progress.Report(stream.Length > 0
+                ? Clamp(processed * 100d / stream.Length, 0, 100)
+                : 100);
+        }
+
+        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+        progress.Report(100);
+        return BitConverter.ToString(sha256.Hash!).Replace("-", "");
     }
 
     private static string FormatSize(long bytes)
