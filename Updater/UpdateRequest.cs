@@ -12,6 +12,8 @@ public sealed class UpdateRequest
     [DataMember]
     public string Sha256 { get; set; } = "";
     [DataMember]
+    public long FileSize { get; set; }
+    [DataMember]
     public int MainProcessId { get; set; }
     [DataMember]
     public string MainExecutablePath { get; set; } = "";

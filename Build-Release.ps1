@@ -218,6 +218,7 @@ $ymlContent = "version: $Version`n"
 $ymlContent += "path: $($installer.Name)`n"
 $installerHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
 $ymlContent += "sha256: $installerHash`n"
+$ymlContent += "size: $($installer.Length)`n"
 $ymlContent += "changelog: |`n"
 if ($commitBody) {
     foreach ($line in ($commitBody -split "`n")) {

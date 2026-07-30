@@ -9,7 +9,7 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent">
-    <Border Background="{StaticResource SurfaceBrush}"
+    <Border Background="{StaticResource CardBrush}"
             BorderBrush="{StaticResource BorderBrush}"
             BorderThickness="1"
             CornerRadius="10">
@@ -19,9 +19,8 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Border Background="{StaticResource CardBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="0,0,0,1"
+            <Border Background="Transparent"
+                    BorderThickness="0"
                     CornerRadius="10,10,0,0"
                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <StackPanel Orientation="Horizontal" Margin="18,0" VerticalAlignment="Center">

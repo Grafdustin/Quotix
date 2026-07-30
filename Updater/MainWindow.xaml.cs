@@ -147,8 +147,7 @@ public partial class MainWindow : Window
     {
         var existingLength = File.Exists(partialPath) ? new FileInfo(partialPath).Length : 0;
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        if (existingLength > 0)
-            request.Headers.Range = new RangeHeaderValue(existingLength, null);
+        request.Headers.Range = new RangeHeaderValue(existingLength, null);
 
         using var response = await _httpClient.SendAsync(
             request,
@@ -161,7 +160,12 @@ public partial class MainWindow : Window
             existingLength = 0;
 
         var contentLength = response.Content.Headers.ContentLength ?? 0;
-        var totalLength = contentLength > 0 ? existingLength + contentLength : 0;
+        var totalLength = response.Content.Headers.ContentRange?.Length
+            ?? (_request.FileSize > 0
+                ? _request.FileSize
+                : contentLength > 0
+                    ? existingLength + contentLength
+                    : 0);
         using var source = await response.Content.ReadAsStreamAsync();
         using var target = new FileStream(
             partialPath,
@@ -172,7 +176,10 @@ public partial class MainWindow : Window
             useAsync: true);
 
         StatusText.Text = "正在下载更新文件...";
-        DownloadProgress.IsIndeterminate = totalLength <= 0;
+        DownloadProgress.IsIndeterminate = false;
+        DownloadProgress.Value = totalLength > 0
+            ? Clamp(existingLength * 100d / totalLength, 0, 100)
+            : 0;
 
         var buffer = new byte[128 * 1024];
         var received = existingLength;
@@ -265,7 +272,7 @@ public partial class MainWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
-            DownloadProgress.IsIndeterminate = total <= 0;
+            DownloadProgress.IsIndeterminate = false;
             if (total > 0)
                 DownloadProgress.Value = Clamp(received * 100d / total, 0, 100);
 

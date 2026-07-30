@@ -105,6 +105,7 @@ public sealed class UpdatePipeline : IDisposable
                 Version = _currentUpdateInfo.Version,
                 DownloadUrl = _currentUpdateInfo.DownloadUrl,
                 Sha256 = _currentUpdateInfo.Sha256,
+                FileSize = _currentUpdateInfo.FileSize,
                 MainProcessId = Environment.ProcessId,
                 MainExecutablePath = mainExecutablePath,
                 InstallDirectory = installDirectory
@@ -158,6 +159,7 @@ public sealed class UpdatePipeline : IDisposable
             ReleaseDate = DateTime.Now.ToString("yyyy-MM-dd"),
             DownloadUrl = BuildDownloadUrl(metadata.Version, metadata.Path),
             Sha256 = metadata.Sha256,
+            FileSize = metadata.FileSize,
             Changelog = ParseChangelog(metadata.Changelog)
         };
         ValidateUpdateInfo(updateInfo);
@@ -238,6 +240,13 @@ public sealed class UpdatePipeline : IDisposable
             else if (!inChangelog && trimmed.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
             {
                 result.Sha256 = UnquoteYamlValue(GetYamlValue(trimmed)).Trim();
+            }
+            else if (!inChangelog && trimmed.StartsWith("size:", StringComparison.OrdinalIgnoreCase))
+            {
+                _ = long.TryParse(
+                    UnquoteYamlValue(GetYamlValue(trimmed)),
+                    out var fileSize);
+                result.FileSize = Math.Max(0, fileSize);
             }
             else if (!inChangelog && trimmed.StartsWith("changelog:", StringComparison.OrdinalIgnoreCase))
             {
@@ -358,6 +367,7 @@ public sealed class UpdatePipeline : IDisposable
         public string Version { get; set; } = "";
         public string Path { get; set; } = "";
         public string Sha256 { get; set; } = "";
+        public long FileSize { get; set; }
         public string Changelog { get; set; } = "";
     }
 
@@ -366,6 +376,7 @@ public sealed class UpdatePipeline : IDisposable
         public string Version { get; set; } = "";
         public string DownloadUrl { get; set; } = "";
         public string Sha256 { get; set; } = "";
+        public long FileSize { get; set; }
         public int MainProcessId { get; set; }
         public string MainExecutablePath { get; set; } = "";
         public string InstallDirectory { get; set; } = "";

@@ -157,6 +157,7 @@ jobs:
         $content = "version: $version`n"
         $content += "path: $($installer.Name)`n"
         $content += "sha256: $hash`n"
+        $content += "size: $($installer.Length)`n"
         $content += $changelog.TrimStart()
         Set-Content -Path "$outDir/latest.yml" -Value $content -Encoding UTF8 -NoNewline
         Get-Content "$outDir/latest.yml"
