@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    padding: 24px;
+    background: #d9d9d9;
+    color: #25282c;
+    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+  }
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(2, 560px);
+    gap: 24px;
+  }
+  .window {
+    width: 560px;
+    height: 360px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e1e4e8;
+    border-radius: 10px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, .16);
+  }
+  .drag { height: 42px; }
+  .content {
+    height: 318px;
+    padding: 0 32px 28px;
+    display: grid;
+    grid-template-rows: 1fr auto;
+  }
+  .center {
+    align-self: center;
+    justify-self: center;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .app-icon {
+    display: block;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto;
+    object-fit: contain;
+  }
+  .status {
+    margin-top: 22px;
+    font-size: 22px;
+    line-height: 31px;
+    font-weight: 600;
+  }
+  .version {
+    margin-top: 6px;
+    color: #7a7f86;
+    font-size: 13px;
+  }
+  .percent {
+    height: 17px;
+    margin-top: 22px;
+    margin-bottom: 7px;
+    color: #7a7f86;
+    font-size: 12px;
+  }
+  .track {
+    width: 230px;
+    height: 6px;
+    overflow: hidden;
+    margin: 0 auto;
+    border-radius: 3px;
+    background: #e4e7ea;
+  }
+  .bar {
+    height: 100%;
+    border-radius: 3px;
+    background: #0878c9;
+  }
+  .waiting { width: 54px; margin-left: 42px; }
+  .download { width: 42%; }
+  .verify { width: 54px; margin-left: 118px; }
+  .closing { width: 54px; margin-left: 76px; }
+  .install { width: 54px; margin-left: 148px; }
+  .failed { width: 0; }
+  .actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  button {
+    height: 38px;
+    min-width: 104px;
+    padding: 0 20px;
+    border: 1px solid #e1e4e8;
+    border-radius: 5px;
+    background: #fff;
+    color: #25282c;
+    font: 14px "Microsoft YaHei UI", sans-serif;
+  }
+  button.primary {
+    border-color: #0878c9;
+    background: #0878c9;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+<div class="gallery">
+  <section class="window">
+    <div class="drag"></div>
+    <main class="content">
+      <div class="center">
+        <img class="app-icon" src="../../Resources/app.ico">
+        <div class="status">等待中...</div>
+        <div class="version">v1.0.3</div>
+        <div class="percent"></div>
+        <div class="track"><div class="bar waiting"></div></div>
+      </div>
+    </main>
+  </section>
+
+  <section class="window">
+    <div class="drag"></div>
+    <main class="content">
+      <div class="center">
+        <img class="app-icon" src="../../Resources/app.ico">
+        <div class="status">正在下载更新文件...</div>
+        <div class="version">v1.0.3</div>
+        <div class="percent">42%</div>
+        <div class="track"><div class="bar download"></div></div>
+      </div>
+    </main>
+  </section>
+
+  <section class="window">
+    <div class="drag"></div>
+    <main class="content">
+      <div class="center">
+        <img class="app-icon" src="../../Resources/app.ico">
+        <div class="status">正在验证更新文件...</div>
+        <div class="version">v1.0.3</div>
+        <div class="percent"></div>
+        <div class="track"><div class="bar verify"></div></div>
+      </div>
+    </main>
+  </section>
+
+  <section class="window">
+    <div class="drag"></div>
+    <main class="content">
+      <div class="center">
+        <img class="app-icon" src="../../Resources/app.ico">
+        <div class="status">正在等待 Quotix 关闭...</div>
+        <div class="version">v1.0.3</div>
+        <div class="percent"></div>
+        <div class="track"><div class="bar closing"></div></div>
+      </div>
+    </main>
+  </section>
+
+  <section class="window">
+    <div class="drag"></div>
+    <main class="content">
+      <div class="center">
+        <img class="app-icon" src="../../Resources/app.ico">
+        <div class="status">正在安装新版本...</div>
+        <div class="version">v1.0.3</div>
+        <div class="percent"></div>
+        <div class="track"><div class="bar install"></div></div>
+      </div>
+    </main>
+  </section>
+
+  <section class="window">
+    <div class="drag"></div>
+    <main class="content">
+      <div class="center">
+        <div class="status" style="margin-top:0">更新失败</div>
+        <div class="version" style="margin-top:9px">网络连接异常，请稍后重试</div>
+        <div class="actions" style="margin-top:22px"><button>取消</button><button class="primary">重试</button></div>
+      </div>
+    </main>
+  </section>
+</div>
+</body>
+</html>
