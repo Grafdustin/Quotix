@@ -14,9 +14,11 @@
                 IsHitTestVisible="False"/>
         <ScrollViewer x:Name="MainScrollViewer"
                       VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      HorizontalContentAlignment="Stretch"
                       ScrollChanged="MainScrollViewer_ScrollChanged"
                       SizeChanged="MainScrollViewer_SizeChanged">
-            <StackPanel Margin="32,28,32,36">
+            <StackPanel Margin="{StaticResource AppPageMargin}">
 
                 <!-- ═══════════════ 顶部工具栏 ═══════════════ -->
                 <Border Style="{StaticResource AppCardModern}"
@@ -222,7 +224,7 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- 公司信息 -->
-                    <Border Grid.Column="0" Style="{StaticResource AppCardModern}" Padding="24,22">
+                    <Border Grid.Column="0" Style="{StaticResource AppCardModern}" Padding="20,18">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
                                 <ui:SymbolIcon Symbol="Person24" FontSize="16"
@@ -285,7 +287,7 @@
                     </Border>
 
                     <!-- 客户信息 -->
-                    <Border Grid.Column="2" Style="{StaticResource AppCardModern}" Padding="24,22">
+                    <Border Grid.Column="2" Style="{StaticResource AppCardModern}" Padding="20,18">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
                                 <ui:SymbolIcon Symbol="People24" FontSize="16"
@@ -349,7 +351,7 @@
                 </Grid>
 
                 <!-- ═══════════════ 报价说明 ═══════════════ -->
-                <Border Style="{StaticResource AppCardModern}" Padding="24,22" Margin="0,0,0,20">
+                <Border Style="{StaticResource AppCardModern}" Padding="20,18" Margin="0,0,0,16">
                     <StackPanel>
                         <Grid Margin="0,0,0,18">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -418,7 +420,7 @@
                 <Border Style="{StaticResource AppCardModern}" Padding="0">
                     <StackPanel>
                         <!-- 表单标题 -->
-                        <Grid Margin="24,22,24,0">
+                        <Grid Margin="20,18,20,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <ui:SymbolIcon Symbol="Calculator24" FontSize="16"
                                                Foreground="{DynamicResource AccentFillColorPrimaryBrush}"/>
@@ -675,7 +677,7 @@
                AllowsTransparency="True">
             <Border x:Name="QuickSearchPopupBorder"
                     Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-                    CornerRadius="12"
+                    CornerRadius="8"
                     BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     MinWidth="260" MaxWidth="960" MaxHeight="360">

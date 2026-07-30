@@ -4,7 +4,7 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              Background="Transparent"
              Loaded="OnLoaded">
-    <Grid Margin="24,20,24,24">
+    <Grid Margin="{StaticResource AppPageMargin}">
         <Border Style="{StaticResource AppCardModern}">
             <Grid>
                 <Grid.RowDefinitions>
@@ -28,9 +28,9 @@
                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                   VerticalAlignment="Center" Margin="0,0,18,0">
                         <Run Text="{Binding TotalCount, Mode=OneWay, StringFormat={}{0:N0}}"
-                             Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                         <Run Text="条记录"
-                             Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                     </ui:TextBlock>
 
                     <!-- 搜索框 -->
@@ -81,9 +81,9 @@
 
                     <!-- 左侧：NDT/RVI 切换 -->
                     <Border Grid.Column="0" Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                            CornerRadius="10" Padding="4">
+                            CornerRadius="8" Padding="3">
                         <StackPanel Orientation="Horizontal">
-                            <Border CornerRadius="8" Padding="14,8" Margin="0,0,4,0" Cursor="Hand"
+                            <Border CornerRadius="6" Padding="13,7" Margin="0,0,3,0" Cursor="Hand"
                                     MouseLeftButtonDown="SwitchToNDT">
                                 <Border.Style>
                                     <Style TargetType="Border">
@@ -104,7 +104,7 @@
                                                   VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
-                            <Border CornerRadius="8" Padding="14,8" Cursor="Hand"
+                            <Border CornerRadius="6" Padding="13,7" Cursor="Hand"
                                     MouseLeftButtonDown="SwitchToRVI">
                                 <Border.Style>
                                     <Style TargetType="Border">
