@@ -172,7 +172,7 @@ if (-not $SkipBuild) {
     }
 
     $updaterProject = Join-Path $ProjectDir "Updater\Quotix.Updater.csproj"
-    dotnet publish "$updaterProject" -c $Configuration -r win-x64 --self-contained true -p:Version=$Version
+    dotnet publish "$updaterProject" -c $Configuration -p:Version=$Version
     if ($LASTEXITCODE -ne 0) {
         throw "Updater build failed"
     }

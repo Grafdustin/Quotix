@@ -1,5 +1,5 @@
 using System.IO;
-using System.Text.Json;
+using System.Runtime.Serialization.Json;
 using System.Windows;
 
 namespace Quotix.Updater;
@@ -13,9 +13,13 @@ public partial class App : Application
         try
         {
             var requestPath = GetRequestPath(e.Args);
-            var json = File.ReadAllText(requestPath);
-            var request = JsonSerializer.Deserialize<UpdateRequest>(json)
-                ?? throw new InvalidDataException("更新请求无效");
+            UpdateRequest request;
+            using (var stream = File.OpenRead(requestPath))
+            {
+                request = new DataContractJsonSerializer(typeof(UpdateRequest))
+                    .ReadObject(stream) as UpdateRequest
+                    ?? throw new InvalidDataException("更新请求无效");
+            }
 
             var window = new MainWindow(request);
             MainWindow = window;

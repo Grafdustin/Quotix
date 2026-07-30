@@ -98,7 +98,7 @@ if (-not $SkipBuild) {
     }
 
     $updaterProject = Join-Path $PSScriptRoot "..\Updater\Quotix.Updater.csproj"
-    dotnet publish "$updaterProject" -c $Configuration -r $Runtime --self-contained true -p:Version=$Version
+    dotnet publish "$updaterProject" -c $Configuration -p:Version=$Version
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Error: Updater build failed" -ForegroundColor Red
         exit 1
@@ -157,7 +157,7 @@ Get-ChildItem $publishDir -Recurse | ForEach-Object {
 
 Write-Host "Staging: $copiedCount files copied, $skippedCount files filtered" -ForegroundColor Green
 
-$updaterPublishDir = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\Updater\bin\$Configuration\$TargetFramework\$Runtime\publish"))
+$updaterPublishDir = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\Updater\bin\$Configuration\net48\publish"))
 if (-not (Test-Path $updaterPublishDir)) {
     Write-Host "Error: Updater publish directory not found: $updaterPublishDir" -ForegroundColor Red
     exit 1

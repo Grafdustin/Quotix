@@ -21,9 +21,6 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
-    <ProjectReference Include="Updater\Quotix.Updater.csproj"
-                      ReferenceOutputAssembly="false"
-                      Private="false" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="bin\**\*.cs" />
@@ -63,9 +60,13 @@
   <Target Name="CopyUpdaterAfterBuild"
           AfterTargets="Build"
           Condition="'$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="$(MSBuildProjectDirectory)\Updater\Quotix.Updater.csproj"
+             Targets="Build"
+             Properties="Configuration=$(Configuration)" />
+    <RemoveDir Directories="$(OutDir)Updater" />
     <ItemGroup>
-      <UpdaterBuildOutput Include="$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net10.0-windows\win-x64\**\*"
-                          Exclude="$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net10.0-windows\win-x64\**\*.pdb;$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net10.0-windows\win-x64\**\*.xml" />
+      <UpdaterBuildOutput Include="$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net48\**\*"
+                          Exclude="$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net48\**\*.pdb;$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\net48\**\*.xml" />
     </ItemGroup>
     <Copy SourceFiles="@(UpdaterBuildOutput)"
           DestinationFiles="@(UpdaterBuildOutput->'$(OutDir)Updater\%(RecursiveDir)%(Filename)%(Extension)')"

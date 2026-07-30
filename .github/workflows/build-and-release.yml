@@ -40,7 +40,7 @@ jobs:
     - name: Build and Publish
       run: |
         dotnet publish QuotixDesktop.csproj -c Release -r win-x64 --self-contained true -p:Version=${{ steps.meta.outputs.VERSION }} -o publish
-        dotnet publish Updater/Quotix.Updater.csproj -c Release -r win-x64 --self-contained true -p:Version=${{ steps.meta.outputs.VERSION }} -o publish/Updater
+        dotnet publish Updater/Quotix.Updater.csproj -c Release -p:Version=${{ steps.meta.outputs.VERSION }} -o publish/Updater
       shell: pwsh
 
     - name: Prepare Staging

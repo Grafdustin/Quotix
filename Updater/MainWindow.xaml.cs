@@ -19,11 +19,9 @@ public partial class MainWindow : Window
     public MainWindow(UpdateRequest request)
     {
         _request = request;
-        _httpClient = new HttpClient(new SocketsHttpHandler
+        _httpClient = new HttpClient(new HttpClientHandler
         {
-            AutomaticDecompression = DecompressionMethods.All,
-            ConnectTimeout = TimeSpan.FromSeconds(8),
-            PooledConnectionLifetime = TimeSpan.FromMinutes(3)
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
         })
         {
             Timeout = Timeout.InfiniteTimeSpan
@@ -123,7 +121,9 @@ public partial class MainWindow : Window
                     throw new InvalidDataException("安装包校验失败");
                 }
 
-                File.Move(partialPath, installerPath, true);
+                if (File.Exists(installerPath))
+                    File.Delete(installerPath);
+                File.Move(partialPath, installerPath);
                 DownloadProgress.IsIndeterminate = false;
                 DownloadProgress.Value = 100;
                 return installerPath;
@@ -163,8 +163,8 @@ public partial class MainWindow : Window
 
         var contentLength = response.Content.Headers.ContentLength ?? 0;
         var totalLength = contentLength > 0 ? existingLength + contentLength : 0;
-        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
-        await using var target = new FileStream(
+        using var source = await response.Content.ReadAsStreamAsync();
+        using var target = new FileStream(
             partialPath,
             append ? FileMode.Append : FileMode.Create,
             FileAccess.Write,
@@ -183,11 +183,11 @@ public partial class MainWindow : Window
 
         while (true)
         {
-            var read = await source.ReadAsync(buffer, cancellationToken);
+            var read = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
             if (read == 0)
                 break;
 
-            await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            await target.WriteAsync(buffer, 0, read, cancellationToken);
             received += read;
             sampleBytes += read;
 
@@ -240,13 +240,15 @@ public partial class MainWindow : Window
                 HttpCompletionOption.ResponseHeadersRead,
                 timeout.Token);
             response.EnsureSuccessStatusCode();
-            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
+            using var stream = await response.Content.ReadAsStreamAsync();
             var buffer = new byte[64 * 1024];
             var total = 0;
             while (total < 262144)
             {
                 var read = await stream.ReadAsync(
-                    buffer.AsMemory(0, Math.Min(buffer.Length, 262144 - total)),
+                    buffer,
+                    0,
+                    Math.Min(buffer.Length, 262144 - total),
                     timeout.Token);
                 if (read == 0)
                     break;
@@ -266,7 +268,7 @@ public partial class MainWindow : Window
         {
             DownloadProgress.IsIndeterminate = total <= 0;
             if (total > 0)
-                DownloadProgress.Value = Math.Clamp(received * 100d / total, 0, 100);
+                DownloadProgress.Value = Clamp(received * 100d / total, 0, 100);
 
             SizeText.Text = total > 0
                 ? $"{FormatSize(received)} / {FormatSize(total)}"
@@ -307,17 +309,21 @@ public partial class MainWindow : Window
         {
             FileName = installerPath,
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            Arguments = string.Join(" ", new[]
+            {
+                "/VERYSILENT",
+                "/SUPPRESSMSGBOXES",
+                "/NORESTART",
+                "/CLOSEAPPLICATIONS",
+                QuoteArgument("/DIR=" + _request.InstallDirectory)
+            })
         };
-        startInfo.ArgumentList.Add("/VERYSILENT");
-        startInfo.ArgumentList.Add("/SUPPRESSMSGBOXES");
-        startInfo.ArgumentList.Add("/NORESTART");
-        startInfo.ArgumentList.Add("/CLOSEAPPLICATIONS");
-        startInfo.ArgumentList.Add($"/DIR={_request.InstallDirectory}");
 
         using var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("无法启动安装程序");
-        await process.WaitForExitAsync(cancellationToken);
+        while (!process.HasExited)
+            await Task.Delay(200, cancellationToken);
         if (process.ExitCode != 0)
             throw new InvalidOperationException($"安装程序返回错误代码 {process.ExitCode}");
     }
@@ -375,15 +381,20 @@ public partial class MainWindow : Window
         string path,
         CancellationToken cancellationToken)
     {
-        await using var stream = new FileStream(
-            path,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            128 * 1024,
-            useAsync: true);
-        var hash = await SHA256.HashDataAsync(stream, cancellationToken);
-        return Convert.ToHexString(hash);
+        return await Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                128 * 1024);
+            using var sha256 = SHA256.Create();
+            var hash = sha256.ComputeHash(stream);
+            cancellationToken.ThrowIfCancellationRequested();
+            return BitConverter.ToString(hash).Replace("-", "");
+        }, cancellationToken);
     }
 
     private static string FormatSize(long bytes)
@@ -413,4 +424,10 @@ public partial class MainWindow : Window
         {
         }
     }
+
+    private static double Clamp(double value, double minimum, double maximum)
+        => Math.Max(minimum, Math.Min(maximum, value));
+
+    private static string QuoteArgument(string value)
+        => "\"" + value.Replace("\"", "\\\"") + "\"";
 }
